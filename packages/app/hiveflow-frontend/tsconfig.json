@@ -1,0 +1,16 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "outDir": "dist/",
+    "rootDir": "src/",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "downlevelIteration": true
+  },
+  "references": [
+    {"path": "../hiveflow-api"}
+  ],
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.test*"]
+}
