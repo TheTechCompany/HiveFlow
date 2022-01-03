@@ -14,7 +14,7 @@ import moment from 'moment';
 
 // import utils from '../../../utils';
 
-import { Kanban, FileDialog, SharedFiles } from '@hexhive/ui';
+import { Kanban, FileDialog, SharedFiles, FileExplorer } from '@hexhive/ui';
 
 import { useMutation, useQuery, useRefetch } from '@hive-flow/api';
 import { KanbanModal } from './KanbanModal';
@@ -131,62 +131,54 @@ const client = useApolloClient()
   }, [JSON.stringify(job)])
 
   const _tabs = [
-    // {
-    //   title: "Files",
-    //   component: (
-    //     <FileExplorer 
-    //         apolloClient={client}
-    //         parentId={parentId}
+    {
+      title: "Files",
+      component: (
+        <Box flex align='center' justify='center'>
+          <Text>Coming back soon...</Text>
+        </Box>
+      ) 
+      // (
+      // <SharedFiles
+      //   loading={loadingFiles}
+      //   uploading={uploadingFiles}
 
-    //         application={"HiveFlow"}
-    //         mountPath={`/Projects/${job_id}`}
-    //         onNavigate={(path) => {
-    //           setParentId(path.id)
-    //           // props.history.push(path.path)
-    //         }}
-    //       />
-    //   ) 
-    //   // (
-    //   // <SharedFiles
-    //   //   loading={loadingFiles}
-    //   //   uploading={uploadingFiles}
+      //   onClick={(item) => {
+      //     setShowFiles([item])
+      //     openDialog(true)
+      //   }}
+      //   files={(files || []).filter((a) => {
+      //     if(a.status == "Finished"){
+      //       let ttl = 14 * 24 * 60 * 60 * 1000;
+      //       return Date.now() - dateFromObjectID(a.id).getTime() < ttl;
+      //     }
+      //     return true;
+      //   })
+        // }
+        // onDelete={async (_files) => {
+        //   console.log(_files)
+        //   await Promise.all(_files.map(async (file) => {
+        //     // if(job?.id) await removeFile({args: {project: job?.id, id: file._id}})
+        //   }))
 
-    //   //   onClick={(item) => {
-    //   //     setShowFiles([item])
-    //   //     openDialog(true)
-    //   //   }}
-    //   //   files={(files || []).filter((a) => {
-    //   //     if(a.status == "Finished"){
-    //   //       let ttl = 14 * 24 * 60 * 60 * 1000;
-    //   //       return Date.now() - dateFromObjectID(a.id).getTime() < ttl;
-    //   //     }
-    //   //     return true;
-    //   //   })
-    //     // }
-    //     // onDelete={async (_files) => {
-    //     //   console.log(_files)
-    //     //   await Promise.all(_files.map(async (file) => {
-    //     //     // if(job?.id) await removeFile({args: {project: job?.id, id: file._id}})
-    //     //   }))
-
-    //     // }}
-    //     // onUpload={(files) => {
-    //     //   fileActions.addFilesToJob(job_id, files).then(async (result) => {
-    //     //     console.log("Upload result", result)
-    //     //     await refetch(query.projects({where: {id: job_id}}))
-    //     //   })
-    //     // }}
-    //     // onEdit={(files) => {
-    //     //   openDialog(true)
-    //     //   setShowFiles(files)
-    //     // }}
-    //     // onView={(files) => {
-    //     //   openDialog(true)
-    //     //   setShowFiles(files)
-    //     // }}
-    //     // onChange={(files) => setFiles(files)}
-    //     // jobId={job_id} />)
-    // },
+        // }}
+        // onUpload={(files) => {
+        //   fileActions.addFilesToJob(job_id, files).then(async (result) => {
+        //     console.log("Upload result", result)
+        //     await refetch(query.projects({where: {id: job_id}}))
+        //   })
+        // }}
+        // onEdit={(files) => {
+        //   openDialog(true)
+        //   setShowFiles(files)
+        // }}
+        // onView={(files) => {
+        //   openDialog(true)
+        //   setShowFiles(files)
+        // }}
+        // onChange={(files) => setFiles(files)}
+        // jobId={job_id} />)
+    },
     {
       title: "Project board",
       component: <Kanban 

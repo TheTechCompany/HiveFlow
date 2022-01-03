@@ -179,13 +179,15 @@ export const Dashboard = (props: any) => {
               <Routes>
                 <Route path={`schedule`} element={<ScheduleView/>} />
                 <Route path={`projects`} element={<ProjectList/>} >
-                  <Route path={`projects/:id`} element={<ProjectSingle/>} />
 
                 </Route>
+                <Route path={`projects/:id`} element={<ProjectSingle/>} />
+
                 <Route path={`estimates`} element={<Quotes/>} />
                 <Route path={`people`} element={<PeopleList/>}>
-                  <Route path={`people/:id`} element={<PeopleSingle/>} />
                 </Route>
+                <Route path={`people/:id`} element={<PeopleSingle/>} />
+
                 <Route path={`equipment`} element={<EquipmentList/>} />
                 <Route path={`timeline`} element={<Timeline/>} />
               </Routes>
