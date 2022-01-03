@@ -4,9 +4,6 @@
     "jsx": "react-jsx",
     "outDir": "dist/",
     "rootDir": "src/",
-    "paths": {
-      "@hive-flow/api": ["../hiveflow-api/src"]
-    },
     "moduleResolution": "node",
     "esModuleInterop": true,
     "downlevelIteration": true
