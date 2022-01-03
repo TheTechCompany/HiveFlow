@@ -1,4 +1,4 @@
-name: Build Apps (HiveCommand)
+name: Build Apps (HiveFlow)
 on:
   push:
     branches:
