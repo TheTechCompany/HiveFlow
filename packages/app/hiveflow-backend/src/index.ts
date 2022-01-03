@@ -1,5 +1,6 @@
 import { config } from "dotenv";
 config();
+import { HiveGraph } from '@hexhive/graphql-server'
 import { readFileSync } from 'fs'
 import express from "express";
 import neo4j from "neo4j-driver";
@@ -10,9 +11,11 @@ import resolvers from "./resolvers";
 import jwt from "jsonwebtoken";
 
 
-const publicKey = readFileSync("./public.key", 'utf8');
+const publicKey = readFileSync(__dirname + "/public.key", 'utf8');
 
 (async (publicKey: string) => {
+
+
   const driver = neo4j.driver(
     process.env.NEO4J_URI || "localhost",
     neo4j.auth.basic(
@@ -31,38 +34,47 @@ const publicKey = readFileSync("./public.key", 'utf8');
     driver,
   });
 
+  	const graphServer = new HiveGraph({
+		rootServer: process.env.ROOT_SERVER || "http://localhost:7000",
+		schema: neoSchema.schema
+	})
+
+	await graphServer.init()
+
   const app = express();
 
-  app.use("/graphql", (req, res, next) => {
-    const hiveJwt = req.headers["x-hive-jwt"]?.toString();
+  app.use(graphServer.middleware)
+  
+//   app.use("/graphql", (req, res, next) => {
+//     const hiveJwt = req.headers["x-hive-jwt"]?.toString();
 
-    console.log(req.headers);
-    if (hiveJwt) {
-      const verified = jwt.verify(
-        hiveJwt,
-        publicKey,
-        { algorithms: ["RS256"] }
-      );
+//     console.log(req.headers);
+//     if (hiveJwt) {
+//       const verified = jwt.verify(
+//         hiveJwt,
+//         publicKey,
+//         { algorithms: ["RS256"] }
+//       );
 
-	  console.log(verified);
+// 	  console.log(verified);
 
-      (req as any).jwt = {
-		  ...(verified as any || {}),
-        id: verified?.sub,
-      };
-      next();
-    } else {
-      res.send({ error: "No JWT" });
-    }
-  });
+//       (req as any).jwt = {
+// 		  ...(verified as any || {}),
+//         id: verified?.sub,
+//       };
+//       next();
+//     } else {
+//       res.send({ error: "No JWT" });
+//     }
+//   });
 
-  app.use(
-    "/graphql",
-    graphqlHTTP({
-      schema: neoSchema.schema,
-      graphiql: true,
-    })
-  );
+//   app.use(
+//     "/graphql",
+//     graphqlHTTP({
+//       schema: neoSchema.schema,
+//       graphiql: true,
+//     })
+//   );
 
   app.listen("9011");
 })(publicKey);
