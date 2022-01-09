@@ -3,7 +3,6 @@ import user from './user';
 
 export default gql`
 
-	${user}
 	type WorkInProgress @exclude {
 		quoted: Float
 		invoiced: Float

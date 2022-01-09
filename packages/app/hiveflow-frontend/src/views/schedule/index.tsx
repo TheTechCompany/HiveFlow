@@ -7,15 +7,16 @@ import { mutation, useRefetch, useMutation, useQuery, resolved } from '@hive-flo
 import moment from 'moment';
 import { schedule as scheduleActions } from '../../actions'
 import { useContext } from 'react';
-import { AuthContext } from '@hexhive/auth-ui';
+import { AuthContext, useAuth } from '@hexhive/auth-ui';
 import { useEffect } from 'react';
 import { Menu, Previous, Next } from 'grommet-icons';
 import {DraftPane } from './draft-pane';
 import { useQuery as useApollo, gql, useApolloClient } from '@apollo/client';
+
 export const Schedule : React.FC<any> = (props) =>  {
 
   //User
-  const { activeUser } = {activeUser: {sub: '1'}}
+  const { activeUser } = useAuth() //{activeUser: {sub: '1'}}
 
   const client = useApolloClient();
 
@@ -167,7 +168,7 @@ const slowData = slowResult.data;
           },
           ...query,
           owner: {
-            connect: {where: {node: {id: activeUser.sub}}}
+            connect: {where: {node: {id: activeUser?.id}}}
           }
         }}]}]
       }
@@ -286,10 +287,10 @@ const slowData = slowResult.data;
 
   const [joinCard, joinInfo] = useMutation((mutation, args: {id: string}) => {
     console.log(activeUser)
-    if(!activeUser?.sub) return;
+    if(!activeUser?.id) return;
  
     const result = mutation.updateScheduleItems({where: {id: args.id}, update: {
-        managers: [{connect: [{where: {node: {id: activeUser?.sub}}}] }]
+        managers: [{connect: [{where: {node: {id: activeUser?.id}}}] }]
     }})
     return {
       item: {
@@ -307,9 +308,9 @@ const slowData = slowResult.data;
 
 
   const [leaveCard, leaveInfo] = useMutation((mutation, args: {id: string}) => {
-    if(!activeUser?.sub) return;
+    if(!activeUser?.id) return;
     const result = mutation.updateScheduleItems({where: {id: args.id}, disconnect: {
-      managers: [{where: {node: {id: activeUser?.sub}}}]
+      managers: [{where: {node: {id: activeUser?.id}}}]
     }})
     return {
       item: result,
@@ -361,7 +362,7 @@ const slowData = slowResult.data;
             },
             ...query,
             owner: {
-              connect: {where: {node: {id: activeUser.sub}}}
+              connect: {where: {node: {id: activeUser?.id}}}
             }
           }
         }))}]
