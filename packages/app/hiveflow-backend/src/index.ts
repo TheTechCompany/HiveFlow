@@ -27,11 +27,11 @@ import jwt from "jsonwebtoken";
 
   const resolved = await resolvers(driver.session());
 
-  const neoSchema: Neo4jGraphQL = new Neo4jGraphQL({
-    typeDefs,
-    resolvers: resolved,
-    driver,
-  });
+  // const neoSchema: Neo4jGraphQL = new Neo4jGraphQL({
+  //   typeDefs,
+  //   resolvers: resolved,
+  //   driver,
+  // });
 
   const graphServer = new HiveGraph({
 		rootServer: process.env.ROOT_SERVER || "http://localhost:7000",
