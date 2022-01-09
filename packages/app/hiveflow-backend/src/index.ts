@@ -35,7 +35,11 @@ import jwt from "jsonwebtoken";
 
   const graphServer = new HiveGraph({
 		rootServer: process.env.ROOT_SERVER || "http://localhost:7000",
-		schema: neoSchema.schema
+		schema: {
+      typeDefs,
+      resolvers: resolved,
+      driver
+    }
 	})
 
 	await graphServer.init()
