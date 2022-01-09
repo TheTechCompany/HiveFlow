@@ -23,6 +23,11 @@
   dependencies:
     react-ssr-prepass "^1.4.0"
 
+"@types/node@^17.0.7":
+  version "17.0.7"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.7.tgz#4a53d8332bb65a45470a2f9e2611f1ced637a5cb"
+  integrity sha512-1QUk+WAUD4t8iR+Oj+UgI8oJa6yyxaB8a8pHaC8uqM6RrS1qbL7bf3Pwl5rHv0psm2CuDErgho6v5N+G+5fwtQ==
+
 gqty@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/gqty/-/gqty-2.1.0.tgz#3ee81f4781a079eae2dac4a45a98dafb9ddd0bc9"

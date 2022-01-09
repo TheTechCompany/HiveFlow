@@ -34,7 +34,7 @@ const publicKey = readFileSync(__dirname + "/public.key", 'utf8');
     driver,
   });
 
-  	const graphServer = new HiveGraph({
+  const graphServer = new HiveGraph({
 		rootServer: process.env.ROOT_SERVER || "http://localhost:7000",
 		schema: neoSchema.schema
 	})
