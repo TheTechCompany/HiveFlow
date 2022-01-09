@@ -29,7 +29,7 @@ import { EquipmentList } from '../equipment/list';
 import Quotes from '../quotes';
 import { BaseStyle } from '@hexhive/styles';
 
-const Timeline = React.lazy(() => import('../timeline/Timeline'))
+import Timeline from '../timeline/Timeline'
 
 // const Schedule = React.lazy(() => import('../schedule'))
 // const Quotes = React.lazy(() => import('../quotes'))

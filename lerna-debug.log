@@ -1,0 +1,12 @@
+0 silly argv {
+0 silly argv   _: [ 'add' ],
+0 silly argv   scope: '@hive-flow/backend',
+0 silly argv   globs: [],
+0 silly argv   lernaVersion: '4.0.0',
+0 silly argv   '$0': '/Users/the-kid/work/contract-work/HiveFlow/node_modules/.bin/lerna',
+0 silly argv   pkg: '@hexhive/graphql-server@0.0.6-alpha.10'
+0 silly argv }
+1 notice cli v4.0.0
+2 verbose rootPath /Users/the-kid/work/contract-work/HiveFlow
+3 error @hexhive/graphql-server: No matching version found for @hexhive/graphql-server@0.0.6-alpha.10.
+3 error     at module.exports (/Users/the-kid/work/contract-work/HiveFlow/node_modules/npm-pick-manifest/index.js:209:23)
