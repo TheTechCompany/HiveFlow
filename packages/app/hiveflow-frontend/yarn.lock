@@ -990,10 +990,10 @@
   "resolved" "https://registry.npmjs.org/@graphql-typed-document-node/core/-/core-3.1.1.tgz"
   "version" "3.1.1"
 
-"@hexhive/auth-ui@0.0.6-alpha.7":
-  "integrity" "sha512-8xbC4e04Aa+dtaVRIXU7b30d6KdlSqgAJ7LVxrR/PqCgzB3eftUhhZObb0oIuHyi+1veL6rqiN8odmgg4tV0tA=="
-  "resolved" "https://registry.npmjs.org/@hexhive/auth-ui/-/auth-ui-0.0.6-alpha.7.tgz"
-  "version" "0.0.6-alpha.7"
+"@hexhive/auth-ui@0.0.6-alpha.10":
+  "integrity" "sha512-pRhqO98Knoexc86W6/vvJM8C9fx19T1JySNMkTDZjbk54hakwT6ZT8fA7DoKMOXesr8BrqCoiw7XzWLDBYCBDw=="
+  "resolved" "https://registry.npmjs.org/@hexhive/auth-ui/-/auth-ui-0.0.6-alpha.10.tgz"
+  "version" "0.0.6-alpha.10"
   dependencies:
     "@babel/runtime" "^7.15.3"
     "react" "^17.0.2"
