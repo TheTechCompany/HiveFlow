@@ -11,9 +11,8 @@ import resolvers from "./resolvers";
 import jwt from "jsonwebtoken";
 
 
-const publicKey = readFileSync(__dirname + "/public.key", 'utf8');
 
-(async (publicKey: string) => {
+(async () => {
 
 
   const driver = neo4j.driver(
@@ -77,4 +76,4 @@ const publicKey = readFileSync(__dirname + "/public.key", 'utf8');
 //   );
 
   app.listen("9011");
-})(publicKey);
+})();
