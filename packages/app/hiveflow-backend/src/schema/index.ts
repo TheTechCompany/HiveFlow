@@ -3,6 +3,11 @@ import user from './user';
 
 export default gql`
 
+	extend type HiveOrganisation {
+		schedule: [ScheduleItem] @relationship(type: "SCHEDULE", direction: OUT)
+		timeline: [TimelineItem] @relationship(type: "PLANNING", direction: OUT)
+	}
+
 	type WorkInProgress @exclude {
 		quoted: Float
 		invoiced: Float

@@ -18,6 +18,7 @@ export const Schedule : React.FC<any> = (props) =>  {
   //User
   const { activeUser } = useAuth() //{activeUser: {sub: '1'}}
 
+  console.log(activeUser)
   const client = useApolloClient();
 
   const [ horizon, setHorizon ] = useState<{start: Date, end: Date}>({
@@ -159,18 +160,23 @@ const slowData = slowResult.data;
     const result = mutation.updateHiveOrganisations({ 
  
       update: {
-        schedule: [{create: [{node: {
-          date: args.item.date,
-          project: {
-            connect: {where: {node: {
-              id: args.item.project
-             }}}
-          },
-          ...query,
-          owner: {
-            connect: {where: {node: {id: activeUser?.id}}}
-          }
-        }}]}]
+      
+       schedule: [{
+         create: [{
+          node: {
+                date: args.item.date,
+                project: {
+                  connect: {where: {node: {
+                    id: args.item.project
+                  }}}
+            },
+            ...query,
+            owner: {
+              connect: {where: {node: {id: activeUser?.id}}}
+            }
+          }           
+         }]
+       }]
       }
     })
     return {
