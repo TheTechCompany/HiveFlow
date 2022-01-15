@@ -15,7 +15,7 @@ const authServer = process.env.REACT_APP_API
 
 const client = new ApolloClient({
   uri: process.env.REACT_APP_API
-    ? `${process.env.REACT_APP_API}/graphql`
+    ? `${process.env.REACT_APP_API}/graphql?appliance=HiveFlow`
     : "http://localhost:7000/graphql?appliance=HiveFlow",
   cache: new InMemoryCache(),
   credentials: "include",
