@@ -35,7 +35,7 @@ import jwt from "jsonwebtoken";
 
   const graphServer = new HiveGraph({
 		rootServer: process.env.ROOT_SERVER || "http://localhost:7000",
-    // dev: true,
+    dev: true,
 		schema: {
       typeDefs,
       resolvers: resolved,
