@@ -1004,10 +1004,10 @@
   "resolved" "https://registry.npmjs.org/@hexhive/styles/-/styles-0.0.6-alpha.13.tgz"
   "version" "0.0.6-alpha.13"
 
-"@hexhive/ui@0.0.6-alpha.17":
-  "integrity" "sha512-k3Wc6mH93zoZNgGaD9wIRNAo+MVX6gX8QZiiGkwMohvQiJUT0sf9KSFimm5UahEOwZ174FLfuf9BBcU9TSM4Kw=="
-  "resolved" "https://registry.npmjs.org/@hexhive/ui/-/ui-0.0.6-alpha.17.tgz"
-  "version" "0.0.6-alpha.17"
+"@hexhive/ui@0.0.6-alpha.18":
+  "integrity" "sha512-Jya+1l7lY3TiorLFaS3TvXwEMZKSbTIkaLFwQ9cOOQphIX7kA0MjNw3GKnhCD0DvTXctZumeHERWKagVM4hT9w=="
+  "resolved" "https://registry.npmjs.org/@hexhive/ui/-/ui-0.0.6-alpha.18.tgz"
+  "version" "0.0.6-alpha.18"
   dependencies:
     "@babylonjs/core" "5.0.0-alpha.6"
     "@babylonjs/loaders" "5.0.0-alpha.6"
