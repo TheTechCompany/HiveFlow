@@ -134,6 +134,8 @@ const slowData = slowResult.data;
   const [createItem, info] = useMutation((mutation, args: {item: any}) => {
     let query = {};
 
+    if(!args.item.project) return {error: 'Project is required'}
+
     if(args.item.equipment?.length > 0){
       query = {
         ...query,
@@ -194,6 +196,7 @@ const slowData = slowResult.data;
   })
 
   const [updateItem, infoItem] = useMutation((mutation, args: {id: string, item: any}) => {
+    
     
     console.log("UPDATE", args)
     let oldScheduleItem = schedule.find((a) => a.id == args.id)
@@ -276,6 +279,7 @@ const slowData = slowResult.data;
   })
 
   const [removeItem, infoRemove] = useMutation((mutation, args: {id: string}) => {
+    if(!args.id) return {error: "Item Id is required"}
     const result = mutation.deleteScheduleItems({where: {id: args.id}})
     return {
       item: {

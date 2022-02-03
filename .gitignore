@@ -4,3 +4,4 @@ dist/
 *.tsbuildinfo
 tsconfig.tsbuildinfo
 public.key
+.DS_Store
