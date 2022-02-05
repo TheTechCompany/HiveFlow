@@ -1004,10 +1004,10 @@
   "resolved" "https://registry.npmjs.org/@hexhive/styles/-/styles-0.0.6-alpha.13.tgz"
   "version" "0.0.6-alpha.13"
 
-"@hexhive/ui@0.0.6-alpha.18":
-  "integrity" "sha512-Jya+1l7lY3TiorLFaS3TvXwEMZKSbTIkaLFwQ9cOOQphIX7kA0MjNw3GKnhCD0DvTXctZumeHERWKagVM4hT9w=="
-  "resolved" "https://registry.npmjs.org/@hexhive/ui/-/ui-0.0.6-alpha.18.tgz"
-  "version" "0.0.6-alpha.18"
+"@hexhive/ui@0.0.6-alpha.23":
+  "integrity" "sha512-QhpN3AyPzTDhqJlA67peAP9MJekGo7BismWPk8Ms2a6EQhEvOKweh+88GWBCPhFKakgGHK/Kku9+gZoSKmHLyQ=="
+  "resolved" "https://registry.npmjs.org/@hexhive/ui/-/ui-0.0.6-alpha.23.tgz"
+  "version" "0.0.6-alpha.23"
   dependencies:
     "@babylonjs/core" "5.0.0-alpha.6"
     "@babylonjs/loaders" "5.0.0-alpha.6"
@@ -6059,7 +6059,7 @@
   "resolved" "https://registry.npmjs.org/graphql/-/graphql-16.2.0.tgz"
   "version" "16.2.0"
 
-"grommet-icons@^4.6.0", "grommet-icons@^4.7.0":
+"grommet-icons@^4.6.0", "grommet-icons@^4.6.2":
   "integrity" "sha512-ptw8x86Age/Yz6SplCLtJ8q1z/4ZLktMruCOnE6oTgc7hcIV/8ieOucTrLbu+PDi7rKxoP321O3OG3Zo/3qXjw=="
   "resolved" "https://registry.npmjs.org/grommet-icons/-/grommet-icons-4.7.0.tgz"
   "version" "4.7.0"
@@ -6071,14 +6071,14 @@
   "resolved" "https://registry.npmjs.org/grommet-styles/-/grommet-styles-0.2.0.tgz"
   "version" "0.2.0"
 
-"grommet@2.20.0":
-  "integrity" "sha512-xnDf9o3o7NU62WAwNChBbgGRtVNslJldPRpdbdyzhx0f4PXQ1cwm73Rcbqzy8hB1CJKpYk+pOTmTNMFLsVZzOw=="
-  "resolved" "https://registry.npmjs.org/grommet/-/grommet-2.20.0.tgz"
-  "version" "2.20.0"
+"grommet@2.18.0":
+  "integrity" "sha512-e7w3EJT2+TkJEHa+lB2BWcPbOixVk3X6hUl0hxRITMVqEFyjzU5NY5dzoRs50uMtHF4/tksyBWOKyvdsjJwMVg=="
+  "resolved" "https://registry.npmjs.org/grommet/-/grommet-2.18.0.tgz"
+  "version" "2.18.0"
   dependencies:
-    "grommet-icons" "^4.7.0"
+    "grommet-icons" "^4.6.2"
     "hoist-non-react-statics" "^3.2.0"
-    "markdown-to-jsx" "^7.1.5"
+    "markdown-to-jsx" "^7.1.3"
     "prop-types" "^15.7.2"
 
 "gzip-size@^6.0.0":
@@ -7585,7 +7585,7 @@
     "mdurl" "^1.0.1"
     "uc.micro" "^1.0.5"
 
-"markdown-to-jsx@^7.1.5":
+"markdown-to-jsx@^7.1.3":
   "integrity" "sha512-YQEMMMCX3PYOWtUAQu8Fmz5/sH09s17eyQnDubwaAo8sWmnRTT1og96EFv1vL59l4nWfmtF3L91pqkuheVqRlA=="
   "resolved" "https://registry.npmjs.org/markdown-to-jsx/-/markdown-to-jsx-7.1.5.tgz"
   "version" "7.1.5"
