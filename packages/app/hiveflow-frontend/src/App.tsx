@@ -9,13 +9,15 @@ import { ThemeProvider } from "styled-components";
 import { AuthProvider } from "@hexhive/auth-ui";
 
 
+const API_URL = localStorage.getItem('HEXHIVE_API');
+
 const authServer = process.env.REACT_APP_API
 ? `${process.env.REACT_APP_API}`
 : "http://localhost:7000"
 
 const client = new ApolloClient({
-  uri: process.env.REACT_APP_API
-    ? `${process.env.REACT_APP_API}/graphql?appliance=HiveFlow`
+  uri: process.env.NODE_ENV == 'production'
+    ? `${API_URL || process.env.REACT_APP_API}/graphql?appliance=HiveFlow`
     : "http://localhost:7000/graphql?appliance=HiveFlow",
   cache: new InMemoryCache(),
   credentials: "include",
