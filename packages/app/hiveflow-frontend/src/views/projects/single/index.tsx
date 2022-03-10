@@ -14,7 +14,7 @@ import moment from 'moment';
 
 // import utils from '../../../utils';
 
-import { Kanban, FileDialog, SharedFiles, FileExplorer } from '@hexhive/ui';
+import { Kanban, FileDialog, FileExplorer } from '@hexhive/ui';
 
 import { useMutation, useQuery, useRefetch } from '@hive-flow/api';
 import { KanbanModal } from './KanbanModal';

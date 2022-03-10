@@ -2,7 +2,7 @@ import React, {
   Component, useEffect, useState
 } from 'react';
 
-import {RobustFileList} from '@hexhive/ui';
+// import {RobustFileList} from '@hexhive/ui';
 import './index.css';
 import { Box, Text, Button, TextInput } from 'grommet';
 
@@ -71,11 +71,11 @@ export const Profile : React.FC<ProfileProps> = (props) => {
           <Box className="profile-uploads">
             <Box>
               <Text>Uploaded Files</Text>
-              <RobustFileList 
+              {/* <RobustFileList 
                 cols={4}
                 files={uploads} 
                 onClick={() => {}} 
-                onDeleteClick={() => {}}/>
+                onDeleteClick={() => {}}/> */}
             </Box>
           </Box>
         </div>
