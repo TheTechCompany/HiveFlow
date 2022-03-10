@@ -4,6 +4,7 @@ const webpack = require('webpack')
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 module.exports = (webpackConfigEnv, argv) => {
+  // webpackConfigEnv.analyze = true;
   const defaultConfig = singleSpaDefaults({
     orgName: "hexhive-apps",
     projectName: "hive-flow",
@@ -23,8 +24,15 @@ module.exports = (webpackConfigEnv, argv) => {
         }
       ]
     },
+    resolve: {
+      fallback: {
+        "process": require.resolve('process/browser')
+      },
+      plugins: [
+        new TsconfigPathsPlugin(),
+      ]
+    },
     plugins: [
-      new TsconfigPathsPlugin(),
       new webpack.ProvidePlugin({
         process: 'process/browser',
       }),
