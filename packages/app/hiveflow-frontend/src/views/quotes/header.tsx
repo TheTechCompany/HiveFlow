@@ -1,11 +1,14 @@
 import React from 'react';
-import { Box, TextInput, Select } from 'grommet'
+import { Box, TextInput, Select, Button } from 'grommet'
 import { Maybe } from '@hive-flow/api';
+import { Add } from 'grommet-icons';
 
 export interface QuoteHeaderProps {
     quotes?: any[]
     filter?: {search?: string, status?: string};
     onFilterChange?: (filter: {search?: string, status?: string}) => void;
+
+    onCreate?: () => void;
 }
 
 export const QuoteHeader : React.FC<QuoteHeaderProps> = (props) => {
@@ -44,6 +47,10 @@ export const QuoteHeader : React.FC<QuoteHeaderProps> = (props) => {
           options={["All"].concat(Array.from(new Set(props.quotes?.filter((a) => a != undefined).map((x: any) => x.status || ''))))} 
           />
         </Box>
+
+        {props.onCreate && (
+          <Button onClick={props.onCreate} hoverIndicator plain style={{padding: 6, borderRadius: 3}} icon={<Add />} />
+        )}
        
       </Box>
     )

@@ -2,10 +2,12 @@ import { Box, ColumnConfig, DataTable } from 'grommet';
 import React, {
   useEffect, useState
 } from 'react';
-import { useQuery } from '@hive-flow/api';
+import { useMutation, useQuery } from '@hive-flow/api';
 
 // import utils from '../../utils';
 import { QuoteHeader } from './header';
+import { useTypeConfiguration } from '../../context';
+import { Estimate, EstimateModal } from '../../modals/estimate';
 
 var formatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -14,6 +16,12 @@ var formatter = new Intl.NumberFormat('en-US', {
 
 
 const Quotes: React.FC<any> = (props) => {
+
+  const configuration = useTypeConfiguration('Estimate');
+
+  const [ modalOpen, openModal ] = useState(false)
+  const [ selected, setSelected ] = useState<Estimate>()
+
   const [filter, setFiler] = useState<any>({})
 
   const [direction, setDirection] = useState<"asc" | "desc">()
@@ -35,6 +43,60 @@ const Quotes: React.FC<any> = (props) => {
 
   const listData = query.estimates()
 
+  const [ createEstimate ] = useMutation((mutation, args: {name: string}) => {
+    const item = mutation.updateHiveOrganisations({
+      update: {
+        estimates: [{
+          create: [{
+            node: {
+              name: args.name
+            }
+          }]
+        }]
+      }
+    })
+    return {
+      item: {
+        ...item.hiveOrganisations?.[0]
+      }
+    }
+  }, {
+    awaitRefetchQueries: true,
+    refetchQueries: [query.estimates()]
+  })
+
+  const [ updateEstimate ] = useMutation((mutation, args: {id: string, name: string}) => {
+    if(!args.id) return;
+    const item = mutation.updateEstimates({
+      where: {id: args.id},
+      update: {
+        name: args.name,
+      }
+    })
+    return {
+      item: { 
+        ...item.estimates?.[0]
+      }
+    }
+  }, {
+    awaitRefetchQueries: true,
+    refetchQueries: [query.estimates()]
+  })
+
+  const [ deleteEstimate ] = useMutation((mutation, args: {id: string}) => {
+    if(!args.id) return;
+    const item = mutation.deleteEstimates({
+      where: {id: args.id}
+    })
+    return {
+      item: item.nodesDeleted
+    }
+  }, {
+    awaitRefetchQueries: true,
+    refetchQueries: [query.estimates()]
+  })
+
+  
   useEffect(() => {
     // utils.quote.getAll().then((quotes) => {
     //   setListData(quotes.map((x: any) => ({ id: `${x?.QuoteID}`,  status: x?.Status, name: x?.Name, price: parseInt(x?.TotalLinePrice?.toFixed(0)) || 0 })))
@@ -112,7 +174,43 @@ const Quotes: React.FC<any> = (props) => {
     <Box
       direction="column"
       flex>
+      <EstimateModal 
+        selected={selected}
+        onDelete={() => {
+          deleteEstimate({args: {id: selected?.id}}).then(()=> {
+            openModal(false)
+            setSelected(undefined);
+            // refetch()
+          })
+        }}
+        onSubmit={(project) => {
+          if(project.id){
+            updateEstimate({args: {
+              id: project.id,
+              name: project.name,
+            }}).then(() => {
+              openModal(false);
+              setSelected(undefined)
+              // refetch();
+            })
+          }else{
+            createEstimate({
+              args: {
+                name: project.name,
+              }
+            }).then(() => {
+              openModal(false);
+              setSelected(undefined)
+              // refetch();
+            })
+          }
+        }}
+        onClose={() => openModal(false)}
+        open={modalOpen} />
       <QuoteHeader
+        onCreate={configuration?.create != false && (() => {
+            openModal(true);
+        })}
         quotes={listData || []}
         filter={filter}
         onFilterChange={(filter) => setFiler(filter)}

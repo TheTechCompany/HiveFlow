@@ -6,12 +6,20 @@ import {
    Search as IoSearch
 } from 'grommet-icons'
 import { StaffSearchHeader } from './header';
-import { useQuery } from '@hive-flow/api';
+import { useMutation, useQuery } from '@hive-flow/api';
 import { idText } from 'typescript';
+import { useTypeConfiguration } from '../../../context';
+import { PeopleModal, Person } from '../../../modals/people';
 
 
 export const PeopleList: React.FC<any> = (props) => {
    // const [employees, setEmployees] = useState<any[]>([])
+
+   const configuration = useTypeConfiguration('People');
+
+   const [ modalOpen, openModal ] = useState(false);
+   const [ selected, setSelected ] = useState<Person>();
+
    const [search, setSearch] = useState<string>('')
 
    const query = useQuery({
@@ -24,6 +32,60 @@ export const PeopleList: React.FC<any> = (props) => {
 
 
    const people = query.people({}) || []
+
+   const [ createPeople ] = useMutation((mutation, args: {name: string}) => {
+      const item = mutation.updateHiveOrganisations({
+        update: {
+          people: [{
+            create: [{
+              node: {
+                name: args.name
+              }
+            }]
+          }]
+        }
+      })
+      return {
+        item: {
+          ...item.hiveOrganisations?.[0]
+        }
+      }
+    }, {
+      awaitRefetchQueries: true,
+      refetchQueries: [query.people({})]
+    })
+  
+    const [ updatePeople ] = useMutation((mutation, args: {id: string, name: string}) => {
+      if(!args.id) return;
+      const item = mutation.updatePeople({
+        where: {id: args.id},
+        update: {
+          name: args.name,
+        }
+      })
+      return {
+        item: { 
+          ...item.people?.[0]
+        }
+      }
+    }, {
+      awaitRefetchQueries: true,
+      refetchQueries: [query.people({})]
+    })
+  
+    const [ deletePeople ] = useMutation((mutation, args: {id: string}) => {
+      if(!args.id) return;
+      const item = mutation.deletePeople({
+        where: {id: args.id}
+      })
+      return {
+        item: item.nodesDeleted
+      }
+    }, {
+      awaitRefetchQueries: true,
+      refetchQueries: [query.people({})]
+    })
+  
    // componentWillMount(){
    //    utils.staff.getAll().then((res) => {
    //       this.setState({ employees : res});
@@ -52,7 +114,46 @@ export const PeopleList: React.FC<any> = (props) => {
       <Box
          style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
+         <PeopleModal 
+            open={modalOpen} 
+            selected={selected}
+            onDelete={() => {
+               deletePeople({args: {id: selected?.id}}).then(()=> {
+                  openModal(false)
+                  setSelected(undefined);
+                  // refetch()
+               })
+            }}
+            onSubmit={(project) => {
+               if(project.id){
+                  updatePeople({args: {
+                  id: project.id,
+                  name: project.name,
+                  }}).then(() => {
+                  openModal(false);
+                  setSelected(undefined)
+                  // refetch();
+                  })
+               }else{
+                  createPeople({
+                  args: {
+                     name: project.name,
+                  }
+                  }).then(() => {
+                  openModal(false);
+                  setSelected(undefined)
+                  // refetch();
+                  })
+               }
+            }}
+            onClose={() => {
+               openModal(false)
+               setSelected(undefined)
+            }} />
          <StaffSearchHeader
+            onCreate={configuration?.create != false && (() => {
+               openModal(true);
+            })}
             filter={search}
             onFilterChange={(filter) => setSearch(filter)} />
 

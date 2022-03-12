@@ -5,6 +5,12 @@ export default gql`
 	extend type HiveOrganisation {
 		schedule: [ScheduleItem] @relationship(type: "SCHEDULE", direction: OUT)
 		timeline: [TimelineItem] @relationship(type: "PLANNING", direction: OUT)
+
+		projects: [Project] @relationship(type: "HAS_PROJECT", direction: OUT)
+		people: [People] @relationship(type: "HAS_PEOPLE", direction: OUT)
+		equipment: [Equipment] @relationship(type: "HAS_EQUIPMENT", direction: OUT)
+		estimates: [Estimate] @relationship(type: "HAS_ESTIMATE", direction: OUT)
+
 	}
 
 	type WorkInProgress @exclude {

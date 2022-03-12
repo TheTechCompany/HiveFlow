@@ -8,10 +8,17 @@ import moment from 'moment';
 
 import { Box, DataTable } from 'grommet';
 import { PlantHeader } from './header';
-import { useQuery } from '@hive-flow/api';
+import { useMutation, useQuery } from '@hive-flow/api';
+import { useTypeConfiguration } from '../../../context';
+import { Equipment, EquipmentModal } from '../../../modals/equipment';
 
 
 export const EquipmentList: React.FC<any> = (props) => {
+
+  const configuration = useTypeConfiguration('Equipment')
+
+  const [ modalOpen, openModal ] = useState(false);
+  const [ selected, setSelected ] = useState<Equipment>()
 
   const [search, setSearch] = useState<string>('');
 
@@ -61,6 +68,59 @@ export const EquipmentList: React.FC<any> = (props) => {
   }
 
   const listData = query?.equipment({}) || [];
+
+  const [ createEquipment ] = useMutation((mutation, args: {name: string}) => {
+    const item = mutation.updateHiveOrganisations({
+      update: {
+        equipment: [{
+          create: [{
+            node: {
+              name: args.name
+            }
+          }]
+        }]
+      }
+    })
+    return {
+      item: {
+        ...item.hiveOrganisations?.[0]
+      }
+    }
+  }, {
+    awaitRefetchQueries: true,
+    refetchQueries: [query.equipment({})]
+  })
+
+  const [ updateEquipment ] = useMutation((mutation, args: {id: string, name: string}) => {
+    if(!args.id) return;
+    const item = mutation.updateEquipment({
+      where: {id: args.id},
+      update: {
+        name: args.name,
+      }
+    })
+    return {
+      item: { 
+        ...item.equipment?.[0]
+      }
+    }
+  }, {
+    awaitRefetchQueries: true,
+    refetchQueries: [query.equipment({})]
+  })
+
+  const [ deleteEquipment ] = useMutation((mutation, args: {id: string}) => {
+    if(!args.id) return;
+    const item = mutation.deleteEquipment({
+      where: {id: args.id}
+    })
+    return {
+      item: item.nodesDeleted
+    }
+  }, {
+    awaitRefetchQueries: true,
+    refetchQueries: [query.equipment({})]
+  })
 
   // constructor(props: any){
   //   super(props);
@@ -116,7 +176,47 @@ export const EquipmentList: React.FC<any> = (props) => {
     <Box
       flex
       className="plants-page">
-      <PlantHeader filter={search} onFilterChange={(search) => setSearch(search)} />
+      <EquipmentModal 
+        open={modalOpen} 
+        selected={selected}
+        onDelete={() => {
+          deleteEquipment({args: {id: selected?.id}}).then(()=> {
+            openModal(false)
+            setSelected(undefined);
+            // refetch()
+          })
+        }}
+        onSubmit={(project) => {
+          if(project.id){
+            updateEquipment({args: {
+              id: project.id,
+              name: project.name,
+            }}).then(() => {
+              openModal(false);
+              setSelected(undefined)
+              // refetch();
+            })
+          }else{
+            createEquipment({
+              args: {
+                name: project.name,
+              }
+            }).then(() => {
+              openModal(false);
+              setSelected(undefined)
+              // refetch();
+            })
+          }
+        }}
+        onClose={() => {
+          openModal(false)
+          setSelected(undefined)
+        }} />
+      <PlantHeader 
+        onCreate={configuration?.create != false && (() => {
+          openModal(true);
+        })}
+        filter={search} onFilterChange={(search) => setSearch(search)} />
       <Box
         round="xsmall"
         overflow="scroll"

@@ -814,7 +814,7 @@
     "core-js-pure" "^3.19.0"
     "regenerator-runtime" "^0.13.4"
 
-"@babel/runtime@^7.0.0", "@babel/runtime@^7.1.2", "@babel/runtime@^7.10.2", "@babel/runtime@^7.12.5", "@babel/runtime@^7.14.6", "@babel/runtime@^7.15.3", "@babel/runtime@^7.15.4", "@babel/runtime@^7.16.3", "@babel/runtime@^7.7.6", "@babel/runtime@^7.8.4", "@babel/runtime@^7.9.2":
+"@babel/runtime@^7.0.0", "@babel/runtime@^7.1.2", "@babel/runtime@^7.10.2", "@babel/runtime@^7.11.0", "@babel/runtime@^7.12.5", "@babel/runtime@^7.14.6", "@babel/runtime@^7.15.3", "@babel/runtime@^7.15.4", "@babel/runtime@^7.16.3", "@babel/runtime@^7.7.6", "@babel/runtime@^7.8.4", "@babel/runtime@^7.9.2":
   "version" "7.16.5"
   dependencies:
     "regenerator-runtime" "^0.13.4"
@@ -912,23 +912,27 @@
   "resolved" "https://registry.npmjs.org/@hexhive/styles/-/styles-0.0.6-alpha.13.tgz"
   "version" "0.0.6-alpha.13"
 
-"@hexhive/ui@0.0.6-alpha.57":
-  "integrity" "sha512-AU5oBoZmA5O2uC2PA2gopku/urmySzqfc0AeN5RqlF6aDoa71X3P0T0Ze5j4MEL5Y0RwFKG65A59aiPgLb2yIg=="
-  "resolved" "https://registry.npmjs.org/@hexhive/ui/-/ui-0.0.6-alpha.57.tgz"
-  "version" "0.0.6-alpha.57"
+"@hexhive/ui@0.0.6-alpha.63":
+  "integrity" "sha512-7I5ba2ImSqRL77R6ZjixlrHWIJs6w1ftv9tqShs0/rWPT/Jlpg6tO+H6s/e6O24CJQMCuBgNMSF/aZuEmiVxFg=="
+  "resolved" "https://registry.npmjs.org/@hexhive/ui/-/ui-0.0.6-alpha.63.tgz"
+  "version" "0.0.6-alpha.63"
   dependencies:
     "@hexhive/styles" "^0.0.6-alpha.13"
     "@hexhive/utils" "^0.0.6-alpha.13"
     "history" "^5.3.0"
     "moment" "^2.29.1"
+    "react-ace" "^9.5.0"
     "react-beautiful-dnd" "^13.1.0"
     "react-doc-viewer" "^0.1.5"
     "react-dropzone" "^12.0.4"
     "react-grid-layout" "^1.3.4"
+    "react-hyper-tree" "^0.2.18"
     "react-multi-date-picker" "^3.3.0"
     "react-popover" "^0.5.10"
     "react-resize-aware" "^3.1.1"
     "react-router-dom" "^6.2.2"
+    "react-vtree" "^2.0.4"
+    "react-window" "^1.8.6"
     "recharts" "^2.1.9"
     "styled-components" "^5.3.3"
 
@@ -1530,6 +1534,13 @@
     "@types/history" "*"
     "@types/react" "*"
 
+"@types/react-window@^1.8.2":
+  "integrity" "sha512-V9q3CvhC9Jk9bWBOysPGaWy/Z0lxYcTXLtLipkt2cnRj1JOSFNF7wqGpkScSXMgBwC+fnVRg/7shwgddBG5ICw=="
+  "resolved" "https://registry.npmjs.org/@types/react-window/-/react-window-1.8.5.tgz"
+  "version" "1.8.5"
+  dependencies:
+    "@types/react" "*"
+
 "@types/react@*", "@types/react@^17.0.11":
   "integrity" "sha512-SI92X1IA+FMnP3qM5m4QReluXzhcmovhZnLNm3pyeQlooi02qI7sLiepEYqT678uNiyc25XfCqxREFpy3W7YhQ=="
   "resolved" "https://registry.npmjs.org/@types/react/-/react-17.0.38.tgz"
@@ -1814,6 +1825,11 @@
   dependencies:
     "mime-types" "~2.1.24"
     "negotiator" "0.6.2"
+
+"ace-builds@^1.4.13":
+  "integrity" "sha512-NBOQlm9+7RBqRqZwimpgquaLeTJFayqb9UEPtTkpC3TkkwDnlsT/TwsCC0svjt9kEZ6G9mH5AEOHSz6Q/HrzQQ=="
+  "resolved" "https://registry.npmjs.org/ace-builds/-/ace-builds-1.4.14.tgz"
+  "version" "1.4.14"
 
 "acorn-globals@^6.0.0":
   "integrity" "sha512-ZQl7LOWaF5ePqqcX4hLuv/bLXYQNfNWw2c0/yX/TsPRKamzHcTGQnlCjHT3TsmkOUVEPS3crCxiPfdzE/Trlhg=="
@@ -2966,6 +2982,11 @@
   "resolved" "https://registry.npmjs.org/detect-node/-/detect-node-2.1.0.tgz"
   "version" "2.1.0"
 
+"diff-match-patch@^1.0.5":
+  "integrity" "sha512-IayShXAgj/QMXgB0IWmKx+rOPuGMhqm5w6jvFxmVenXKIzRqTAAsbBPT3kWQeGANj3jGgvcvv4yK6SxqYmikgw=="
+  "resolved" "https://registry.npmjs.org/diff-match-patch/-/diff-match-patch-1.0.5.tgz"
+  "version" "1.0.5"
+
 "diff-sequences@^26.6.2":
   "integrity" "sha512-Mv/TDa3nZ9sbc5soK+OoA74BsS3mL37yixCvUAQkiuA4Wz6YtwP/K47n2rv2ovzHZvoiQeA5FTQOschKkEwB0Q=="
   "resolved" "https://registry.npmjs.org/diff-sequences/-/diff-sequences-26.6.2.tgz"
@@ -3908,6 +3929,11 @@
   "version" "1.0.3"
   dependencies:
     "function-bind" "^1.1.1"
+
+"hash-sum@^2.0.0":
+  "integrity" "sha512-WdZTbAByD+pHfl/g9QSsBIIwy8IT+EsPiKDs0KNX+zSHhdDLFKdZu0BQHljvO+0QI/BasbMSUa8wYNCZTvhslg=="
+  "resolved" "https://registry.npmjs.org/hash-sum/-/hash-sum-2.0.0.tgz"
+  "version" "2.0.0"
 
 "he@^1.2.0":
   "integrity" "sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw=="
@@ -5058,7 +5084,12 @@
   "resolved" "https://registry.npmjs.org/lodash.debounce/-/lodash.debounce-4.0.8.tgz"
   "version" "4.0.8"
 
-"lodash.isequal@^4.0.0":
+"lodash.get@^4.4.2":
+  "integrity" "sha1-LRd/ZS+jHpObRDjVNBSZ36OCXpk="
+  "resolved" "https://registry.npmjs.org/lodash.get/-/lodash.get-4.4.2.tgz"
+  "version" "4.4.2"
+
+"lodash.isequal@^4.0.0", "lodash.isequal@^4.5.0":
   "integrity" "sha1-QVxEePK8wwEgwizhDtMib30+GOA="
   "resolved" "https://registry.npmjs.org/lodash.isequal/-/lodash.isequal-4.5.0.tgz"
   "version" "4.5.0"
@@ -5150,7 +5181,7 @@
   dependencies:
     "fs-monkey" "1.0.3"
 
-"memoize-one@^5.1.1":
+"memoize-one@^5.1.1", "memoize-one@>=3.1.1 <6":
   "integrity" "sha512-zYiwtZUcYyXKo/np96AGZAckk+FWWsUdJ3cHGGmld7+AhvcWmQyGCYUh1hc4Q/pkOhb65dQR/pqCyK0cOaHz4Q=="
   "resolved" "https://registry.npmjs.org/memoize-one/-/memoize-one-5.2.1.tgz"
   "version" "5.2.1"
@@ -5844,6 +5875,17 @@
     "iconv-lite" "0.4.24"
     "unpipe" "1.0.0"
 
+"react-ace@^9.5.0":
+  "integrity" "sha512-4l5FgwGh6K7A0yWVMQlPIXDItM4Q9zzXRqOae8KkCl6MkOob7sC1CzHxZdOGvV+QioKWbX2p5HcdOVUv6cAdSg=="
+  "resolved" "https://registry.npmjs.org/react-ace/-/react-ace-9.5.0.tgz"
+  "version" "9.5.0"
+  dependencies:
+    "ace-builds" "^1.4.13"
+    "diff-match-patch" "^1.0.5"
+    "lodash.get" "^4.4.2"
+    "lodash.isequal" "^4.5.0"
+    "prop-types" "^15.7.2"
+
 "react-beautiful-dnd@^13.1.0":
   "integrity" "sha512-aGvblPZTJowOWUNiwd6tNfEpgkX5OxmpqxHKNW/4VmvZTNTbeiq7bA3bn5T+QSF2uibXB0D1DmJsb1aC/+3cUA=="
   "resolved" "https://registry.npmjs.org/react-beautiful-dnd/-/react-beautiful-dnd-13.1.0.tgz"
@@ -5872,7 +5914,7 @@
     "styled-components" "^5.1.1"
     "wl-msg-reader" "^0.2.0"
 
-"react-dom@*", "react-dom@^15.0.0 || ^16.0.0 || ^17.0.0", "react-dom@^16.0.0 || ^17.0.0", "react-dom@^16.6.1 || ^17.0.0", "react-dom@^16.8.5 || ^17.0.0", "react-dom@^17.0.2", "react-dom@>= 16.3.0", "react-dom@>= 16.4.1", "react-dom@>= 16.6.0", "react-dom@>= 16.8.0", "react-dom@>=15.0.0", "react-dom@>=16.8", "react-dom@>=16.8.0":
+"react-dom@*", "react-dom@^0.13.0 || ^0.14.0 || ^15.0.1 || ^16.0.0 || ^17.0.0", "react-dom@^15.0.0 || ^16.0.0 || ^17.0.0", "react-dom@^16.0.0 || ^17.0.0", "react-dom@^16.6.1 || ^17.0.0", "react-dom@^16.8.5 || ^17.0.0", "react-dom@^17.0.2", "react-dom@>= 16.3.0", "react-dom@>= 16.4.1", "react-dom@>= 16.6.0", "react-dom@>= 16.8.0", "react-dom@>=15.0.0", "react-dom@>=16.8", "react-dom@>=16.8.0":
   "integrity" "sha512-s4h96KtLDUQlsENhMn1ar8t2bEa+q/YAtj8pPPdIjPDGBDIVNsrD9aXNWqspUe6AzKCIG0C1HZZLqLV7qpOBGA=="
   "resolved" "https://registry.npmjs.org/react-dom/-/react-dom-17.0.2.tgz"
   "version" "17.0.2"
@@ -5880,6 +5922,16 @@
     "loose-envify" "^1.1.0"
     "object-assign" "^4.1.1"
     "scheduler" "^0.20.2"
+
+"react-dom@^16.0.0", "react-dom@^16.13.1":
+  "integrity" "sha512-1gCeQXDLoIqMgqD3IO2Ah9bnf0w9kzhwN5q4FGnHZ67hBm9yePzB5JJAIQCc8x3pFnNlwFq4RidZggNAAkzWWw=="
+  "resolved" "https://registry.npmjs.org/react-dom/-/react-dom-16.14.0.tgz"
+  "version" "16.14.0"
+  dependencies:
+    "loose-envify" "^1.1.0"
+    "object-assign" "^4.1.1"
+    "prop-types" "^15.6.2"
+    "scheduler" "^0.19.1"
 
 "react-dom@^16.3.0":
   "integrity" "sha512-1gCeQXDLoIqMgqD3IO2Ah9bnf0w9kzhwN5q4FGnHZ67hBm9yePzB5JJAIQCc8x3pFnNlwFq4RidZggNAAkzWWw=="
@@ -5923,6 +5975,13 @@
     "prop-types" "^15.8.1"
     "react-draggable" "^4.0.0"
     "react-resizable" "^3.0.4"
+
+"react-hyper-tree@^0.2.18":
+  "integrity" "sha512-oH5CuWR0NILs/7kSSMO19BrJx3AL4+PQ2SpC6Dxwq+IRlqyvYlZjfcANOug66BXa94ywFtGUrzqBUZZq8ow5/Q=="
+  "resolved" "https://registry.npmjs.org/react-hyper-tree/-/react-hyper-tree-0.2.18.tgz"
+  "version" "0.2.18"
+  dependencies:
+    "hash-sum" "^2.0.0"
 
 "react-is@^16.10.2", "react-is@^16.13.1", "react-is@^16.7.0", "react-is@>= 16.8.0":
   "integrity" "sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ=="
@@ -6043,7 +6102,22 @@
     "prop-types" "^15.6.2"
     "react-lifecycles-compat" "^3.0.4"
 
-"react@*", "react@^15.0.0 || ^16.0.0 || ^17.0.0", "react@^16.0.0 || ^17.0.0", "react@^16.6.1 || ^17.0.0", "react@^16.8.0 || ^17.0.0", "react@^16.8.0 || 17.x", "react@^16.8.3 || ^17", "react@^16.8.5 || ^17.0.0", "react@^17.0.2", "react@>= 0.14.0", "react@>= 16.3", "react@>= 16.3.0", "react@>= 16.4.1", "react@>= 16.6.0", "react@>= 16.8", "react@>= 16.8.0", "react@>=15.0.0", "react@>=16.8", "react@>=16.8.0", "react@17.0.2":
+"react-vtree@^2.0.4":
+  "integrity" "sha512-UOld0VqyAZrryF06K753X4bcEVN6/wW831exvVlMZeZAVHk9KXnlHs4rpqDAeoiBgUwJqoW/rtn0hwsokRRxPA=="
+  "resolved" "https://registry.npmjs.org/react-vtree/-/react-vtree-2.0.4.tgz"
+  "version" "2.0.4"
+  dependencies:
+    "@babel/runtime" "^7.11.0"
+
+"react-window@^1.8.5", "react-window@^1.8.6":
+  "integrity" "sha512-8VwEEYyjz6DCnGBsd+MgkD0KJ2/OXFULyDtorIiTz+QzwoP94tBoA7CnbtyXMm+cCeAUER5KJcPtWl9cpKbOBg=="
+  "resolved" "https://registry.npmjs.org/react-window/-/react-window-1.8.6.tgz"
+  "version" "1.8.6"
+  dependencies:
+    "@babel/runtime" "^7.0.0"
+    "memoize-one" ">=3.1.1 <6"
+
+"react@*", "react@^0.13.0 || ^0.14.0 || ^15.0.1 || ^16.0.0 || ^17.0.0", "react@^15.0.0 || ^16.0.0 || ^17.0.0", "react@^16.0.0", "react@^16.0.0 || ^17.0.0", "react@^16.13.1", "react@^16.14.0", "react@^16.6.1 || ^17.0.0", "react@^16.8.0 || ^17.0.0", "react@^16.8.0 || 17.x", "react@^16.8.3 || ^17", "react@^16.8.5 || ^17.0.0", "react@^17.0.2", "react@>= 0.14.0", "react@>= 16.3", "react@>= 16.3.0", "react@>= 16.4.1", "react@>= 16.6.0", "react@>= 16.8", "react@>= 16.8.0", "react@>=15.0.0", "react@>=16.8", "react@>=16.8.0", "react@17.0.2":
   "integrity" "sha512-gnhPt75i/dq/z3/6q/0asP78D0u592D5L1pd7M8P+dck6Fu/jJeL6iVVK23fptSUZj8Vjf++7wXA8UNclGQcbA=="
   "resolved" "https://registry.npmjs.org/react/-/react-17.0.2.tgz"
   "version" "17.0.2"
@@ -6051,7 +6125,7 @@
     "loose-envify" "^1.1.0"
     "object-assign" "^4.1.1"
 
-"react@^16.14.0", "react@^16.3.0":
+"react@^16.3.0":
   "integrity" "sha512-0X2CImDkJGApiAlcf0ODKIneSwBPhqJawOa5wCtKbu7ZECrmS26NvtSILynQ66cgkT/RJ4LidJOc3bUESwmU8g=="
   "resolved" "https://registry.npmjs.org/react/-/react-16.14.0.tgz"
   "version" "16.14.0"
