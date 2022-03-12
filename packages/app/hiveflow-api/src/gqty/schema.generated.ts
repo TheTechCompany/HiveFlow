@@ -2056,10 +2056,14 @@ export interface HiveOrganisationAppliancesUpdateFieldInput {
 
 export interface HiveOrganisationConnectInput {
   appliances?: InputMaybe<Array<HiveOrganisationAppliancesConnectFieldInput>>;
+  equipment?: InputMaybe<Array<HiveOrganisationEquipmentConnectFieldInput>>;
+  estimates?: InputMaybe<Array<HiveOrganisationEstimatesConnectFieldInput>>;
   integrations?: InputMaybe<
     Array<HiveOrganisationIntegrationsConnectFieldInput>
   >;
   members?: InputMaybe<Array<HiveOrganisationMembersConnectFieldInput>>;
+  people?: InputMaybe<Array<HiveOrganisationPeopleConnectFieldInput>>;
+  projects?: InputMaybe<Array<HiveOrganisationProjectsConnectFieldInput>>;
   roles?: InputMaybe<Array<HiveOrganisationRolesConnectFieldInput>>;
   schedule?: InputMaybe<Array<HiveOrganisationScheduleConnectFieldInput>>;
   timeline?: InputMaybe<Array<HiveOrganisationTimelineConnectFieldInput>>;
@@ -2069,10 +2073,20 @@ export interface HiveOrganisationConnectOrCreateInput {
   appliances?: InputMaybe<
     Array<HiveOrganisationAppliancesConnectOrCreateFieldInput>
   >;
+  equipment?: InputMaybe<
+    Array<HiveOrganisationEquipmentConnectOrCreateFieldInput>
+  >;
+  estimates?: InputMaybe<
+    Array<HiveOrganisationEstimatesConnectOrCreateFieldInput>
+  >;
   integrations?: InputMaybe<
     Array<HiveOrganisationIntegrationsConnectOrCreateFieldInput>
   >;
   members?: InputMaybe<Array<HiveOrganisationMembersConnectOrCreateFieldInput>>;
+  people?: InputMaybe<Array<HiveOrganisationPeopleConnectOrCreateFieldInput>>;
+  projects?: InputMaybe<
+    Array<HiveOrganisationProjectsConnectOrCreateFieldInput>
+  >;
   roles?: InputMaybe<Array<HiveOrganisationRolesConnectOrCreateFieldInput>>;
   schedule?: InputMaybe<
     Array<HiveOrganisationScheduleConnectOrCreateFieldInput>
@@ -2092,9 +2106,13 @@ export interface HiveOrganisationConnectWhere {
 
 export interface HiveOrganisationCreateInput {
   appliances?: InputMaybe<HiveOrganisationAppliancesFieldInput>;
+  equipment?: InputMaybe<HiveOrganisationEquipmentFieldInput>;
+  estimates?: InputMaybe<HiveOrganisationEstimatesFieldInput>;
   integrations?: InputMaybe<HiveOrganisationIntegrationsFieldInput>;
   members?: InputMaybe<HiveOrganisationMembersFieldInput>;
   name?: InputMaybe<Scalars["String"]>;
+  people?: InputMaybe<HiveOrganisationPeopleFieldInput>;
+  projects?: InputMaybe<HiveOrganisationProjectsFieldInput>;
   roles?: InputMaybe<HiveOrganisationRolesFieldInput>;
   schedule?: InputMaybe<HiveOrganisationScheduleFieldInput>;
   timeline?: InputMaybe<HiveOrganisationTimelineFieldInput>;
@@ -2102,10 +2120,14 @@ export interface HiveOrganisationCreateInput {
 
 export interface HiveOrganisationDeleteInput {
   appliances?: InputMaybe<Array<HiveOrganisationAppliancesDeleteFieldInput>>;
+  equipment?: InputMaybe<Array<HiveOrganisationEquipmentDeleteFieldInput>>;
+  estimates?: InputMaybe<Array<HiveOrganisationEstimatesDeleteFieldInput>>;
   integrations?: InputMaybe<
     Array<HiveOrganisationIntegrationsDeleteFieldInput>
   >;
   members?: InputMaybe<Array<HiveOrganisationMembersDeleteFieldInput>>;
+  people?: InputMaybe<Array<HiveOrganisationPeopleDeleteFieldInput>>;
+  projects?: InputMaybe<Array<HiveOrganisationProjectsDeleteFieldInput>>;
   roles?: InputMaybe<Array<HiveOrganisationRolesDeleteFieldInput>>;
   schedule?: InputMaybe<Array<HiveOrganisationScheduleDeleteFieldInput>>;
   timeline?: InputMaybe<Array<HiveOrganisationTimelineDeleteFieldInput>>;
@@ -2115,13 +2137,297 @@ export interface HiveOrganisationDisconnectInput {
   appliances?: InputMaybe<
     Array<HiveOrganisationAppliancesDisconnectFieldInput>
   >;
+  equipment?: InputMaybe<Array<HiveOrganisationEquipmentDisconnectFieldInput>>;
+  estimates?: InputMaybe<Array<HiveOrganisationEstimatesDisconnectFieldInput>>;
   integrations?: InputMaybe<
     Array<HiveOrganisationIntegrationsDisconnectFieldInput>
   >;
   members?: InputMaybe<Array<HiveOrganisationMembersDisconnectFieldInput>>;
+  people?: InputMaybe<Array<HiveOrganisationPeopleDisconnectFieldInput>>;
+  projects?: InputMaybe<Array<HiveOrganisationProjectsDisconnectFieldInput>>;
   roles?: InputMaybe<Array<HiveOrganisationRolesDisconnectFieldInput>>;
   schedule?: InputMaybe<Array<HiveOrganisationScheduleDisconnectFieldInput>>;
   timeline?: InputMaybe<Array<HiveOrganisationTimelineDisconnectFieldInput>>;
+}
+
+export interface HiveOrganisationEquipmentAggregateInput {
+  AND?: InputMaybe<Array<HiveOrganisationEquipmentAggregateInput>>;
+  OR?: InputMaybe<Array<HiveOrganisationEquipmentAggregateInput>>;
+  count?: InputMaybe<Scalars["Int"]>;
+  count_GT?: InputMaybe<Scalars["Int"]>;
+  count_GTE?: InputMaybe<Scalars["Int"]>;
+  count_LT?: InputMaybe<Scalars["Int"]>;
+  count_LTE?: InputMaybe<Scalars["Int"]>;
+  node?: InputMaybe<HiveOrganisationEquipmentNodeAggregationWhereInput>;
+}
+
+export interface HiveOrganisationEquipmentConnectFieldInput {
+  connect?: InputMaybe<Array<EquipmentConnectInput>>;
+  where?: InputMaybe<EquipmentConnectWhere>;
+}
+
+export interface HiveOrganisationEquipmentConnectOrCreateFieldInput {
+  onCreate: HiveOrganisationEquipmentConnectOrCreateFieldInputOnCreate;
+  where: EquipmentConnectOrCreateWhere;
+}
+
+export interface HiveOrganisationEquipmentConnectOrCreateFieldInputOnCreate {
+  node: EquipmentCreateInput;
+}
+
+export interface HiveOrganisationEquipmentConnectionSort {
+  node?: InputMaybe<EquipmentSort>;
+}
+
+export interface HiveOrganisationEquipmentConnectionWhere {
+  AND?: InputMaybe<Array<HiveOrganisationEquipmentConnectionWhere>>;
+  OR?: InputMaybe<Array<HiveOrganisationEquipmentConnectionWhere>>;
+  node?: InputMaybe<EquipmentWhere>;
+  node_NOT?: InputMaybe<EquipmentWhere>;
+}
+
+export interface HiveOrganisationEquipmentCreateFieldInput {
+  node: EquipmentCreateInput;
+}
+
+export interface HiveOrganisationEquipmentDeleteFieldInput {
+  delete?: InputMaybe<EquipmentDeleteInput>;
+  where?: InputMaybe<HiveOrganisationEquipmentConnectionWhere>;
+}
+
+export interface HiveOrganisationEquipmentDisconnectFieldInput {
+  disconnect?: InputMaybe<EquipmentDisconnectInput>;
+  where?: InputMaybe<HiveOrganisationEquipmentConnectionWhere>;
+}
+
+export interface HiveOrganisationEquipmentFieldInput {
+  connect?: InputMaybe<Array<HiveOrganisationEquipmentConnectFieldInput>>;
+  connectOrCreate?: InputMaybe<
+    Array<HiveOrganisationEquipmentConnectOrCreateFieldInput>
+  >;
+  create?: InputMaybe<Array<HiveOrganisationEquipmentCreateFieldInput>>;
+}
+
+export interface HiveOrganisationEquipmentNodeAggregationWhereInput {
+  AND?: InputMaybe<Array<HiveOrganisationEquipmentNodeAggregationWhereInput>>;
+  OR?: InputMaybe<Array<HiveOrganisationEquipmentNodeAggregationWhereInput>>;
+  id_EQUAL?: InputMaybe<Scalars["ID"]>;
+  name_AVERAGE_EQUAL?: InputMaybe<Scalars["Float"]>;
+  name_AVERAGE_GT?: InputMaybe<Scalars["Float"]>;
+  name_AVERAGE_GTE?: InputMaybe<Scalars["Float"]>;
+  name_AVERAGE_LT?: InputMaybe<Scalars["Float"]>;
+  name_AVERAGE_LTE?: InputMaybe<Scalars["Float"]>;
+  name_EQUAL?: InputMaybe<Scalars["String"]>;
+  name_GT?: InputMaybe<Scalars["Int"]>;
+  name_GTE?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_EQUAL?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_GT?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_GTE?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_LT?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_LTE?: InputMaybe<Scalars["Int"]>;
+  name_LT?: InputMaybe<Scalars["Int"]>;
+  name_LTE?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_EQUAL?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_GT?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_GTE?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_LT?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_LTE?: InputMaybe<Scalars["Int"]>;
+  registration_AVERAGE_EQUAL?: InputMaybe<Scalars["Float"]>;
+  registration_AVERAGE_GT?: InputMaybe<Scalars["Float"]>;
+  registration_AVERAGE_GTE?: InputMaybe<Scalars["Float"]>;
+  registration_AVERAGE_LT?: InputMaybe<Scalars["Float"]>;
+  registration_AVERAGE_LTE?: InputMaybe<Scalars["Float"]>;
+  registration_EQUAL?: InputMaybe<Scalars["String"]>;
+  registration_GT?: InputMaybe<Scalars["Int"]>;
+  registration_GTE?: InputMaybe<Scalars["Int"]>;
+  registration_LONGEST_EQUAL?: InputMaybe<Scalars["Int"]>;
+  registration_LONGEST_GT?: InputMaybe<Scalars["Int"]>;
+  registration_LONGEST_GTE?: InputMaybe<Scalars["Int"]>;
+  registration_LONGEST_LT?: InputMaybe<Scalars["Int"]>;
+  registration_LONGEST_LTE?: InputMaybe<Scalars["Int"]>;
+  registration_LT?: InputMaybe<Scalars["Int"]>;
+  registration_LTE?: InputMaybe<Scalars["Int"]>;
+  registration_SHORTEST_EQUAL?: InputMaybe<Scalars["Int"]>;
+  registration_SHORTEST_GT?: InputMaybe<Scalars["Int"]>;
+  registration_SHORTEST_GTE?: InputMaybe<Scalars["Int"]>;
+  registration_SHORTEST_LT?: InputMaybe<Scalars["Int"]>;
+  registration_SHORTEST_LTE?: InputMaybe<Scalars["Int"]>;
+}
+
+export interface HiveOrganisationEquipmentUpdateConnectionInput {
+  node?: InputMaybe<EquipmentUpdateInput>;
+}
+
+export interface HiveOrganisationEquipmentUpdateFieldInput {
+  connect?: InputMaybe<Array<HiveOrganisationEquipmentConnectFieldInput>>;
+  connectOrCreate?: InputMaybe<
+    Array<HiveOrganisationEquipmentConnectOrCreateFieldInput>
+  >;
+  create?: InputMaybe<Array<HiveOrganisationEquipmentCreateFieldInput>>;
+  delete?: InputMaybe<Array<HiveOrganisationEquipmentDeleteFieldInput>>;
+  disconnect?: InputMaybe<Array<HiveOrganisationEquipmentDisconnectFieldInput>>;
+  update?: InputMaybe<HiveOrganisationEquipmentUpdateConnectionInput>;
+  where?: InputMaybe<HiveOrganisationEquipmentConnectionWhere>;
+}
+
+export interface HiveOrganisationEstimatesAggregateInput {
+  AND?: InputMaybe<Array<HiveOrganisationEstimatesAggregateInput>>;
+  OR?: InputMaybe<Array<HiveOrganisationEstimatesAggregateInput>>;
+  count?: InputMaybe<Scalars["Int"]>;
+  count_GT?: InputMaybe<Scalars["Int"]>;
+  count_GTE?: InputMaybe<Scalars["Int"]>;
+  count_LT?: InputMaybe<Scalars["Int"]>;
+  count_LTE?: InputMaybe<Scalars["Int"]>;
+  node?: InputMaybe<HiveOrganisationEstimatesNodeAggregationWhereInput>;
+}
+
+export interface HiveOrganisationEstimatesConnectFieldInput {
+  connect?: InputMaybe<Array<EstimateConnectInput>>;
+  where?: InputMaybe<EstimateConnectWhere>;
+}
+
+export interface HiveOrganisationEstimatesConnectOrCreateFieldInput {
+  onCreate: HiveOrganisationEstimatesConnectOrCreateFieldInputOnCreate;
+  where: EstimateConnectOrCreateWhere;
+}
+
+export interface HiveOrganisationEstimatesConnectOrCreateFieldInputOnCreate {
+  node: EstimateCreateInput;
+}
+
+export interface HiveOrganisationEstimatesConnectionSort {
+  node?: InputMaybe<EstimateSort>;
+}
+
+export interface HiveOrganisationEstimatesConnectionWhere {
+  AND?: InputMaybe<Array<HiveOrganisationEstimatesConnectionWhere>>;
+  OR?: InputMaybe<Array<HiveOrganisationEstimatesConnectionWhere>>;
+  node?: InputMaybe<EstimateWhere>;
+  node_NOT?: InputMaybe<EstimateWhere>;
+}
+
+export interface HiveOrganisationEstimatesCreateFieldInput {
+  node: EstimateCreateInput;
+}
+
+export interface HiveOrganisationEstimatesDeleteFieldInput {
+  delete?: InputMaybe<EstimateDeleteInput>;
+  where?: InputMaybe<HiveOrganisationEstimatesConnectionWhere>;
+}
+
+export interface HiveOrganisationEstimatesDisconnectFieldInput {
+  disconnect?: InputMaybe<EstimateDisconnectInput>;
+  where?: InputMaybe<HiveOrganisationEstimatesConnectionWhere>;
+}
+
+export interface HiveOrganisationEstimatesFieldInput {
+  connect?: InputMaybe<Array<HiveOrganisationEstimatesConnectFieldInput>>;
+  connectOrCreate?: InputMaybe<
+    Array<HiveOrganisationEstimatesConnectOrCreateFieldInput>
+  >;
+  create?: InputMaybe<Array<HiveOrganisationEstimatesCreateFieldInput>>;
+}
+
+export interface HiveOrganisationEstimatesNodeAggregationWhereInput {
+  AND?: InputMaybe<Array<HiveOrganisationEstimatesNodeAggregationWhereInput>>;
+  OR?: InputMaybe<Array<HiveOrganisationEstimatesNodeAggregationWhereInput>>;
+  date_EQUAL?: InputMaybe<Scalars["DateTime"]>;
+  date_GT?: InputMaybe<Scalars["DateTime"]>;
+  date_GTE?: InputMaybe<Scalars["DateTime"]>;
+  date_LT?: InputMaybe<Scalars["DateTime"]>;
+  date_LTE?: InputMaybe<Scalars["DateTime"]>;
+  date_MAX_EQUAL?: InputMaybe<Scalars["DateTime"]>;
+  date_MAX_GT?: InputMaybe<Scalars["DateTime"]>;
+  date_MAX_GTE?: InputMaybe<Scalars["DateTime"]>;
+  date_MAX_LT?: InputMaybe<Scalars["DateTime"]>;
+  date_MAX_LTE?: InputMaybe<Scalars["DateTime"]>;
+  date_MIN_EQUAL?: InputMaybe<Scalars["DateTime"]>;
+  date_MIN_GT?: InputMaybe<Scalars["DateTime"]>;
+  date_MIN_GTE?: InputMaybe<Scalars["DateTime"]>;
+  date_MIN_LT?: InputMaybe<Scalars["DateTime"]>;
+  date_MIN_LTE?: InputMaybe<Scalars["DateTime"]>;
+  id_EQUAL?: InputMaybe<Scalars["ID"]>;
+  name_AVERAGE_EQUAL?: InputMaybe<Scalars["Float"]>;
+  name_AVERAGE_GT?: InputMaybe<Scalars["Float"]>;
+  name_AVERAGE_GTE?: InputMaybe<Scalars["Float"]>;
+  name_AVERAGE_LT?: InputMaybe<Scalars["Float"]>;
+  name_AVERAGE_LTE?: InputMaybe<Scalars["Float"]>;
+  name_EQUAL?: InputMaybe<Scalars["String"]>;
+  name_GT?: InputMaybe<Scalars["Int"]>;
+  name_GTE?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_EQUAL?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_GT?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_GTE?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_LT?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_LTE?: InputMaybe<Scalars["Int"]>;
+  name_LT?: InputMaybe<Scalars["Int"]>;
+  name_LTE?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_EQUAL?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_GT?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_GTE?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_LT?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_LTE?: InputMaybe<Scalars["Int"]>;
+  price_AVERAGE_EQUAL?: InputMaybe<Scalars["Float"]>;
+  price_AVERAGE_GT?: InputMaybe<Scalars["Float"]>;
+  price_AVERAGE_GTE?: InputMaybe<Scalars["Float"]>;
+  price_AVERAGE_LT?: InputMaybe<Scalars["Float"]>;
+  price_AVERAGE_LTE?: InputMaybe<Scalars["Float"]>;
+  price_EQUAL?: InputMaybe<Scalars["Float"]>;
+  price_GT?: InputMaybe<Scalars["Float"]>;
+  price_GTE?: InputMaybe<Scalars["Float"]>;
+  price_LT?: InputMaybe<Scalars["Float"]>;
+  price_LTE?: InputMaybe<Scalars["Float"]>;
+  price_MAX_EQUAL?: InputMaybe<Scalars["Float"]>;
+  price_MAX_GT?: InputMaybe<Scalars["Float"]>;
+  price_MAX_GTE?: InputMaybe<Scalars["Float"]>;
+  price_MAX_LT?: InputMaybe<Scalars["Float"]>;
+  price_MAX_LTE?: InputMaybe<Scalars["Float"]>;
+  price_MIN_EQUAL?: InputMaybe<Scalars["Float"]>;
+  price_MIN_GT?: InputMaybe<Scalars["Float"]>;
+  price_MIN_GTE?: InputMaybe<Scalars["Float"]>;
+  price_MIN_LT?: InputMaybe<Scalars["Float"]>;
+  price_MIN_LTE?: InputMaybe<Scalars["Float"]>;
+  price_SUM_EQUAL?: InputMaybe<Scalars["Float"]>;
+  price_SUM_GT?: InputMaybe<Scalars["Float"]>;
+  price_SUM_GTE?: InputMaybe<Scalars["Float"]>;
+  price_SUM_LT?: InputMaybe<Scalars["Float"]>;
+  price_SUM_LTE?: InputMaybe<Scalars["Float"]>;
+  status_AVERAGE_EQUAL?: InputMaybe<Scalars["Float"]>;
+  status_AVERAGE_GT?: InputMaybe<Scalars["Float"]>;
+  status_AVERAGE_GTE?: InputMaybe<Scalars["Float"]>;
+  status_AVERAGE_LT?: InputMaybe<Scalars["Float"]>;
+  status_AVERAGE_LTE?: InputMaybe<Scalars["Float"]>;
+  status_EQUAL?: InputMaybe<Scalars["String"]>;
+  status_GT?: InputMaybe<Scalars["Int"]>;
+  status_GTE?: InputMaybe<Scalars["Int"]>;
+  status_LONGEST_EQUAL?: InputMaybe<Scalars["Int"]>;
+  status_LONGEST_GT?: InputMaybe<Scalars["Int"]>;
+  status_LONGEST_GTE?: InputMaybe<Scalars["Int"]>;
+  status_LONGEST_LT?: InputMaybe<Scalars["Int"]>;
+  status_LONGEST_LTE?: InputMaybe<Scalars["Int"]>;
+  status_LT?: InputMaybe<Scalars["Int"]>;
+  status_LTE?: InputMaybe<Scalars["Int"]>;
+  status_SHORTEST_EQUAL?: InputMaybe<Scalars["Int"]>;
+  status_SHORTEST_GT?: InputMaybe<Scalars["Int"]>;
+  status_SHORTEST_GTE?: InputMaybe<Scalars["Int"]>;
+  status_SHORTEST_LT?: InputMaybe<Scalars["Int"]>;
+  status_SHORTEST_LTE?: InputMaybe<Scalars["Int"]>;
+}
+
+export interface HiveOrganisationEstimatesUpdateConnectionInput {
+  node?: InputMaybe<EstimateUpdateInput>;
+}
+
+export interface HiveOrganisationEstimatesUpdateFieldInput {
+  connect?: InputMaybe<Array<HiveOrganisationEstimatesConnectFieldInput>>;
+  connectOrCreate?: InputMaybe<
+    Array<HiveOrganisationEstimatesConnectOrCreateFieldInput>
+  >;
+  create?: InputMaybe<Array<HiveOrganisationEstimatesCreateFieldInput>>;
+  delete?: InputMaybe<Array<HiveOrganisationEstimatesDeleteFieldInput>>;
+  disconnect?: InputMaybe<Array<HiveOrganisationEstimatesDisconnectFieldInput>>;
+  update?: InputMaybe<HiveOrganisationEstimatesUpdateConnectionInput>;
+  where?: InputMaybe<HiveOrganisationEstimatesConnectionWhere>;
 }
 
 export interface HiveOrganisationIntegrationsAggregateInput {
@@ -2395,12 +2701,266 @@ export interface HiveOrganisationOptions {
   sort?: InputMaybe<Array<InputMaybe<HiveOrganisationSort>>>;
 }
 
+export interface HiveOrganisationPeopleAggregateInput {
+  AND?: InputMaybe<Array<HiveOrganisationPeopleAggregateInput>>;
+  OR?: InputMaybe<Array<HiveOrganisationPeopleAggregateInput>>;
+  count?: InputMaybe<Scalars["Int"]>;
+  count_GT?: InputMaybe<Scalars["Int"]>;
+  count_GTE?: InputMaybe<Scalars["Int"]>;
+  count_LT?: InputMaybe<Scalars["Int"]>;
+  count_LTE?: InputMaybe<Scalars["Int"]>;
+  node?: InputMaybe<HiveOrganisationPeopleNodeAggregationWhereInput>;
+}
+
+export interface HiveOrganisationPeopleConnectFieldInput {
+  connect?: InputMaybe<Array<PeopleConnectInput>>;
+  where?: InputMaybe<PeopleConnectWhere>;
+}
+
+export interface HiveOrganisationPeopleConnectOrCreateFieldInput {
+  onCreate: HiveOrganisationPeopleConnectOrCreateFieldInputOnCreate;
+  where: PeopleConnectOrCreateWhere;
+}
+
+export interface HiveOrganisationPeopleConnectOrCreateFieldInputOnCreate {
+  node: PeopleCreateInput;
+}
+
+export interface HiveOrganisationPeopleConnectionSort {
+  node?: InputMaybe<PeopleSort>;
+}
+
+export interface HiveOrganisationPeopleConnectionWhere {
+  AND?: InputMaybe<Array<HiveOrganisationPeopleConnectionWhere>>;
+  OR?: InputMaybe<Array<HiveOrganisationPeopleConnectionWhere>>;
+  node?: InputMaybe<PeopleWhere>;
+  node_NOT?: InputMaybe<PeopleWhere>;
+}
+
+export interface HiveOrganisationPeopleCreateFieldInput {
+  node: PeopleCreateInput;
+}
+
+export interface HiveOrganisationPeopleDeleteFieldInput {
+  delete?: InputMaybe<PeopleDeleteInput>;
+  where?: InputMaybe<HiveOrganisationPeopleConnectionWhere>;
+}
+
+export interface HiveOrganisationPeopleDisconnectFieldInput {
+  disconnect?: InputMaybe<PeopleDisconnectInput>;
+  where?: InputMaybe<HiveOrganisationPeopleConnectionWhere>;
+}
+
+export interface HiveOrganisationPeopleFieldInput {
+  connect?: InputMaybe<Array<HiveOrganisationPeopleConnectFieldInput>>;
+  connectOrCreate?: InputMaybe<
+    Array<HiveOrganisationPeopleConnectOrCreateFieldInput>
+  >;
+  create?: InputMaybe<Array<HiveOrganisationPeopleCreateFieldInput>>;
+}
+
+export interface HiveOrganisationPeopleNodeAggregationWhereInput {
+  AND?: InputMaybe<Array<HiveOrganisationPeopleNodeAggregationWhereInput>>;
+  OR?: InputMaybe<Array<HiveOrganisationPeopleNodeAggregationWhereInput>>;
+  id_EQUAL?: InputMaybe<Scalars["ID"]>;
+  name_AVERAGE_EQUAL?: InputMaybe<Scalars["Float"]>;
+  name_AVERAGE_GT?: InputMaybe<Scalars["Float"]>;
+  name_AVERAGE_GTE?: InputMaybe<Scalars["Float"]>;
+  name_AVERAGE_LT?: InputMaybe<Scalars["Float"]>;
+  name_AVERAGE_LTE?: InputMaybe<Scalars["Float"]>;
+  name_EQUAL?: InputMaybe<Scalars["String"]>;
+  name_GT?: InputMaybe<Scalars["Int"]>;
+  name_GTE?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_EQUAL?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_GT?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_GTE?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_LT?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_LTE?: InputMaybe<Scalars["Int"]>;
+  name_LT?: InputMaybe<Scalars["Int"]>;
+  name_LTE?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_EQUAL?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_GT?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_GTE?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_LT?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_LTE?: InputMaybe<Scalars["Int"]>;
+}
+
+export interface HiveOrganisationPeopleUpdateConnectionInput {
+  node?: InputMaybe<PeopleUpdateInput>;
+}
+
+export interface HiveOrganisationPeopleUpdateFieldInput {
+  connect?: InputMaybe<Array<HiveOrganisationPeopleConnectFieldInput>>;
+  connectOrCreate?: InputMaybe<
+    Array<HiveOrganisationPeopleConnectOrCreateFieldInput>
+  >;
+  create?: InputMaybe<Array<HiveOrganisationPeopleCreateFieldInput>>;
+  delete?: InputMaybe<Array<HiveOrganisationPeopleDeleteFieldInput>>;
+  disconnect?: InputMaybe<Array<HiveOrganisationPeopleDisconnectFieldInput>>;
+  update?: InputMaybe<HiveOrganisationPeopleUpdateConnectionInput>;
+  where?: InputMaybe<HiveOrganisationPeopleConnectionWhere>;
+}
+
+export interface HiveOrganisationProjectsAggregateInput {
+  AND?: InputMaybe<Array<HiveOrganisationProjectsAggregateInput>>;
+  OR?: InputMaybe<Array<HiveOrganisationProjectsAggregateInput>>;
+  count?: InputMaybe<Scalars["Int"]>;
+  count_GT?: InputMaybe<Scalars["Int"]>;
+  count_GTE?: InputMaybe<Scalars["Int"]>;
+  count_LT?: InputMaybe<Scalars["Int"]>;
+  count_LTE?: InputMaybe<Scalars["Int"]>;
+  node?: InputMaybe<HiveOrganisationProjectsNodeAggregationWhereInput>;
+}
+
+export interface HiveOrganisationProjectsConnectFieldInput {
+  connect?: InputMaybe<Array<ProjectConnectInput>>;
+  where?: InputMaybe<ProjectConnectWhere>;
+}
+
+export interface HiveOrganisationProjectsConnectOrCreateFieldInput {
+  onCreate: HiveOrganisationProjectsConnectOrCreateFieldInputOnCreate;
+  where: ProjectConnectOrCreateWhere;
+}
+
+export interface HiveOrganisationProjectsConnectOrCreateFieldInputOnCreate {
+  node: ProjectCreateInput;
+}
+
+export interface HiveOrganisationProjectsConnectionSort {
+  node?: InputMaybe<ProjectSort>;
+}
+
+export interface HiveOrganisationProjectsConnectionWhere {
+  AND?: InputMaybe<Array<HiveOrganisationProjectsConnectionWhere>>;
+  OR?: InputMaybe<Array<HiveOrganisationProjectsConnectionWhere>>;
+  node?: InputMaybe<ProjectWhere>;
+  node_NOT?: InputMaybe<ProjectWhere>;
+}
+
+export interface HiveOrganisationProjectsCreateFieldInput {
+  node: ProjectCreateInput;
+}
+
+export interface HiveOrganisationProjectsDeleteFieldInput {
+  delete?: InputMaybe<ProjectDeleteInput>;
+  where?: InputMaybe<HiveOrganisationProjectsConnectionWhere>;
+}
+
+export interface HiveOrganisationProjectsDisconnectFieldInput {
+  disconnect?: InputMaybe<ProjectDisconnectInput>;
+  where?: InputMaybe<HiveOrganisationProjectsConnectionWhere>;
+}
+
+export interface HiveOrganisationProjectsFieldInput {
+  connect?: InputMaybe<Array<HiveOrganisationProjectsConnectFieldInput>>;
+  connectOrCreate?: InputMaybe<
+    Array<HiveOrganisationProjectsConnectOrCreateFieldInput>
+  >;
+  create?: InputMaybe<Array<HiveOrganisationProjectsCreateFieldInput>>;
+}
+
+export interface HiveOrganisationProjectsNodeAggregationWhereInput {
+  AND?: InputMaybe<Array<HiveOrganisationProjectsNodeAggregationWhereInput>>;
+  OR?: InputMaybe<Array<HiveOrganisationProjectsNodeAggregationWhereInput>>;
+  endDate_EQUAL?: InputMaybe<Scalars["DateTime"]>;
+  endDate_GT?: InputMaybe<Scalars["DateTime"]>;
+  endDate_GTE?: InputMaybe<Scalars["DateTime"]>;
+  endDate_LT?: InputMaybe<Scalars["DateTime"]>;
+  endDate_LTE?: InputMaybe<Scalars["DateTime"]>;
+  endDate_MAX_EQUAL?: InputMaybe<Scalars["DateTime"]>;
+  endDate_MAX_GT?: InputMaybe<Scalars["DateTime"]>;
+  endDate_MAX_GTE?: InputMaybe<Scalars["DateTime"]>;
+  endDate_MAX_LT?: InputMaybe<Scalars["DateTime"]>;
+  endDate_MAX_LTE?: InputMaybe<Scalars["DateTime"]>;
+  endDate_MIN_EQUAL?: InputMaybe<Scalars["DateTime"]>;
+  endDate_MIN_GT?: InputMaybe<Scalars["DateTime"]>;
+  endDate_MIN_GTE?: InputMaybe<Scalars["DateTime"]>;
+  endDate_MIN_LT?: InputMaybe<Scalars["DateTime"]>;
+  endDate_MIN_LTE?: InputMaybe<Scalars["DateTime"]>;
+  id_EQUAL?: InputMaybe<Scalars["ID"]>;
+  name_AVERAGE_EQUAL?: InputMaybe<Scalars["Float"]>;
+  name_AVERAGE_GT?: InputMaybe<Scalars["Float"]>;
+  name_AVERAGE_GTE?: InputMaybe<Scalars["Float"]>;
+  name_AVERAGE_LT?: InputMaybe<Scalars["Float"]>;
+  name_AVERAGE_LTE?: InputMaybe<Scalars["Float"]>;
+  name_EQUAL?: InputMaybe<Scalars["String"]>;
+  name_GT?: InputMaybe<Scalars["Int"]>;
+  name_GTE?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_EQUAL?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_GT?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_GTE?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_LT?: InputMaybe<Scalars["Int"]>;
+  name_LONGEST_LTE?: InputMaybe<Scalars["Int"]>;
+  name_LT?: InputMaybe<Scalars["Int"]>;
+  name_LTE?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_EQUAL?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_GT?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_GTE?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_LT?: InputMaybe<Scalars["Int"]>;
+  name_SHORTEST_LTE?: InputMaybe<Scalars["Int"]>;
+  startDate_EQUAL?: InputMaybe<Scalars["DateTime"]>;
+  startDate_GT?: InputMaybe<Scalars["DateTime"]>;
+  startDate_GTE?: InputMaybe<Scalars["DateTime"]>;
+  startDate_LT?: InputMaybe<Scalars["DateTime"]>;
+  startDate_LTE?: InputMaybe<Scalars["DateTime"]>;
+  startDate_MAX_EQUAL?: InputMaybe<Scalars["DateTime"]>;
+  startDate_MAX_GT?: InputMaybe<Scalars["DateTime"]>;
+  startDate_MAX_GTE?: InputMaybe<Scalars["DateTime"]>;
+  startDate_MAX_LT?: InputMaybe<Scalars["DateTime"]>;
+  startDate_MAX_LTE?: InputMaybe<Scalars["DateTime"]>;
+  startDate_MIN_EQUAL?: InputMaybe<Scalars["DateTime"]>;
+  startDate_MIN_GT?: InputMaybe<Scalars["DateTime"]>;
+  startDate_MIN_GTE?: InputMaybe<Scalars["DateTime"]>;
+  startDate_MIN_LT?: InputMaybe<Scalars["DateTime"]>;
+  startDate_MIN_LTE?: InputMaybe<Scalars["DateTime"]>;
+  status_AVERAGE_EQUAL?: InputMaybe<Scalars["Float"]>;
+  status_AVERAGE_GT?: InputMaybe<Scalars["Float"]>;
+  status_AVERAGE_GTE?: InputMaybe<Scalars["Float"]>;
+  status_AVERAGE_LT?: InputMaybe<Scalars["Float"]>;
+  status_AVERAGE_LTE?: InputMaybe<Scalars["Float"]>;
+  status_EQUAL?: InputMaybe<Scalars["String"]>;
+  status_GT?: InputMaybe<Scalars["Int"]>;
+  status_GTE?: InputMaybe<Scalars["Int"]>;
+  status_LONGEST_EQUAL?: InputMaybe<Scalars["Int"]>;
+  status_LONGEST_GT?: InputMaybe<Scalars["Int"]>;
+  status_LONGEST_GTE?: InputMaybe<Scalars["Int"]>;
+  status_LONGEST_LT?: InputMaybe<Scalars["Int"]>;
+  status_LONGEST_LTE?: InputMaybe<Scalars["Int"]>;
+  status_LT?: InputMaybe<Scalars["Int"]>;
+  status_LTE?: InputMaybe<Scalars["Int"]>;
+  status_SHORTEST_EQUAL?: InputMaybe<Scalars["Int"]>;
+  status_SHORTEST_GT?: InputMaybe<Scalars["Int"]>;
+  status_SHORTEST_GTE?: InputMaybe<Scalars["Int"]>;
+  status_SHORTEST_LT?: InputMaybe<Scalars["Int"]>;
+  status_SHORTEST_LTE?: InputMaybe<Scalars["Int"]>;
+}
+
+export interface HiveOrganisationProjectsUpdateConnectionInput {
+  node?: InputMaybe<ProjectUpdateInput>;
+}
+
+export interface HiveOrganisationProjectsUpdateFieldInput {
+  connect?: InputMaybe<Array<HiveOrganisationProjectsConnectFieldInput>>;
+  connectOrCreate?: InputMaybe<
+    Array<HiveOrganisationProjectsConnectOrCreateFieldInput>
+  >;
+  create?: InputMaybe<Array<HiveOrganisationProjectsCreateFieldInput>>;
+  delete?: InputMaybe<Array<HiveOrganisationProjectsDeleteFieldInput>>;
+  disconnect?: InputMaybe<Array<HiveOrganisationProjectsDisconnectFieldInput>>;
+  update?: InputMaybe<HiveOrganisationProjectsUpdateConnectionInput>;
+  where?: InputMaybe<HiveOrganisationProjectsConnectionWhere>;
+}
+
 export interface HiveOrganisationRelationInput {
   appliances?: InputMaybe<Array<HiveOrganisationAppliancesCreateFieldInput>>;
+  equipment?: InputMaybe<Array<HiveOrganisationEquipmentCreateFieldInput>>;
+  estimates?: InputMaybe<Array<HiveOrganisationEstimatesCreateFieldInput>>;
   integrations?: InputMaybe<
     Array<HiveOrganisationIntegrationsCreateFieldInput>
   >;
   members?: InputMaybe<Array<HiveOrganisationMembersCreateFieldInput>>;
+  people?: InputMaybe<Array<HiveOrganisationPeopleCreateFieldInput>>;
+  projects?: InputMaybe<Array<HiveOrganisationProjectsCreateFieldInput>>;
   roles?: InputMaybe<Array<HiveOrganisationRolesCreateFieldInput>>;
   schedule?: InputMaybe<Array<HiveOrganisationScheduleCreateFieldInput>>;
   timeline?: InputMaybe<Array<HiveOrganisationTimelineCreateFieldInput>>;
@@ -2763,11 +3323,15 @@ export interface HiveOrganisationUniqueWhere {
 
 export interface HiveOrganisationUpdateInput {
   appliances?: InputMaybe<Array<HiveOrganisationAppliancesUpdateFieldInput>>;
+  equipment?: InputMaybe<Array<HiveOrganisationEquipmentUpdateFieldInput>>;
+  estimates?: InputMaybe<Array<HiveOrganisationEstimatesUpdateFieldInput>>;
   integrations?: InputMaybe<
     Array<HiveOrganisationIntegrationsUpdateFieldInput>
   >;
   members?: InputMaybe<Array<HiveOrganisationMembersUpdateFieldInput>>;
   name?: InputMaybe<Scalars["String"]>;
+  people?: InputMaybe<Array<HiveOrganisationPeopleUpdateFieldInput>>;
+  projects?: InputMaybe<Array<HiveOrganisationProjectsUpdateFieldInput>>;
   roles?: InputMaybe<Array<HiveOrganisationRolesUpdateFieldInput>>;
   schedule?: InputMaybe<Array<HiveOrganisationScheduleUpdateFieldInput>>;
   timeline?: InputMaybe<Array<HiveOrganisationTimelineUpdateFieldInput>>;
@@ -2781,6 +3345,16 @@ export interface HiveOrganisationWhere {
   appliancesConnection?: InputMaybe<HiveOrganisationAppliancesConnectionWhere>;
   appliancesConnection_NOT?: InputMaybe<HiveOrganisationAppliancesConnectionWhere>;
   appliances_NOT?: InputMaybe<HiveApplianceWhere>;
+  equipment?: InputMaybe<EquipmentWhere>;
+  equipmentAggregate?: InputMaybe<HiveOrganisationEquipmentAggregateInput>;
+  equipmentConnection?: InputMaybe<HiveOrganisationEquipmentConnectionWhere>;
+  equipmentConnection_NOT?: InputMaybe<HiveOrganisationEquipmentConnectionWhere>;
+  equipment_NOT?: InputMaybe<EquipmentWhere>;
+  estimates?: InputMaybe<EstimateWhere>;
+  estimatesAggregate?: InputMaybe<HiveOrganisationEstimatesAggregateInput>;
+  estimatesConnection?: InputMaybe<HiveOrganisationEstimatesConnectionWhere>;
+  estimatesConnection_NOT?: InputMaybe<HiveOrganisationEstimatesConnectionWhere>;
+  estimates_NOT?: InputMaybe<EstimateWhere>;
   id?: InputMaybe<Scalars["ID"]>;
   id_CONTAINS?: InputMaybe<Scalars["ID"]>;
   id_ENDS_WITH?: InputMaybe<Scalars["ID"]>;
@@ -2811,6 +3385,16 @@ export interface HiveOrganisationWhere {
   name_NOT_IN?: InputMaybe<Array<InputMaybe<Scalars["String"]>>>;
   name_NOT_STARTS_WITH?: InputMaybe<Scalars["String"]>;
   name_STARTS_WITH?: InputMaybe<Scalars["String"]>;
+  people?: InputMaybe<PeopleWhere>;
+  peopleAggregate?: InputMaybe<HiveOrganisationPeopleAggregateInput>;
+  peopleConnection?: InputMaybe<HiveOrganisationPeopleConnectionWhere>;
+  peopleConnection_NOT?: InputMaybe<HiveOrganisationPeopleConnectionWhere>;
+  people_NOT?: InputMaybe<PeopleWhere>;
+  projects?: InputMaybe<ProjectWhere>;
+  projectsAggregate?: InputMaybe<HiveOrganisationProjectsAggregateInput>;
+  projectsConnection?: InputMaybe<HiveOrganisationProjectsConnectionWhere>;
+  projectsConnection_NOT?: InputMaybe<HiveOrganisationProjectsConnectionWhere>;
+  projects_NOT?: InputMaybe<ProjectWhere>;
   roles?: InputMaybe<RoleWhere>;
   rolesAggregate?: InputMaybe<HiveOrganisationRolesAggregateInput>;
   rolesConnection?: InputMaybe<HiveOrganisationRolesConnectionWhere>;
@@ -9277,6 +9861,40 @@ export const generatedSchema = {
         where: "HiveOrganisationAppliancesConnectionWhere",
       },
     },
+    equipment: {
+      __type: "[Equipment]",
+      __args: { options: "EquipmentOptions", where: "EquipmentWhere" },
+    },
+    equipmentAggregate: {
+      __type: "HiveOrganisationEquipmentEquipmentAggregationSelection",
+      __args: { where: "EquipmentWhere" },
+    },
+    equipmentConnection: {
+      __type: "HiveOrganisationEquipmentConnection!",
+      __args: {
+        after: "String",
+        first: "Int",
+        sort: "[HiveOrganisationEquipmentConnectionSort!]",
+        where: "HiveOrganisationEquipmentConnectionWhere",
+      },
+    },
+    estimates: {
+      __type: "[Estimate]",
+      __args: { options: "EstimateOptions", where: "EstimateWhere" },
+    },
+    estimatesAggregate: {
+      __type: "HiveOrganisationEstimateEstimatesAggregationSelection",
+      __args: { where: "EstimateWhere" },
+    },
+    estimatesConnection: {
+      __type: "HiveOrganisationEstimatesConnection!",
+      __args: {
+        after: "String",
+        first: "Int",
+        sort: "[HiveOrganisationEstimatesConnectionSort!]",
+        where: "HiveOrganisationEstimatesConnectionWhere",
+      },
+    },
     id: { __type: "ID!" },
     integrations: {
       __type: "[HiveIntegrationInstance]",
@@ -9317,6 +9935,40 @@ export const generatedSchema = {
       },
     },
     name: { __type: "String" },
+    people: {
+      __type: "[People]",
+      __args: { options: "PeopleOptions", where: "PeopleWhere" },
+    },
+    peopleAggregate: {
+      __type: "HiveOrganisationPeoplePeopleAggregationSelection",
+      __args: { where: "PeopleWhere" },
+    },
+    peopleConnection: {
+      __type: "HiveOrganisationPeopleConnection!",
+      __args: {
+        after: "String",
+        first: "Int",
+        sort: "[HiveOrganisationPeopleConnectionSort!]",
+        where: "HiveOrganisationPeopleConnectionWhere",
+      },
+    },
+    projects: {
+      __type: "[Project]",
+      __args: { options: "ProjectOptions", where: "ProjectWhere" },
+    },
+    projectsAggregate: {
+      __type: "HiveOrganisationProjectProjectsAggregationSelection",
+      __args: { where: "ProjectWhere" },
+    },
+    projectsConnection: {
+      __type: "HiveOrganisationProjectsConnection!",
+      __args: {
+        after: "String",
+        first: "Int",
+        sort: "[HiveOrganisationProjectsConnectionSort!]",
+        where: "HiveOrganisationProjectsConnectionWhere",
+      },
+    },
     roles: {
       __type: "[Role]",
       __args: { options: "RoleOptions", where: "RoleWhere" },
@@ -9517,10 +10169,14 @@ export const generatedSchema = {
   },
   HiveOrganisationConnectInput: {
     appliances: { __type: "[HiveOrganisationAppliancesConnectFieldInput!]" },
+    equipment: { __type: "[HiveOrganisationEquipmentConnectFieldInput!]" },
+    estimates: { __type: "[HiveOrganisationEstimatesConnectFieldInput!]" },
     integrations: {
       __type: "[HiveOrganisationIntegrationsConnectFieldInput!]",
     },
     members: { __type: "[HiveOrganisationMembersConnectFieldInput!]" },
+    people: { __type: "[HiveOrganisationPeopleConnectFieldInput!]" },
+    projects: { __type: "[HiveOrganisationProjectsConnectFieldInput!]" },
     roles: { __type: "[HiveOrganisationRolesConnectFieldInput!]" },
     schedule: { __type: "[HiveOrganisationScheduleConnectFieldInput!]" },
     timeline: { __type: "[HiveOrganisationTimelineConnectFieldInput!]" },
@@ -9529,10 +10185,20 @@ export const generatedSchema = {
     appliances: {
       __type: "[HiveOrganisationAppliancesConnectOrCreateFieldInput!]",
     },
+    equipment: {
+      __type: "[HiveOrganisationEquipmentConnectOrCreateFieldInput!]",
+    },
+    estimates: {
+      __type: "[HiveOrganisationEstimatesConnectOrCreateFieldInput!]",
+    },
     integrations: {
       __type: "[HiveOrganisationIntegrationsConnectOrCreateFieldInput!]",
     },
     members: { __type: "[HiveOrganisationMembersConnectOrCreateFieldInput!]" },
+    people: { __type: "[HiveOrganisationPeopleConnectOrCreateFieldInput!]" },
+    projects: {
+      __type: "[HiveOrganisationProjectsConnectOrCreateFieldInput!]",
+    },
     roles: { __type: "[HiveOrganisationRolesConnectOrCreateFieldInput!]" },
     schedule: {
       __type: "[HiveOrganisationScheduleConnectOrCreateFieldInput!]",
@@ -9547,30 +10213,346 @@ export const generatedSchema = {
   HiveOrganisationConnectWhere: { node: { __type: "HiveOrganisationWhere!" } },
   HiveOrganisationCreateInput: {
     appliances: { __type: "HiveOrganisationAppliancesFieldInput" },
+    equipment: { __type: "HiveOrganisationEquipmentFieldInput" },
+    estimates: { __type: "HiveOrganisationEstimatesFieldInput" },
     integrations: { __type: "HiveOrganisationIntegrationsFieldInput" },
     members: { __type: "HiveOrganisationMembersFieldInput" },
     name: { __type: "String" },
+    people: { __type: "HiveOrganisationPeopleFieldInput" },
+    projects: { __type: "HiveOrganisationProjectsFieldInput" },
     roles: { __type: "HiveOrganisationRolesFieldInput" },
     schedule: { __type: "HiveOrganisationScheduleFieldInput" },
     timeline: { __type: "HiveOrganisationTimelineFieldInput" },
   },
   HiveOrganisationDeleteInput: {
     appliances: { __type: "[HiveOrganisationAppliancesDeleteFieldInput!]" },
+    equipment: { __type: "[HiveOrganisationEquipmentDeleteFieldInput!]" },
+    estimates: { __type: "[HiveOrganisationEstimatesDeleteFieldInput!]" },
     integrations: { __type: "[HiveOrganisationIntegrationsDeleteFieldInput!]" },
     members: { __type: "[HiveOrganisationMembersDeleteFieldInput!]" },
+    people: { __type: "[HiveOrganisationPeopleDeleteFieldInput!]" },
+    projects: { __type: "[HiveOrganisationProjectsDeleteFieldInput!]" },
     roles: { __type: "[HiveOrganisationRolesDeleteFieldInput!]" },
     schedule: { __type: "[HiveOrganisationScheduleDeleteFieldInput!]" },
     timeline: { __type: "[HiveOrganisationTimelineDeleteFieldInput!]" },
   },
   HiveOrganisationDisconnectInput: {
     appliances: { __type: "[HiveOrganisationAppliancesDisconnectFieldInput!]" },
+    equipment: { __type: "[HiveOrganisationEquipmentDisconnectFieldInput!]" },
+    estimates: { __type: "[HiveOrganisationEstimatesDisconnectFieldInput!]" },
     integrations: {
       __type: "[HiveOrganisationIntegrationsDisconnectFieldInput!]",
     },
     members: { __type: "[HiveOrganisationMembersDisconnectFieldInput!]" },
+    people: { __type: "[HiveOrganisationPeopleDisconnectFieldInput!]" },
+    projects: { __type: "[HiveOrganisationProjectsDisconnectFieldInput!]" },
     roles: { __type: "[HiveOrganisationRolesDisconnectFieldInput!]" },
     schedule: { __type: "[HiveOrganisationScheduleDisconnectFieldInput!]" },
     timeline: { __type: "[HiveOrganisationTimelineDisconnectFieldInput!]" },
+  },
+  HiveOrganisationEquipmentAggregateInput: {
+    AND: { __type: "[HiveOrganisationEquipmentAggregateInput!]" },
+    OR: { __type: "[HiveOrganisationEquipmentAggregateInput!]" },
+    count: { __type: "Int" },
+    count_GT: { __type: "Int" },
+    count_GTE: { __type: "Int" },
+    count_LT: { __type: "Int" },
+    count_LTE: { __type: "Int" },
+    node: { __type: "HiveOrganisationEquipmentNodeAggregationWhereInput" },
+  },
+  HiveOrganisationEquipmentConnectFieldInput: {
+    connect: { __type: "[EquipmentConnectInput!]" },
+    where: { __type: "EquipmentConnectWhere" },
+  },
+  HiveOrganisationEquipmentConnectOrCreateFieldInput: {
+    onCreate: {
+      __type: "HiveOrganisationEquipmentConnectOrCreateFieldInputOnCreate!",
+    },
+    where: { __type: "EquipmentConnectOrCreateWhere!" },
+  },
+  HiveOrganisationEquipmentConnectOrCreateFieldInputOnCreate: {
+    node: { __type: "EquipmentCreateInput!" },
+  },
+  HiveOrganisationEquipmentConnection: {
+    __typename: { __type: "String!" },
+    edges: { __type: "[HiveOrganisationEquipmentRelationship!]!" },
+    pageInfo: { __type: "PageInfo!" },
+    totalCount: { __type: "Int!" },
+  },
+  HiveOrganisationEquipmentConnectionSort: {
+    node: { __type: "EquipmentSort" },
+  },
+  HiveOrganisationEquipmentConnectionWhere: {
+    AND: { __type: "[HiveOrganisationEquipmentConnectionWhere!]" },
+    OR: { __type: "[HiveOrganisationEquipmentConnectionWhere!]" },
+    node: { __type: "EquipmentWhere" },
+    node_NOT: { __type: "EquipmentWhere" },
+  },
+  HiveOrganisationEquipmentCreateFieldInput: {
+    node: { __type: "EquipmentCreateInput!" },
+  },
+  HiveOrganisationEquipmentDeleteFieldInput: {
+    delete: { __type: "EquipmentDeleteInput" },
+    where: { __type: "HiveOrganisationEquipmentConnectionWhere" },
+  },
+  HiveOrganisationEquipmentDisconnectFieldInput: {
+    disconnect: { __type: "EquipmentDisconnectInput" },
+    where: { __type: "HiveOrganisationEquipmentConnectionWhere" },
+  },
+  HiveOrganisationEquipmentEquipmentAggregationSelection: {
+    __typename: { __type: "String!" },
+    count: { __type: "Int!" },
+    node: {
+      __type: "HiveOrganisationEquipmentEquipmentNodeAggregateSelection",
+    },
+  },
+  HiveOrganisationEquipmentEquipmentNodeAggregateSelection: {
+    __typename: { __type: "String!" },
+    id: { __type: "IDAggregateSelection!" },
+    name: { __type: "StringAggregateSelection!" },
+    registration: { __type: "StringAggregateSelection!" },
+  },
+  HiveOrganisationEquipmentFieldInput: {
+    connect: { __type: "[HiveOrganisationEquipmentConnectFieldInput!]" },
+    connectOrCreate: {
+      __type: "[HiveOrganisationEquipmentConnectOrCreateFieldInput!]",
+    },
+    create: { __type: "[HiveOrganisationEquipmentCreateFieldInput!]" },
+  },
+  HiveOrganisationEquipmentNodeAggregationWhereInput: {
+    AND: { __type: "[HiveOrganisationEquipmentNodeAggregationWhereInput!]" },
+    OR: { __type: "[HiveOrganisationEquipmentNodeAggregationWhereInput!]" },
+    id_EQUAL: { __type: "ID" },
+    name_AVERAGE_EQUAL: { __type: "Float" },
+    name_AVERAGE_GT: { __type: "Float" },
+    name_AVERAGE_GTE: { __type: "Float" },
+    name_AVERAGE_LT: { __type: "Float" },
+    name_AVERAGE_LTE: { __type: "Float" },
+    name_EQUAL: { __type: "String" },
+    name_GT: { __type: "Int" },
+    name_GTE: { __type: "Int" },
+    name_LONGEST_EQUAL: { __type: "Int" },
+    name_LONGEST_GT: { __type: "Int" },
+    name_LONGEST_GTE: { __type: "Int" },
+    name_LONGEST_LT: { __type: "Int" },
+    name_LONGEST_LTE: { __type: "Int" },
+    name_LT: { __type: "Int" },
+    name_LTE: { __type: "Int" },
+    name_SHORTEST_EQUAL: { __type: "Int" },
+    name_SHORTEST_GT: { __type: "Int" },
+    name_SHORTEST_GTE: { __type: "Int" },
+    name_SHORTEST_LT: { __type: "Int" },
+    name_SHORTEST_LTE: { __type: "Int" },
+    registration_AVERAGE_EQUAL: { __type: "Float" },
+    registration_AVERAGE_GT: { __type: "Float" },
+    registration_AVERAGE_GTE: { __type: "Float" },
+    registration_AVERAGE_LT: { __type: "Float" },
+    registration_AVERAGE_LTE: { __type: "Float" },
+    registration_EQUAL: { __type: "String" },
+    registration_GT: { __type: "Int" },
+    registration_GTE: { __type: "Int" },
+    registration_LONGEST_EQUAL: { __type: "Int" },
+    registration_LONGEST_GT: { __type: "Int" },
+    registration_LONGEST_GTE: { __type: "Int" },
+    registration_LONGEST_LT: { __type: "Int" },
+    registration_LONGEST_LTE: { __type: "Int" },
+    registration_LT: { __type: "Int" },
+    registration_LTE: { __type: "Int" },
+    registration_SHORTEST_EQUAL: { __type: "Int" },
+    registration_SHORTEST_GT: { __type: "Int" },
+    registration_SHORTEST_GTE: { __type: "Int" },
+    registration_SHORTEST_LT: { __type: "Int" },
+    registration_SHORTEST_LTE: { __type: "Int" },
+  },
+  HiveOrganisationEquipmentRelationship: {
+    __typename: { __type: "String!" },
+    cursor: { __type: "String!" },
+    node: { __type: "Equipment!" },
+  },
+  HiveOrganisationEquipmentUpdateConnectionInput: {
+    node: { __type: "EquipmentUpdateInput" },
+  },
+  HiveOrganisationEquipmentUpdateFieldInput: {
+    connect: { __type: "[HiveOrganisationEquipmentConnectFieldInput!]" },
+    connectOrCreate: {
+      __type: "[HiveOrganisationEquipmentConnectOrCreateFieldInput!]",
+    },
+    create: { __type: "[HiveOrganisationEquipmentCreateFieldInput!]" },
+    delete: { __type: "[HiveOrganisationEquipmentDeleteFieldInput!]" },
+    disconnect: { __type: "[HiveOrganisationEquipmentDisconnectFieldInput!]" },
+    update: { __type: "HiveOrganisationEquipmentUpdateConnectionInput" },
+    where: { __type: "HiveOrganisationEquipmentConnectionWhere" },
+  },
+  HiveOrganisationEstimateEstimatesAggregationSelection: {
+    __typename: { __type: "String!" },
+    count: { __type: "Int!" },
+    node: { __type: "HiveOrganisationEstimateEstimatesNodeAggregateSelection" },
+  },
+  HiveOrganisationEstimateEstimatesNodeAggregateSelection: {
+    __typename: { __type: "String!" },
+    date: { __type: "DateTimeAggregateSelection!" },
+    id: { __type: "IDAggregateSelection!" },
+    name: { __type: "StringAggregateSelection!" },
+    price: { __type: "FloatAggregateSelection!" },
+    status: { __type: "StringAggregateSelection!" },
+  },
+  HiveOrganisationEstimatesAggregateInput: {
+    AND: { __type: "[HiveOrganisationEstimatesAggregateInput!]" },
+    OR: { __type: "[HiveOrganisationEstimatesAggregateInput!]" },
+    count: { __type: "Int" },
+    count_GT: { __type: "Int" },
+    count_GTE: { __type: "Int" },
+    count_LT: { __type: "Int" },
+    count_LTE: { __type: "Int" },
+    node: { __type: "HiveOrganisationEstimatesNodeAggregationWhereInput" },
+  },
+  HiveOrganisationEstimatesConnectFieldInput: {
+    connect: { __type: "[EstimateConnectInput!]" },
+    where: { __type: "EstimateConnectWhere" },
+  },
+  HiveOrganisationEstimatesConnectOrCreateFieldInput: {
+    onCreate: {
+      __type: "HiveOrganisationEstimatesConnectOrCreateFieldInputOnCreate!",
+    },
+    where: { __type: "EstimateConnectOrCreateWhere!" },
+  },
+  HiveOrganisationEstimatesConnectOrCreateFieldInputOnCreate: {
+    node: { __type: "EstimateCreateInput!" },
+  },
+  HiveOrganisationEstimatesConnection: {
+    __typename: { __type: "String!" },
+    edges: { __type: "[HiveOrganisationEstimatesRelationship!]!" },
+    pageInfo: { __type: "PageInfo!" },
+    totalCount: { __type: "Int!" },
+  },
+  HiveOrganisationEstimatesConnectionSort: { node: { __type: "EstimateSort" } },
+  HiveOrganisationEstimatesConnectionWhere: {
+    AND: { __type: "[HiveOrganisationEstimatesConnectionWhere!]" },
+    OR: { __type: "[HiveOrganisationEstimatesConnectionWhere!]" },
+    node: { __type: "EstimateWhere" },
+    node_NOT: { __type: "EstimateWhere" },
+  },
+  HiveOrganisationEstimatesCreateFieldInput: {
+    node: { __type: "EstimateCreateInput!" },
+  },
+  HiveOrganisationEstimatesDeleteFieldInput: {
+    delete: { __type: "EstimateDeleteInput" },
+    where: { __type: "HiveOrganisationEstimatesConnectionWhere" },
+  },
+  HiveOrganisationEstimatesDisconnectFieldInput: {
+    disconnect: { __type: "EstimateDisconnectInput" },
+    where: { __type: "HiveOrganisationEstimatesConnectionWhere" },
+  },
+  HiveOrganisationEstimatesFieldInput: {
+    connect: { __type: "[HiveOrganisationEstimatesConnectFieldInput!]" },
+    connectOrCreate: {
+      __type: "[HiveOrganisationEstimatesConnectOrCreateFieldInput!]",
+    },
+    create: { __type: "[HiveOrganisationEstimatesCreateFieldInput!]" },
+  },
+  HiveOrganisationEstimatesNodeAggregationWhereInput: {
+    AND: { __type: "[HiveOrganisationEstimatesNodeAggregationWhereInput!]" },
+    OR: { __type: "[HiveOrganisationEstimatesNodeAggregationWhereInput!]" },
+    date_EQUAL: { __type: "DateTime" },
+    date_GT: { __type: "DateTime" },
+    date_GTE: { __type: "DateTime" },
+    date_LT: { __type: "DateTime" },
+    date_LTE: { __type: "DateTime" },
+    date_MAX_EQUAL: { __type: "DateTime" },
+    date_MAX_GT: { __type: "DateTime" },
+    date_MAX_GTE: { __type: "DateTime" },
+    date_MAX_LT: { __type: "DateTime" },
+    date_MAX_LTE: { __type: "DateTime" },
+    date_MIN_EQUAL: { __type: "DateTime" },
+    date_MIN_GT: { __type: "DateTime" },
+    date_MIN_GTE: { __type: "DateTime" },
+    date_MIN_LT: { __type: "DateTime" },
+    date_MIN_LTE: { __type: "DateTime" },
+    id_EQUAL: { __type: "ID" },
+    name_AVERAGE_EQUAL: { __type: "Float" },
+    name_AVERAGE_GT: { __type: "Float" },
+    name_AVERAGE_GTE: { __type: "Float" },
+    name_AVERAGE_LT: { __type: "Float" },
+    name_AVERAGE_LTE: { __type: "Float" },
+    name_EQUAL: { __type: "String" },
+    name_GT: { __type: "Int" },
+    name_GTE: { __type: "Int" },
+    name_LONGEST_EQUAL: { __type: "Int" },
+    name_LONGEST_GT: { __type: "Int" },
+    name_LONGEST_GTE: { __type: "Int" },
+    name_LONGEST_LT: { __type: "Int" },
+    name_LONGEST_LTE: { __type: "Int" },
+    name_LT: { __type: "Int" },
+    name_LTE: { __type: "Int" },
+    name_SHORTEST_EQUAL: { __type: "Int" },
+    name_SHORTEST_GT: { __type: "Int" },
+    name_SHORTEST_GTE: { __type: "Int" },
+    name_SHORTEST_LT: { __type: "Int" },
+    name_SHORTEST_LTE: { __type: "Int" },
+    price_AVERAGE_EQUAL: { __type: "Float" },
+    price_AVERAGE_GT: { __type: "Float" },
+    price_AVERAGE_GTE: { __type: "Float" },
+    price_AVERAGE_LT: { __type: "Float" },
+    price_AVERAGE_LTE: { __type: "Float" },
+    price_EQUAL: { __type: "Float" },
+    price_GT: { __type: "Float" },
+    price_GTE: { __type: "Float" },
+    price_LT: { __type: "Float" },
+    price_LTE: { __type: "Float" },
+    price_MAX_EQUAL: { __type: "Float" },
+    price_MAX_GT: { __type: "Float" },
+    price_MAX_GTE: { __type: "Float" },
+    price_MAX_LT: { __type: "Float" },
+    price_MAX_LTE: { __type: "Float" },
+    price_MIN_EQUAL: { __type: "Float" },
+    price_MIN_GT: { __type: "Float" },
+    price_MIN_GTE: { __type: "Float" },
+    price_MIN_LT: { __type: "Float" },
+    price_MIN_LTE: { __type: "Float" },
+    price_SUM_EQUAL: { __type: "Float" },
+    price_SUM_GT: { __type: "Float" },
+    price_SUM_GTE: { __type: "Float" },
+    price_SUM_LT: { __type: "Float" },
+    price_SUM_LTE: { __type: "Float" },
+    status_AVERAGE_EQUAL: { __type: "Float" },
+    status_AVERAGE_GT: { __type: "Float" },
+    status_AVERAGE_GTE: { __type: "Float" },
+    status_AVERAGE_LT: { __type: "Float" },
+    status_AVERAGE_LTE: { __type: "Float" },
+    status_EQUAL: { __type: "String" },
+    status_GT: { __type: "Int" },
+    status_GTE: { __type: "Int" },
+    status_LONGEST_EQUAL: { __type: "Int" },
+    status_LONGEST_GT: { __type: "Int" },
+    status_LONGEST_GTE: { __type: "Int" },
+    status_LONGEST_LT: { __type: "Int" },
+    status_LONGEST_LTE: { __type: "Int" },
+    status_LT: { __type: "Int" },
+    status_LTE: { __type: "Int" },
+    status_SHORTEST_EQUAL: { __type: "Int" },
+    status_SHORTEST_GT: { __type: "Int" },
+    status_SHORTEST_GTE: { __type: "Int" },
+    status_SHORTEST_LT: { __type: "Int" },
+    status_SHORTEST_LTE: { __type: "Int" },
+  },
+  HiveOrganisationEstimatesRelationship: {
+    __typename: { __type: "String!" },
+    cursor: { __type: "String!" },
+    node: { __type: "Estimate!" },
+  },
+  HiveOrganisationEstimatesUpdateConnectionInput: {
+    node: { __type: "EstimateUpdateInput" },
+  },
+  HiveOrganisationEstimatesUpdateFieldInput: {
+    connect: { __type: "[HiveOrganisationEstimatesConnectFieldInput!]" },
+    connectOrCreate: {
+      __type: "[HiveOrganisationEstimatesConnectOrCreateFieldInput!]",
+    },
+    create: { __type: "[HiveOrganisationEstimatesCreateFieldInput!]" },
+    delete: { __type: "[HiveOrganisationEstimatesDeleteFieldInput!]" },
+    disconnect: { __type: "[HiveOrganisationEstimatesDisconnectFieldInput!]" },
+    update: { __type: "HiveOrganisationEstimatesUpdateConnectionInput" },
+    where: { __type: "HiveOrganisationEstimatesConnectionWhere" },
   },
   HiveOrganisationHiveApplianceAppliancesAggregationSelection: {
     __typename: { __type: "String!" },
@@ -9877,10 +10859,283 @@ export const generatedSchema = {
     offset: { __type: "Int" },
     sort: { __type: "[HiveOrganisationSort]" },
   },
+  HiveOrganisationPeopleAggregateInput: {
+    AND: { __type: "[HiveOrganisationPeopleAggregateInput!]" },
+    OR: { __type: "[HiveOrganisationPeopleAggregateInput!]" },
+    count: { __type: "Int" },
+    count_GT: { __type: "Int" },
+    count_GTE: { __type: "Int" },
+    count_LT: { __type: "Int" },
+    count_LTE: { __type: "Int" },
+    node: { __type: "HiveOrganisationPeopleNodeAggregationWhereInput" },
+  },
+  HiveOrganisationPeopleConnectFieldInput: {
+    connect: { __type: "[PeopleConnectInput!]" },
+    where: { __type: "PeopleConnectWhere" },
+  },
+  HiveOrganisationPeopleConnectOrCreateFieldInput: {
+    onCreate: {
+      __type: "HiveOrganisationPeopleConnectOrCreateFieldInputOnCreate!",
+    },
+    where: { __type: "PeopleConnectOrCreateWhere!" },
+  },
+  HiveOrganisationPeopleConnectOrCreateFieldInputOnCreate: {
+    node: { __type: "PeopleCreateInput!" },
+  },
+  HiveOrganisationPeopleConnection: {
+    __typename: { __type: "String!" },
+    edges: { __type: "[HiveOrganisationPeopleRelationship!]!" },
+    pageInfo: { __type: "PageInfo!" },
+    totalCount: { __type: "Int!" },
+  },
+  HiveOrganisationPeopleConnectionSort: { node: { __type: "PeopleSort" } },
+  HiveOrganisationPeopleConnectionWhere: {
+    AND: { __type: "[HiveOrganisationPeopleConnectionWhere!]" },
+    OR: { __type: "[HiveOrganisationPeopleConnectionWhere!]" },
+    node: { __type: "PeopleWhere" },
+    node_NOT: { __type: "PeopleWhere" },
+  },
+  HiveOrganisationPeopleCreateFieldInput: {
+    node: { __type: "PeopleCreateInput!" },
+  },
+  HiveOrganisationPeopleDeleteFieldInput: {
+    delete: { __type: "PeopleDeleteInput" },
+    where: { __type: "HiveOrganisationPeopleConnectionWhere" },
+  },
+  HiveOrganisationPeopleDisconnectFieldInput: {
+    disconnect: { __type: "PeopleDisconnectInput" },
+    where: { __type: "HiveOrganisationPeopleConnectionWhere" },
+  },
+  HiveOrganisationPeopleFieldInput: {
+    connect: { __type: "[HiveOrganisationPeopleConnectFieldInput!]" },
+    connectOrCreate: {
+      __type: "[HiveOrganisationPeopleConnectOrCreateFieldInput!]",
+    },
+    create: { __type: "[HiveOrganisationPeopleCreateFieldInput!]" },
+  },
+  HiveOrganisationPeopleNodeAggregationWhereInput: {
+    AND: { __type: "[HiveOrganisationPeopleNodeAggregationWhereInput!]" },
+    OR: { __type: "[HiveOrganisationPeopleNodeAggregationWhereInput!]" },
+    id_EQUAL: { __type: "ID" },
+    name_AVERAGE_EQUAL: { __type: "Float" },
+    name_AVERAGE_GT: { __type: "Float" },
+    name_AVERAGE_GTE: { __type: "Float" },
+    name_AVERAGE_LT: { __type: "Float" },
+    name_AVERAGE_LTE: { __type: "Float" },
+    name_EQUAL: { __type: "String" },
+    name_GT: { __type: "Int" },
+    name_GTE: { __type: "Int" },
+    name_LONGEST_EQUAL: { __type: "Int" },
+    name_LONGEST_GT: { __type: "Int" },
+    name_LONGEST_GTE: { __type: "Int" },
+    name_LONGEST_LT: { __type: "Int" },
+    name_LONGEST_LTE: { __type: "Int" },
+    name_LT: { __type: "Int" },
+    name_LTE: { __type: "Int" },
+    name_SHORTEST_EQUAL: { __type: "Int" },
+    name_SHORTEST_GT: { __type: "Int" },
+    name_SHORTEST_GTE: { __type: "Int" },
+    name_SHORTEST_LT: { __type: "Int" },
+    name_SHORTEST_LTE: { __type: "Int" },
+  },
+  HiveOrganisationPeoplePeopleAggregationSelection: {
+    __typename: { __type: "String!" },
+    count: { __type: "Int!" },
+    node: { __type: "HiveOrganisationPeoplePeopleNodeAggregateSelection" },
+  },
+  HiveOrganisationPeoplePeopleNodeAggregateSelection: {
+    __typename: { __type: "String!" },
+    id: { __type: "IDAggregateSelection!" },
+    name: { __type: "StringAggregateSelection!" },
+  },
+  HiveOrganisationPeopleRelationship: {
+    __typename: { __type: "String!" },
+    cursor: { __type: "String!" },
+    node: { __type: "People!" },
+  },
+  HiveOrganisationPeopleUpdateConnectionInput: {
+    node: { __type: "PeopleUpdateInput" },
+  },
+  HiveOrganisationPeopleUpdateFieldInput: {
+    connect: { __type: "[HiveOrganisationPeopleConnectFieldInput!]" },
+    connectOrCreate: {
+      __type: "[HiveOrganisationPeopleConnectOrCreateFieldInput!]",
+    },
+    create: { __type: "[HiveOrganisationPeopleCreateFieldInput!]" },
+    delete: { __type: "[HiveOrganisationPeopleDeleteFieldInput!]" },
+    disconnect: { __type: "[HiveOrganisationPeopleDisconnectFieldInput!]" },
+    update: { __type: "HiveOrganisationPeopleUpdateConnectionInput" },
+    where: { __type: "HiveOrganisationPeopleConnectionWhere" },
+  },
+  HiveOrganisationProjectProjectsAggregationSelection: {
+    __typename: { __type: "String!" },
+    count: { __type: "Int!" },
+    node: { __type: "HiveOrganisationProjectProjectsNodeAggregateSelection" },
+  },
+  HiveOrganisationProjectProjectsNodeAggregateSelection: {
+    __typename: { __type: "String!" },
+    endDate: { __type: "DateTimeAggregateSelection!" },
+    id: { __type: "IDAggregateSelection!" },
+    name: { __type: "StringAggregateSelection!" },
+    startDate: { __type: "DateTimeAggregateSelection!" },
+    status: { __type: "StringAggregateSelection!" },
+  },
+  HiveOrganisationProjectsAggregateInput: {
+    AND: { __type: "[HiveOrganisationProjectsAggregateInput!]" },
+    OR: { __type: "[HiveOrganisationProjectsAggregateInput!]" },
+    count: { __type: "Int" },
+    count_GT: { __type: "Int" },
+    count_GTE: { __type: "Int" },
+    count_LT: { __type: "Int" },
+    count_LTE: { __type: "Int" },
+    node: { __type: "HiveOrganisationProjectsNodeAggregationWhereInput" },
+  },
+  HiveOrganisationProjectsConnectFieldInput: {
+    connect: { __type: "[ProjectConnectInput!]" },
+    where: { __type: "ProjectConnectWhere" },
+  },
+  HiveOrganisationProjectsConnectOrCreateFieldInput: {
+    onCreate: {
+      __type: "HiveOrganisationProjectsConnectOrCreateFieldInputOnCreate!",
+    },
+    where: { __type: "ProjectConnectOrCreateWhere!" },
+  },
+  HiveOrganisationProjectsConnectOrCreateFieldInputOnCreate: {
+    node: { __type: "ProjectCreateInput!" },
+  },
+  HiveOrganisationProjectsConnection: {
+    __typename: { __type: "String!" },
+    edges: { __type: "[HiveOrganisationProjectsRelationship!]!" },
+    pageInfo: { __type: "PageInfo!" },
+    totalCount: { __type: "Int!" },
+  },
+  HiveOrganisationProjectsConnectionSort: { node: { __type: "ProjectSort" } },
+  HiveOrganisationProjectsConnectionWhere: {
+    AND: { __type: "[HiveOrganisationProjectsConnectionWhere!]" },
+    OR: { __type: "[HiveOrganisationProjectsConnectionWhere!]" },
+    node: { __type: "ProjectWhere" },
+    node_NOT: { __type: "ProjectWhere" },
+  },
+  HiveOrganisationProjectsCreateFieldInput: {
+    node: { __type: "ProjectCreateInput!" },
+  },
+  HiveOrganisationProjectsDeleteFieldInput: {
+    delete: { __type: "ProjectDeleteInput" },
+    where: { __type: "HiveOrganisationProjectsConnectionWhere" },
+  },
+  HiveOrganisationProjectsDisconnectFieldInput: {
+    disconnect: { __type: "ProjectDisconnectInput" },
+    where: { __type: "HiveOrganisationProjectsConnectionWhere" },
+  },
+  HiveOrganisationProjectsFieldInput: {
+    connect: { __type: "[HiveOrganisationProjectsConnectFieldInput!]" },
+    connectOrCreate: {
+      __type: "[HiveOrganisationProjectsConnectOrCreateFieldInput!]",
+    },
+    create: { __type: "[HiveOrganisationProjectsCreateFieldInput!]" },
+  },
+  HiveOrganisationProjectsNodeAggregationWhereInput: {
+    AND: { __type: "[HiveOrganisationProjectsNodeAggregationWhereInput!]" },
+    OR: { __type: "[HiveOrganisationProjectsNodeAggregationWhereInput!]" },
+    endDate_EQUAL: { __type: "DateTime" },
+    endDate_GT: { __type: "DateTime" },
+    endDate_GTE: { __type: "DateTime" },
+    endDate_LT: { __type: "DateTime" },
+    endDate_LTE: { __type: "DateTime" },
+    endDate_MAX_EQUAL: { __type: "DateTime" },
+    endDate_MAX_GT: { __type: "DateTime" },
+    endDate_MAX_GTE: { __type: "DateTime" },
+    endDate_MAX_LT: { __type: "DateTime" },
+    endDate_MAX_LTE: { __type: "DateTime" },
+    endDate_MIN_EQUAL: { __type: "DateTime" },
+    endDate_MIN_GT: { __type: "DateTime" },
+    endDate_MIN_GTE: { __type: "DateTime" },
+    endDate_MIN_LT: { __type: "DateTime" },
+    endDate_MIN_LTE: { __type: "DateTime" },
+    id_EQUAL: { __type: "ID" },
+    name_AVERAGE_EQUAL: { __type: "Float" },
+    name_AVERAGE_GT: { __type: "Float" },
+    name_AVERAGE_GTE: { __type: "Float" },
+    name_AVERAGE_LT: { __type: "Float" },
+    name_AVERAGE_LTE: { __type: "Float" },
+    name_EQUAL: { __type: "String" },
+    name_GT: { __type: "Int" },
+    name_GTE: { __type: "Int" },
+    name_LONGEST_EQUAL: { __type: "Int" },
+    name_LONGEST_GT: { __type: "Int" },
+    name_LONGEST_GTE: { __type: "Int" },
+    name_LONGEST_LT: { __type: "Int" },
+    name_LONGEST_LTE: { __type: "Int" },
+    name_LT: { __type: "Int" },
+    name_LTE: { __type: "Int" },
+    name_SHORTEST_EQUAL: { __type: "Int" },
+    name_SHORTEST_GT: { __type: "Int" },
+    name_SHORTEST_GTE: { __type: "Int" },
+    name_SHORTEST_LT: { __type: "Int" },
+    name_SHORTEST_LTE: { __type: "Int" },
+    startDate_EQUAL: { __type: "DateTime" },
+    startDate_GT: { __type: "DateTime" },
+    startDate_GTE: { __type: "DateTime" },
+    startDate_LT: { __type: "DateTime" },
+    startDate_LTE: { __type: "DateTime" },
+    startDate_MAX_EQUAL: { __type: "DateTime" },
+    startDate_MAX_GT: { __type: "DateTime" },
+    startDate_MAX_GTE: { __type: "DateTime" },
+    startDate_MAX_LT: { __type: "DateTime" },
+    startDate_MAX_LTE: { __type: "DateTime" },
+    startDate_MIN_EQUAL: { __type: "DateTime" },
+    startDate_MIN_GT: { __type: "DateTime" },
+    startDate_MIN_GTE: { __type: "DateTime" },
+    startDate_MIN_LT: { __type: "DateTime" },
+    startDate_MIN_LTE: { __type: "DateTime" },
+    status_AVERAGE_EQUAL: { __type: "Float" },
+    status_AVERAGE_GT: { __type: "Float" },
+    status_AVERAGE_GTE: { __type: "Float" },
+    status_AVERAGE_LT: { __type: "Float" },
+    status_AVERAGE_LTE: { __type: "Float" },
+    status_EQUAL: { __type: "String" },
+    status_GT: { __type: "Int" },
+    status_GTE: { __type: "Int" },
+    status_LONGEST_EQUAL: { __type: "Int" },
+    status_LONGEST_GT: { __type: "Int" },
+    status_LONGEST_GTE: { __type: "Int" },
+    status_LONGEST_LT: { __type: "Int" },
+    status_LONGEST_LTE: { __type: "Int" },
+    status_LT: { __type: "Int" },
+    status_LTE: { __type: "Int" },
+    status_SHORTEST_EQUAL: { __type: "Int" },
+    status_SHORTEST_GT: { __type: "Int" },
+    status_SHORTEST_GTE: { __type: "Int" },
+    status_SHORTEST_LT: { __type: "Int" },
+    status_SHORTEST_LTE: { __type: "Int" },
+  },
+  HiveOrganisationProjectsRelationship: {
+    __typename: { __type: "String!" },
+    cursor: { __type: "String!" },
+    node: { __type: "Project!" },
+  },
+  HiveOrganisationProjectsUpdateConnectionInput: {
+    node: { __type: "ProjectUpdateInput" },
+  },
+  HiveOrganisationProjectsUpdateFieldInput: {
+    connect: { __type: "[HiveOrganisationProjectsConnectFieldInput!]" },
+    connectOrCreate: {
+      __type: "[HiveOrganisationProjectsConnectOrCreateFieldInput!]",
+    },
+    create: { __type: "[HiveOrganisationProjectsCreateFieldInput!]" },
+    delete: { __type: "[HiveOrganisationProjectsDeleteFieldInput!]" },
+    disconnect: { __type: "[HiveOrganisationProjectsDisconnectFieldInput!]" },
+    update: { __type: "HiveOrganisationProjectsUpdateConnectionInput" },
+    where: { __type: "HiveOrganisationProjectsConnectionWhere" },
+  },
   HiveOrganisationRelationInput: {
     appliances: { __type: "[HiveOrganisationAppliancesCreateFieldInput!]" },
+    equipment: { __type: "[HiveOrganisationEquipmentCreateFieldInput!]" },
+    estimates: { __type: "[HiveOrganisationEstimatesCreateFieldInput!]" },
     integrations: { __type: "[HiveOrganisationIntegrationsCreateFieldInput!]" },
     members: { __type: "[HiveOrganisationMembersCreateFieldInput!]" },
+    people: { __type: "[HiveOrganisationPeopleCreateFieldInput!]" },
+    projects: { __type: "[HiveOrganisationProjectsCreateFieldInput!]" },
     roles: { __type: "[HiveOrganisationRolesCreateFieldInput!]" },
     schedule: { __type: "[HiveOrganisationScheduleCreateFieldInput!]" },
     timeline: { __type: "[HiveOrganisationTimelineCreateFieldInput!]" },
@@ -10272,9 +11527,13 @@ export const generatedSchema = {
   HiveOrganisationUniqueWhere: { id: { __type: "ID" } },
   HiveOrganisationUpdateInput: {
     appliances: { __type: "[HiveOrganisationAppliancesUpdateFieldInput!]" },
+    equipment: { __type: "[HiveOrganisationEquipmentUpdateFieldInput!]" },
+    estimates: { __type: "[HiveOrganisationEstimatesUpdateFieldInput!]" },
     integrations: { __type: "[HiveOrganisationIntegrationsUpdateFieldInput!]" },
     members: { __type: "[HiveOrganisationMembersUpdateFieldInput!]" },
     name: { __type: "String" },
+    people: { __type: "[HiveOrganisationPeopleUpdateFieldInput!]" },
+    projects: { __type: "[HiveOrganisationProjectsUpdateFieldInput!]" },
     roles: { __type: "[HiveOrganisationRolesUpdateFieldInput!]" },
     schedule: { __type: "[HiveOrganisationScheduleUpdateFieldInput!]" },
     timeline: { __type: "[HiveOrganisationTimelineUpdateFieldInput!]" },
@@ -10291,6 +11550,20 @@ export const generatedSchema = {
       __type: "HiveOrganisationAppliancesConnectionWhere",
     },
     appliances_NOT: { __type: "HiveApplianceWhere" },
+    equipment: { __type: "EquipmentWhere" },
+    equipmentAggregate: { __type: "HiveOrganisationEquipmentAggregateInput" },
+    equipmentConnection: { __type: "HiveOrganisationEquipmentConnectionWhere" },
+    equipmentConnection_NOT: {
+      __type: "HiveOrganisationEquipmentConnectionWhere",
+    },
+    equipment_NOT: { __type: "EquipmentWhere" },
+    estimates: { __type: "EstimateWhere" },
+    estimatesAggregate: { __type: "HiveOrganisationEstimatesAggregateInput" },
+    estimatesConnection: { __type: "HiveOrganisationEstimatesConnectionWhere" },
+    estimatesConnection_NOT: {
+      __type: "HiveOrganisationEstimatesConnectionWhere",
+    },
+    estimates_NOT: { __type: "EstimateWhere" },
     id: { __type: "ID" },
     id_CONTAINS: { __type: "ID" },
     id_ENDS_WITH: { __type: "ID" },
@@ -10327,6 +11600,18 @@ export const generatedSchema = {
     name_NOT_IN: { __type: "[String]" },
     name_NOT_STARTS_WITH: { __type: "String" },
     name_STARTS_WITH: { __type: "String" },
+    people: { __type: "PeopleWhere" },
+    peopleAggregate: { __type: "HiveOrganisationPeopleAggregateInput" },
+    peopleConnection: { __type: "HiveOrganisationPeopleConnectionWhere" },
+    peopleConnection_NOT: { __type: "HiveOrganisationPeopleConnectionWhere" },
+    people_NOT: { __type: "PeopleWhere" },
+    projects: { __type: "ProjectWhere" },
+    projectsAggregate: { __type: "HiveOrganisationProjectsAggregateInput" },
+    projectsConnection: { __type: "HiveOrganisationProjectsConnectionWhere" },
+    projectsConnection_NOT: {
+      __type: "HiveOrganisationProjectsConnectionWhere",
+    },
+    projects_NOT: { __type: "ProjectWhere" },
     roles: { __type: "RoleWhere" },
     rolesAggregate: { __type: "HiveOrganisationRolesAggregateInput" },
     rolesConnection: { __type: "HiveOrganisationRolesConnectionWhere" },
@@ -16367,6 +17652,32 @@ export interface HiveOrganisation {
     sort?: Maybe<Array<HiveOrganisationAppliancesConnectionSort>>;
     where?: Maybe<HiveOrganisationAppliancesConnectionWhere>;
   }) => HiveOrganisationAppliancesConnection;
+  equipment: (args?: {
+    options?: Maybe<EquipmentOptions>;
+    where?: Maybe<EquipmentWhere>;
+  }) => Maybe<Array<Maybe<Equipment>>>;
+  equipmentAggregate: (args?: {
+    where?: Maybe<EquipmentWhere>;
+  }) => Maybe<HiveOrganisationEquipmentEquipmentAggregationSelection>;
+  equipmentConnection: (args?: {
+    after?: Maybe<Scalars["String"]>;
+    first?: Maybe<Scalars["Int"]>;
+    sort?: Maybe<Array<HiveOrganisationEquipmentConnectionSort>>;
+    where?: Maybe<HiveOrganisationEquipmentConnectionWhere>;
+  }) => HiveOrganisationEquipmentConnection;
+  estimates: (args?: {
+    options?: Maybe<EstimateOptions>;
+    where?: Maybe<EstimateWhere>;
+  }) => Maybe<Array<Maybe<Estimate>>>;
+  estimatesAggregate: (args?: {
+    where?: Maybe<EstimateWhere>;
+  }) => Maybe<HiveOrganisationEstimateEstimatesAggregationSelection>;
+  estimatesConnection: (args?: {
+    after?: Maybe<Scalars["String"]>;
+    first?: Maybe<Scalars["Int"]>;
+    sort?: Maybe<Array<HiveOrganisationEstimatesConnectionSort>>;
+    where?: Maybe<HiveOrganisationEstimatesConnectionWhere>;
+  }) => HiveOrganisationEstimatesConnection;
   id: ScalarsEnums["ID"];
   integrations: (args?: {
     options?: Maybe<HiveIntegrationInstanceOptions>;
@@ -16395,6 +17706,32 @@ export interface HiveOrganisation {
     where?: Maybe<HiveOrganisationMembersConnectionWhere>;
   }) => HiveOrganisationMembersConnection;
   name?: Maybe<ScalarsEnums["String"]>;
+  people: (args?: {
+    options?: Maybe<PeopleOptions>;
+    where?: Maybe<PeopleWhere>;
+  }) => Maybe<Array<Maybe<People>>>;
+  peopleAggregate: (args?: {
+    where?: Maybe<PeopleWhere>;
+  }) => Maybe<HiveOrganisationPeoplePeopleAggregationSelection>;
+  peopleConnection: (args?: {
+    after?: Maybe<Scalars["String"]>;
+    first?: Maybe<Scalars["Int"]>;
+    sort?: Maybe<Array<HiveOrganisationPeopleConnectionSort>>;
+    where?: Maybe<HiveOrganisationPeopleConnectionWhere>;
+  }) => HiveOrganisationPeopleConnection;
+  projects: (args?: {
+    options?: Maybe<ProjectOptions>;
+    where?: Maybe<ProjectWhere>;
+  }) => Maybe<Array<Maybe<Project>>>;
+  projectsAggregate: (args?: {
+    where?: Maybe<ProjectWhere>;
+  }) => Maybe<HiveOrganisationProjectProjectsAggregationSelection>;
+  projectsConnection: (args?: {
+    after?: Maybe<Scalars["String"]>;
+    first?: Maybe<Scalars["Int"]>;
+    sort?: Maybe<Array<HiveOrganisationProjectsConnectionSort>>;
+    where?: Maybe<HiveOrganisationProjectsConnectionWhere>;
+  }) => HiveOrganisationProjectsConnection;
   roles: (args?: {
     options?: Maybe<RoleOptions>;
     where?: Maybe<RoleWhere>;
@@ -16454,6 +17791,60 @@ export interface HiveOrganisationAppliancesRelationship {
   __typename?: "HiveOrganisationAppliancesRelationship";
   cursor: ScalarsEnums["String"];
   node: HiveAppliance;
+}
+
+export interface HiveOrganisationEquipmentConnection {
+  __typename?: "HiveOrganisationEquipmentConnection";
+  edges: Array<HiveOrganisationEquipmentRelationship>;
+  pageInfo: PageInfo;
+  totalCount: ScalarsEnums["Int"];
+}
+
+export interface HiveOrganisationEquipmentEquipmentAggregationSelection {
+  __typename?: "HiveOrganisationEquipmentEquipmentAggregationSelection";
+  count: ScalarsEnums["Int"];
+  node?: Maybe<HiveOrganisationEquipmentEquipmentNodeAggregateSelection>;
+}
+
+export interface HiveOrganisationEquipmentEquipmentNodeAggregateSelection {
+  __typename?: "HiveOrganisationEquipmentEquipmentNodeAggregateSelection";
+  id: IDAggregateSelection;
+  name: StringAggregateSelection;
+  registration: StringAggregateSelection;
+}
+
+export interface HiveOrganisationEquipmentRelationship {
+  __typename?: "HiveOrganisationEquipmentRelationship";
+  cursor: ScalarsEnums["String"];
+  node: Equipment;
+}
+
+export interface HiveOrganisationEstimateEstimatesAggregationSelection {
+  __typename?: "HiveOrganisationEstimateEstimatesAggregationSelection";
+  count: ScalarsEnums["Int"];
+  node?: Maybe<HiveOrganisationEstimateEstimatesNodeAggregateSelection>;
+}
+
+export interface HiveOrganisationEstimateEstimatesNodeAggregateSelection {
+  __typename?: "HiveOrganisationEstimateEstimatesNodeAggregateSelection";
+  date: DateTimeAggregateSelection;
+  id: IDAggregateSelection;
+  name: StringAggregateSelection;
+  price: FloatAggregateSelection;
+  status: StringAggregateSelection;
+}
+
+export interface HiveOrganisationEstimatesConnection {
+  __typename?: "HiveOrganisationEstimatesConnection";
+  edges: Array<HiveOrganisationEstimatesRelationship>;
+  pageInfo: PageInfo;
+  totalCount: ScalarsEnums["Int"];
+}
+
+export interface HiveOrganisationEstimatesRelationship {
+  __typename?: "HiveOrganisationEstimatesRelationship";
+  cursor: ScalarsEnums["String"];
+  node: Estimate;
 }
 
 export interface HiveOrganisationHiveApplianceAppliancesAggregationSelection {
@@ -16521,6 +17912,59 @@ export interface HiveOrganisationMembersRelationship {
   __typename?: "HiveOrganisationMembersRelationship";
   cursor: ScalarsEnums["String"];
   node: HiveUser;
+}
+
+export interface HiveOrganisationPeopleConnection {
+  __typename?: "HiveOrganisationPeopleConnection";
+  edges: Array<HiveOrganisationPeopleRelationship>;
+  pageInfo: PageInfo;
+  totalCount: ScalarsEnums["Int"];
+}
+
+export interface HiveOrganisationPeoplePeopleAggregationSelection {
+  __typename?: "HiveOrganisationPeoplePeopleAggregationSelection";
+  count: ScalarsEnums["Int"];
+  node?: Maybe<HiveOrganisationPeoplePeopleNodeAggregateSelection>;
+}
+
+export interface HiveOrganisationPeoplePeopleNodeAggregateSelection {
+  __typename?: "HiveOrganisationPeoplePeopleNodeAggregateSelection";
+  id: IDAggregateSelection;
+  name: StringAggregateSelection;
+}
+
+export interface HiveOrganisationPeopleRelationship {
+  __typename?: "HiveOrganisationPeopleRelationship";
+  cursor: ScalarsEnums["String"];
+  node: People;
+}
+
+export interface HiveOrganisationProjectProjectsAggregationSelection {
+  __typename?: "HiveOrganisationProjectProjectsAggregationSelection";
+  count: ScalarsEnums["Int"];
+  node?: Maybe<HiveOrganisationProjectProjectsNodeAggregateSelection>;
+}
+
+export interface HiveOrganisationProjectProjectsNodeAggregateSelection {
+  __typename?: "HiveOrganisationProjectProjectsNodeAggregateSelection";
+  endDate: DateTimeAggregateSelection;
+  id: IDAggregateSelection;
+  name: StringAggregateSelection;
+  startDate: DateTimeAggregateSelection;
+  status: StringAggregateSelection;
+}
+
+export interface HiveOrganisationProjectsConnection {
+  __typename?: "HiveOrganisationProjectsConnection";
+  edges: Array<HiveOrganisationProjectsRelationship>;
+  pageInfo: PageInfo;
+  totalCount: ScalarsEnums["Int"];
+}
+
+export interface HiveOrganisationProjectsRelationship {
+  __typename?: "HiveOrganisationProjectsRelationship";
+  cursor: ScalarsEnums["String"];
+  node: Project;
 }
 
 export interface HiveOrganisationRoleRolesAggregationSelection {
@@ -18421,6 +19865,14 @@ export interface SchemaObjectTypes {
   HiveOrganisationAggregateSelection: HiveOrganisationAggregateSelection;
   HiveOrganisationAppliancesConnection: HiveOrganisationAppliancesConnection;
   HiveOrganisationAppliancesRelationship: HiveOrganisationAppliancesRelationship;
+  HiveOrganisationEquipmentConnection: HiveOrganisationEquipmentConnection;
+  HiveOrganisationEquipmentEquipmentAggregationSelection: HiveOrganisationEquipmentEquipmentAggregationSelection;
+  HiveOrganisationEquipmentEquipmentNodeAggregateSelection: HiveOrganisationEquipmentEquipmentNodeAggregateSelection;
+  HiveOrganisationEquipmentRelationship: HiveOrganisationEquipmentRelationship;
+  HiveOrganisationEstimateEstimatesAggregationSelection: HiveOrganisationEstimateEstimatesAggregationSelection;
+  HiveOrganisationEstimateEstimatesNodeAggregateSelection: HiveOrganisationEstimateEstimatesNodeAggregateSelection;
+  HiveOrganisationEstimatesConnection: HiveOrganisationEstimatesConnection;
+  HiveOrganisationEstimatesRelationship: HiveOrganisationEstimatesRelationship;
   HiveOrganisationHiveApplianceAppliancesAggregationSelection: HiveOrganisationHiveApplianceAppliancesAggregationSelection;
   HiveOrganisationHiveApplianceAppliancesNodeAggregateSelection: HiveOrganisationHiveApplianceAppliancesNodeAggregateSelection;
   HiveOrganisationHiveIntegrationInstanceIntegrationsAggregationSelection: HiveOrganisationHiveIntegrationInstanceIntegrationsAggregationSelection;
@@ -18431,6 +19883,14 @@ export interface SchemaObjectTypes {
   HiveOrganisationIntegrationsRelationship: HiveOrganisationIntegrationsRelationship;
   HiveOrganisationMembersConnection: HiveOrganisationMembersConnection;
   HiveOrganisationMembersRelationship: HiveOrganisationMembersRelationship;
+  HiveOrganisationPeopleConnection: HiveOrganisationPeopleConnection;
+  HiveOrganisationPeoplePeopleAggregationSelection: HiveOrganisationPeoplePeopleAggregationSelection;
+  HiveOrganisationPeoplePeopleNodeAggregateSelection: HiveOrganisationPeoplePeopleNodeAggregateSelection;
+  HiveOrganisationPeopleRelationship: HiveOrganisationPeopleRelationship;
+  HiveOrganisationProjectProjectsAggregationSelection: HiveOrganisationProjectProjectsAggregationSelection;
+  HiveOrganisationProjectProjectsNodeAggregateSelection: HiveOrganisationProjectProjectsNodeAggregateSelection;
+  HiveOrganisationProjectsConnection: HiveOrganisationProjectsConnection;
+  HiveOrganisationProjectsRelationship: HiveOrganisationProjectsRelationship;
   HiveOrganisationRoleRolesAggregationSelection: HiveOrganisationRoleRolesAggregationSelection;
   HiveOrganisationRoleRolesNodeAggregateSelection: HiveOrganisationRoleRolesNodeAggregateSelection;
   HiveOrganisationRolesConnection: HiveOrganisationRolesConnection;
@@ -18669,6 +20129,14 @@ export type SchemaObjectTypesNames =
   | "HiveOrganisationAggregateSelection"
   | "HiveOrganisationAppliancesConnection"
   | "HiveOrganisationAppliancesRelationship"
+  | "HiveOrganisationEquipmentConnection"
+  | "HiveOrganisationEquipmentEquipmentAggregationSelection"
+  | "HiveOrganisationEquipmentEquipmentNodeAggregateSelection"
+  | "HiveOrganisationEquipmentRelationship"
+  | "HiveOrganisationEstimateEstimatesAggregationSelection"
+  | "HiveOrganisationEstimateEstimatesNodeAggregateSelection"
+  | "HiveOrganisationEstimatesConnection"
+  | "HiveOrganisationEstimatesRelationship"
   | "HiveOrganisationHiveApplianceAppliancesAggregationSelection"
   | "HiveOrganisationHiveApplianceAppliancesNodeAggregateSelection"
   | "HiveOrganisationHiveIntegrationInstanceIntegrationsAggregationSelection"
@@ -18679,6 +20147,14 @@ export type SchemaObjectTypesNames =
   | "HiveOrganisationIntegrationsRelationship"
   | "HiveOrganisationMembersConnection"
   | "HiveOrganisationMembersRelationship"
+  | "HiveOrganisationPeopleConnection"
+  | "HiveOrganisationPeoplePeopleAggregationSelection"
+  | "HiveOrganisationPeoplePeopleNodeAggregateSelection"
+  | "HiveOrganisationPeopleRelationship"
+  | "HiveOrganisationProjectProjectsAggregationSelection"
+  | "HiveOrganisationProjectProjectsNodeAggregateSelection"
+  | "HiveOrganisationProjectsConnection"
+  | "HiveOrganisationProjectsRelationship"
   | "HiveOrganisationRoleRolesAggregationSelection"
   | "HiveOrganisationRoleRolesNodeAggregateSelection"
   | "HiveOrganisationRolesConnection"

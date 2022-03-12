@@ -1,4 +1,5 @@
-import { useQuery } from '@hive-flow/api';
+import { refetch, useMutation, useQuery } from '@hive-flow/api';
+import { useTypeConfiguration } from '../../../context';
 import { DataTable, Box, TextInput, Select } from 'grommet';
 import React, {
   Component, useEffect, useState
@@ -8,23 +9,22 @@ import { useNavigate } from 'react-router-dom';
 
 // import { useQuery } from '../../../gqless';
 import { Header } from './header';
+import { Project, ProjectModal } from '../../../modals/project';
 
 export interface ProjectListProps {
 }
 
 export const ProjectList : React.FC<ProjectListProps> = (props) => {
   
+  const [ modalOpen, openModal ] = useState(false);
+  const [ selected, setSelected ] = useState<Project>()
+
   const [ filter, setFiler ] = useState<any>({})
 
   const [ direction, setDirection ] = useState<"asc" | "desc" | undefined>()
   const [ property, setProperty ] = useState<string>()
 
-  const [ listKeys, setListKeys ] = useState<any[]>([
-    {key: 'ID', label: 'Job ID', type: 'int', width: 30},
-    {key: 'name', label: 'Job Name', type: 'string', width: 50},
-    {key: 'status', label: 'Status', type: 'string', width: 20}
-  ])
-
+  const configuration = useTypeConfiguration('Project');
 
   const query = useQuery({
     suspense: false,
@@ -38,6 +38,61 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
   const selectJob = (job : {JobID: string}) => {
     history(`${job.JobID}`)
   }
+
+  const [ createProject ] = useMutation((mutation, args: {name: string, status: string}) => {
+    const item = mutation.updateHiveOrganisations({
+      update: {
+        projects: [{
+          create: [{
+            node: {
+              name: args.name,
+              status: args.status
+            }
+          }]
+        }]
+      }
+    })
+    return {
+      item: {
+        ...item.hiveOrganisations?.[0]
+      }
+    }
+  }, {
+    awaitRefetchQueries: true,
+    refetchQueries: [query.projects({})]
+  })
+
+  const [ updateProject ] = useMutation((mutation, args: {id: string, name: string, status: string}) => {
+    if(!args.id) return;
+    const item = mutation.updateProjects({
+      where: {id: args.id},
+      update: {
+        name: args.name,
+        status: args.status
+      }
+    })
+    return {
+      item: { 
+        ...item.projects?.[0]
+      }
+    }
+  }, {
+    awaitRefetchQueries: true,
+    refetchQueries: [query.projects({})]
+  })
+
+  const [ deleteProject ] = useMutation((mutation, args: {id: string}) => {
+    if(!args.id) return;
+    const item = mutation.deleteProjects({
+      where: {id: args.id}
+    })
+    return {
+      item: item.nodesDeleted
+    }
+  }, {
+    awaitRefetchQueries: true,
+    refetchQueries: [query.projects({})]
+  })
 
   const getJobs = () => {
     let items = projects?.map((x) => ({id: x?.id, name: x?.name, status: x?.status}))
@@ -77,11 +132,55 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
       <Box
         flex
         direction="column">
+
+          <ProjectModal 
+            selected={selected}
+            onClose={() => {
+              openModal(false)
+              setSelected(undefined)
+            }}
+            onDelete={() => {
+              deleteProject({args: {id: selected?.id}}).then(()=> {
+                openModal(false)
+                setSelected(undefined);
+                // refetch()
+              })
+            }}
+            onSubmit={(project) => {
+              if(project.id){
+                updateProject({args: {
+                  id: project.id,
+                  name: project.name,
+                  status: project.status
+                }}).then(() => {
+                  openModal(false);
+                  setSelected(undefined)
+                  // refetch();
+                })
+              }else{
+                createProject({
+                  args: {
+                    name: project.name,
+                    status: project.status
+                  }
+                }).then(() => {
+                  openModal(false);
+                  setSelected(undefined)
+                  // refetch();
+                })
+              }
+            }}
+            open={modalOpen} />
      
       <Header 
+        onCreate={configuration?.create != false && (() => {
+          console.log('create')
+          openModal(true)
+        })}
         filter={filter}
         onFilterChange={(filter) => setFiler(filter)}
         jobs={projects || []} />
+        
       <Box 
         flex
         overflow={{vertical: 'auto'}}

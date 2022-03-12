@@ -1,6 +1,6 @@
 import React, { Component, useState} from 'react';
 
-import { Link, Route , generatePath, matchPath, Routes, useNavigate} from 'react-router-dom';
+import { Link, Route , generatePath, matchPath, Routes, useNavigate, useResolvedPath} from 'react-router-dom';
 
 import logo from '../../logo.svg';
 
@@ -47,7 +47,9 @@ export const Dashboard = (props: any) => {
   const alerts = []
   const active = window.location.pathname.replace(process.env.PUBLIC_URL || '', '')
 
-  console.log(active)
+  
+  const path = useResolvedPath(active);
+  console.log({active, path})
 
   const navigate = useNavigate()
 
@@ -155,7 +157,7 @@ export const Dashboard = (props: any) => {
           flex 
           className="dashboard">
               <Sidebar
-                active={views().map((x) => matchPath(active, x.path) != null ).indexOf(true)}
+                active={'schedule' /*active /*views()?.[views().map((x) => matchPath(active, x.path) != null ).indexOf(true)]?.path || '/'*/}
                 menu={views()} 
                 onSelect={(x: any) => {
                   // let path = generatePath(`/:path`, {path: x.path.toLowerCase()})

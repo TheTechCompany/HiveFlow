@@ -1,10 +1,13 @@
 import React from 'react';
-import { Box, TextInput, Select } from 'grommet'
+import { Box, TextInput, Select, Button } from 'grommet'
+import { Add } from 'grommet-icons';
 
 export interface StaffSearchHeaderProps {
 
     filter?: string;
     onFilterChange?: (filter: string) => void;
+
+    onCreate?: () => void;
 }
 
 export const StaffSearchHeader : React.FC<StaffSearchHeaderProps> = (props) => {
@@ -17,6 +20,7 @@ export const StaffSearchHeader : React.FC<StaffSearchHeaderProps> = (props) => {
         height="50px"
         direction="row"
         background="accent-1"
+        gap="xsmall"
         >
         <Box 
             background="#ffffff42"
@@ -30,7 +34,10 @@ export const StaffSearchHeader : React.FC<StaffSearchHeaderProps> = (props) => {
           placeholder="Search People..." />
         
       </Box>        
-      
+      {props.onCreate && (
+          <Button onClick={props.onCreate} hoverIndicator plain style={{padding: 6, borderRadius: 3}} icon={<Add />} />
+        )}
+       
       </Box>
 
     )

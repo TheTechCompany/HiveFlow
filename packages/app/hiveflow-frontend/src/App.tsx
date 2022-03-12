@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import logo from "./logo.svg";
 import { Box, Button, Grommet } from "grommet";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
@@ -7,6 +7,8 @@ import { BaseStyle } from "@hexhive/styles";
 import { ApolloClient, ApolloProvider, InMemoryCache } from "@apollo/client";
 import { ThemeProvider } from "styled-components";
 import { AuthProvider } from "@hexhive/auth-ui";
+import { getConfig } from "./actions/gateway";
+import { HiveFlowConfiguration, HiveFlowProvider } from "./context";
 
 
 const API_URL = localStorage.getItem('HEXHIVE_API');
@@ -29,7 +31,16 @@ function App(props: any) {
   console.log(BaseStyle);
   const { REACT_APP_API, PUBLIC_URL, REACT_APP_URL, NODE_ENV } = process.env;
 
+  const [ config, setConfig ] = React.useState<HiveFlowConfiguration[]>([]);
+
+  useEffect(() => {
+    getConfig().then((data) => {
+      setConfig(data.data.hiveApplianceConfigurations?.[0]?.permissions);
+    })
+  }, [])
+
   return (
+    <HiveFlowProvider value={{config}}>
     <AuthProvider authorizationServer={authServer}>
       <Router basename={process.env.PUBLIC_URL || "/dashboard/flow"}>
         <Grommet
@@ -47,6 +58,7 @@ function App(props: any) {
         </Grommet>
       </Router>
     </AuthProvider>
+    </HiveFlowProvider>
   );
 }
 

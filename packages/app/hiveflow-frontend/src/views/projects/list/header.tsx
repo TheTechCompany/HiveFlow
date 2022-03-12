@@ -1,12 +1,13 @@
 import React from 'react';
-import { Box, TextInput, Select } from 'grommet'
+import { Box, TextInput, Select, Button } from 'grommet'
 import { Maybe } from '@hive-flow/api';
+import { Add } from 'grommet-icons';
 
 export interface HeaderProps {
     jobs?: Maybe<{
         status?: Maybe<string>;
     }>[]
-
+    onCreate?: () => void;
     filter?: {search?: string, status?: string};
     onFilterChange?: (filter: {search?: string, status?: string}) => void;
 }
@@ -47,6 +48,9 @@ export const Header : React.FC<HeaderProps> = (props) => {
           options={["All"].concat(Array.from(new Set(props.jobs?.map((x: any) => x.status || ''))))} 
           />
         </Box>
+        {props.onCreate && (
+            <Button onClick={props.onCreate} plain style={{padding: 6, borderRadius: 3}} icon={<Add />} hoverIndicator />
+        )}
       </Box>
     )
 }
