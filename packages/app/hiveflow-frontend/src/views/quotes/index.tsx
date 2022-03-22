@@ -205,7 +205,10 @@ const Quotes: React.FC<any> = (props) => {
             })
           }
         }}
-        onClose={() => openModal(false)}
+        onClose={() => {
+          openModal(false)
+          setSelected(undefined)
+        }}
         open={modalOpen} />
       <QuoteHeader
         onCreate={configuration?.create != false && (() => {

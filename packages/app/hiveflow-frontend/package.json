@@ -68,7 +68,7 @@
     "@types/webpack-env": "^1.16.0",
     "axios": "^0.24.0",
     "graphql": "^16.2.0",
-    "grommet": "2.21.0",
+    "grommet": "https://github.com/grommet/grommet/tarball/stable",
     "lodash": "^4.17.21",
     "moment": "^2.29.1",
     "react": "^17.0.2",

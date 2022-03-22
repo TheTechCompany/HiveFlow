@@ -3869,9 +3869,9 @@
   "resolved" "https://registry.npmjs.org/grommet-styles/-/grommet-styles-0.2.0.tgz"
   "version" "0.2.0"
 
-"grommet@^2.21.0", "grommet@2.21.0":
-  "integrity" "sha512-KMmqGDg59IFR5pFN58bicoMpCLiizH0+VTq496TOamQFuIit6w2RMINsyO/LSREfKOBKARg3UAaDQQpdxxWLXw=="
-  "resolved" "https://registry.npmjs.org/grommet/-/grommet-2.21.0.tgz"
+"grommet@^2.21.0", "grommet@https://github.com/grommet/grommet/tarball/stable":
+  "integrity" "sha512-qOImZNWp9GjB7ECYAnbs+bqwIBYOdyNs6XSGBGcFUyUxz5Ks3ZbIEkuL3ee5IJ81BYzb1bl6xcrlb24yHXAgZg=="
+  "resolved" "https://github.com/grommet/grommet/tarball/stable"
   "version" "2.21.0"
   dependencies:
     "grommet-icons" "^4.7.0"

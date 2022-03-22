@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ColorDot, ERPModal, Timeline } from '@hexhive/ui'
+import { ColorDot, Timeline } from '@hexhive/ui'
 //import utils from '../../utils';
 import moment from 'moment';
 import { stringToColor } from '@hexhive/utils';
@@ -10,6 +10,7 @@ import { TimelineHeader, TimelineView } from './Header';
 import _, { filter, toUpper } from 'lodash';
 import { BaseStyle } from '@hexhive/styles';
 import { useQuery as useApollo, useApolloClient, gql } from '@apollo/client';
+import { TimelineModal } from '../../modals/timeline';
 
 interface TimelineProps {
 
@@ -692,7 +693,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         <Box
             flex
             direction="column">
-            <ERPModal
+            <TimelineModal
                 type={view}
                 selected={selected}
                 onClose={() => {
