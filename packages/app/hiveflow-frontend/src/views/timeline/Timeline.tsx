@@ -222,7 +222,10 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         endDate?: string
     } }) => {
        
+        if(!args.id) return;
+
         let update : any = {};
+
 
         if(args.item.startDate) update.startDate = args.item.startDate;
         if(args.item.endDate) update.endDate = args.item.endDate;
@@ -262,21 +265,28 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                 )
             }
         }
-        const item = mutation.updateHiveOrganisations({
+
+        const item = mutation.updateTimelineItems({
+            where: {id: args.id},
             update: {
-                timeline: [{
-                    where: {node: {id: args.id}}, 
-                    update: {
-                        node: {
-                            ...update,
-                        }
-                }}]
+                ...update
             }
-        })
+        });
+        // const item = mutation.updateHiveOrganisations({
+        //     update: {
+        //         timeline: [{
+        //             where: {node: {id: args.id}}, 
+        //             update: {
+        //                 node: {
+        //                     ...update,
+        //                 }
+        //         }}]
+        //     }
+        // })
 
         return {
             item: {
-                ...item.hiveOrganisations[0]
+                ...item.timelineItems?.[0]
             },
             error: null
         }
