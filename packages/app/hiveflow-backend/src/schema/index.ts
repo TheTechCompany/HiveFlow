@@ -3,13 +3,13 @@ import { gql } from 'graphql-tag';
 export default gql`
 
 	extend type HiveOrganisation {
-		schedule: [ScheduleItem] @relationship(type: "SCHEDULE", direction: OUT)
-		timeline: [TimelineItem] @relationship(type: "PLANNING", direction: OUT)
+		schedule: [ScheduleItem!]! @relationship(type: "SCHEDULE", direction: OUT)
+		timeline: [TimelineItem!]! @relationship(type: "PLANNING", direction: OUT)
 
-		projects: [Project] @relationship(type: "HAS_PROJECT", direction: OUT)
-		people: [People] @relationship(type: "HAS_PEOPLE", direction: OUT)
-		equipment: [Equipment] @relationship(type: "HAS_EQUIPMENT", direction: OUT)
-		estimates: [Estimate] @relationship(type: "HAS_ESTIMATE", direction: OUT)
+		projects: [Project!]! @relationship(type: "HAS_PROJECT", direction: OUT)
+		people: [People!]! @relationship(type: "HAS_PEOPLE", direction: OUT)
+		equipment: [Equipment!]! @relationship(type: "HAS_EQUIPMENT", direction: OUT)
+		estimates: [Estimate!]! @relationship(type: "HAS_ESTIMATE", direction: OUT)
 
 	}
 
@@ -24,6 +24,10 @@ export default gql`
 		flowWorkInProgress(startDate: DateTime, endDate: DateTime) : WorkInProgress 
 	}
 
+	type File @exclude {
+		id: ID!
+	}
+
 	type Project @auth(rules: [
 		{operations: [READ], where: {organisation: {id: "$jwt.organisation"}}},
 		{operations: [UPDATE], bind: {organisation: {id: "$jwt.organisation"}}}
@@ -33,8 +37,10 @@ export default gql`
 		
 		organisation: HiveOrganisation @relationship(type: "HAS_PROJECT", direction: IN)
 		
-		schedule: [ScheduleItem] @relationship(type: "SCHEDULE_PROJECT", direction: IN)
-		plan: [TimelineItem] @relationship(type: "PLANNING", direction: IN)
+		schedule: [ScheduleItem!]! @relationship(type: "SCHEDULE_PROJECT", direction: IN)
+		plan: [TimelineItem!]! @relationship(type: "PLANNING", direction: IN)
+
+		files: [File!]!
 
 		startDate: DateTime
 		endDate: DateTime
@@ -71,7 +77,7 @@ export default gql`
 		name: String
 
 		organisation: HiveOrganisation @relationship(type: "HAS_PEOPLE", direction: IN)
-
+		inactive: Boolean
 	}
 
 	type Equipment @auth(rules: [
@@ -108,7 +114,7 @@ export default gql`
 		startDate: DateTime
 		endDate: DateTime
 		notes: String
-		items: [TimelineItemItems] @relationship(type: "PROJECTED", direction: OUT)
+		items: [TimelineItemItems!]! @relationship(type: "PROJECTED", direction: OUT)
 		project: TimelineProject @relationship(type: "PLANNING", direction: OUT)
 		organisation: HiveOrganisation @relationship(type: "PLANNING", direction: IN)
 	}
@@ -120,11 +126,11 @@ export default gql`
 		id: ID @id
 		date: DateTime
 		project: Project @relationship(type: "SCHEDULE_PROJECT", direction: OUT)
-		people: [People] @relationship(type: "SCHEDULE_PEOPLE", direction: OUT)
-		equipment: [Equipment] @relationship(type: "SCHEDULE_EQUIPMENT", direction: OUT)
+		people: [People!]! @relationship(type: "SCHEDULE_PEOPLE", direction: OUT)
+		equipment: [Equipment!]! @relationship(type: "SCHEDULE_EQUIPMENT", direction: OUT)
 		notes: [String]
 		owner: HiveUser @relationship(type: "CREATED", direction: IN)
-		managers: [HiveUser] @relationship(type: "MANAGING", direction: IN)
+		managers: [HiveUser!]! @relationship(type: "MANAGING", direction: IN)
 
 		organisation: HiveOrganisation @relationship(type: "SCHEDULE", direction: IN)
 	}
