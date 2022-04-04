@@ -40,28 +40,29 @@ export const Schedule : React.FC<any> = (props) =>  {
   // const [schedule, setSchedule] = useState<any[]>([])//?.map((x) => ({...x, project: x?.project})) || [];
 //query.ScheduleMany({startDate: horizon.start, endDate: horizon.end})
 
-const slowResult = useApollo(gql`
-query Slow {
-  hiveUsers {
-    id
-    name
-  }
-  people {
-    id
-    name
-  }
-  projects{
-    id
-    name
-  }
-  equipment {
-    id
-    name
-  }
-}
-`)
-const slowData = slowResult.data;
-  const {data } = useApollo(gql`
+  const slowResult = useApollo(gql`
+    query Slow {
+      hiveUsers {
+        id
+        name
+      }
+      people(where: {inactive_NOT: true}) {
+        id
+        name
+      }
+      projects{
+        id
+        name
+      }
+      equipment {
+        id
+        name
+      }
+    }
+  `)
+  const slowData = slowResult.data;
+  
+  const { data } = useApollo(gql`
    query Q ($startDate: DateTime, $endDate: DateTime) {
      timelineItems (where: {timeline: "Projects", startDate_LTE: $endDate, endDate_GTE: $startDate}){
        id

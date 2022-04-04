@@ -6,7 +6,8 @@ import {
    Search as IoSearch
 } from 'grommet-icons'
 import { StaffSearchHeader } from './header';
-import { useMutation, useQuery } from '@hive-flow/api';
+import { client, useMutation } from '@hive-flow/api';
+import { gql, useApolloClient, useQuery } from '@apollo/client';
 import { idText } from 'typescript';
 import { useTypeConfiguration } from '../../../context';
 import { PeopleModal, Person } from '../../../modals/people';
@@ -22,16 +23,29 @@ export const PeopleList: React.FC<any> = (props) => {
 
    const [search, setSearch] = useState<string>('')
 
-   const query = useQuery({
-      suspense: false,
-      staleWhileRevalidate: true
-   })
+
 
    const [direction, setDirection] = useState<"asc" | "desc" | undefined>()
    const [property, setProperty] = useState<string>()
 
 
-   const people = query.people({}) || []
+   const client = useApolloClient();
+
+   const { data } = useQuery(gql`
+      query GetPeople {
+         people {
+            id
+            name
+            inactive
+         }
+      }
+   `)
+
+   const people = data?.people || [];
+
+   const refetch = () => {
+      client.refetchQueries({include: ['GetPeople']})
+   }
 
    const [ createPeople ] = useMutation((mutation, args: {name: string}) => {
       const item = mutation.updateHiveOrganisations({
@@ -50,9 +64,6 @@ export const PeopleList: React.FC<any> = (props) => {
           ...item.hiveOrganisations?.[0]
         }
       }
-    }, {
-      awaitRefetchQueries: true,
-      refetchQueries: [query.people({})]
     })
   
     const [ updatePeople ] = useMutation((mutation, args: {id: string, name: string}) => {
@@ -68,9 +79,6 @@ export const PeopleList: React.FC<any> = (props) => {
           ...item.people?.[0]
         }
       }
-    }, {
-      awaitRefetchQueries: true,
-      refetchQueries: [query.people({})]
     })
   
     const [ deletePeople ] = useMutation((mutation, args: {id: string}) => {
@@ -81,9 +89,6 @@ export const PeopleList: React.FC<any> = (props) => {
       return {
         item: item.nodesDeleted
       }
-    }, {
-      awaitRefetchQueries: true,
-      refetchQueries: [query.people({})]
     })
   
    // componentWillMount(){
@@ -95,6 +100,10 @@ export const PeopleList: React.FC<any> = (props) => {
    const filterPeople = (item: any) => {
       if (search.length > 0) {
          return item.name.toLowerCase().includes(search.toLowerCase())
+      }
+
+      if(item.inactive){
+         return false;
       }
       return true;
    }
@@ -121,28 +130,28 @@ export const PeopleList: React.FC<any> = (props) => {
                deletePeople({args: {id: selected?.id}}).then(()=> {
                   openModal(false)
                   setSelected(undefined);
-                  // refetch()
+                  refetch()
                })
             }}
             onSubmit={(project) => {
                if(project.id){
                   updatePeople({args: {
-                  id: project.id,
-                  name: project.name,
+                     id: project.id,
+                     name: project.name,
                   }}).then(() => {
-                  openModal(false);
-                  setSelected(undefined)
-                  // refetch();
+                     openModal(false);
+                     setSelected(undefined)
+                     refetch();
                   })
                }else{
                   createPeople({
-                  args: {
-                     name: project.name,
-                  }
+                     args: {
+                        name: project.name,
+                     }
                   }).then(() => {
-                  openModal(false);
-                  setSelected(undefined)
-                  // refetch();
+                     openModal(false);
+                     setSelected(undefined)
+                     refetch();
                   })
                }
             }}

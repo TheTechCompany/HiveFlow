@@ -1,13 +1,13 @@
 import React, { Component } from 'react';
-import { Route, Routes} from 'react-router-dom'
+import { Outlet, Route, Routes} from 'react-router-dom'
 import {PeopleList} from './list';
 import {PeopleSingle} from './single';
 
-export default (props: any) => (
+export const PeopleView = (props: any) => (
    <Routes>
-            <Route path={`${props.match.url}`} element={PeopleList} >
-               
-               <Route path={`/:employeeId`} element={PeopleSingle}/>
-            </Route>
+      <Route path={''} element={<Outlet />}>
+         <Route path={``} element={<PeopleList/>} />      
+         <Route path={`/:id`} element={<PeopleSingle/>}/>
+      </Route>
     </Routes>
-      );
+);
