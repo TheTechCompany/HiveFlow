@@ -296,7 +296,6 @@ const client = useApolloClient()
 
   return (
 			<Box
-        gap="xsmall"
         direction="column"
         round="xsmall"
         className="job-one-container" style={{flex: 1, display: 'flex'}}>
@@ -305,6 +304,7 @@ const client = useApolloClient()
             background="accent-1"
             pad={{left: 'small'}}
             direction="row"
+            margin={{bottom: 'xsmall'}}
             justify="between">
             <Heading level='4' margin="small">{job?.id} - {job?.name || "Job Title"}</Heading>
             

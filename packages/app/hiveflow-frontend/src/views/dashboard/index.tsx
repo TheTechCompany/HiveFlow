@@ -5,7 +5,7 @@ import { Link, Route , generatePath, matchPath, Routes, useNavigate, useResolved
 import logo from '../../logo.svg';
 
 //views, logo
-import { Sidebar} from '@hexhive/ui';
+import { Sidebar, SidebarView} from '@hexhive/ui';
 
 // import RoutedView from '../../components/primatives/routed-view';
 
@@ -30,6 +30,8 @@ import Quotes from '../quotes';
 import { BaseStyle } from '@hexhive/styles';
 
 import Timeline from '../timeline/Timeline'
+import { ProjectView } from '../projects';
+import { PeopleView } from '../people';
 
 // const Schedule = React.lazy(() => import('../schedule'))
 // const Quotes = React.lazy(() => import('../quotes'))
@@ -144,20 +146,61 @@ export const Dashboard = (props: any) => {
   //     //there is dashboard information for organizations
   //  }
       
-
+  const menu = [
+    {
+      path: 'schedule',
+      label: 'Schedule',
+      icon: <Schedule filter="invert(1)" />,
+      component: <ScheduleView />
+    },
+    {
+      path: 'timeline',
+      label: 'Timeline',
+      icon: <TimelineIcon filter="invert(1)" />,
+      component: <Timeline />
+    },
+    {
+      path: 'estimates',
+      label: 'Estimates',
+      icon: <Estimates filter="invert(1)" />,
+      component: <Quotes />
+    },
+    {
+      path: 'projects',
+      label: 'Projects',
+      icon: <Projects filter="invert(1)" />,
+      component: <ProjectView />
+    },
+    {
+      path: 'people',
+      label: 'People',
+      icon: <People filter="invert(1)" />,
+      component: <PeopleView />
+    },
+    {
+      path: 'equipment',
+      label: 'Equipment',
+      icon: <Equipment filter="invert(1)" />,
+      component: <EquipmentList />
+    }
+  ]
       return (
         <Grommet  
           
-        style={{display: 'flex', width: '100%', height: '100%'}}
-        plain 
-        theme={BaseStyle}>  
+          style={{display: 'flex', width: '100%', height: '100%'}}
+          plain 
+          theme={BaseStyle}>  
 
          <Box 
+          background={'neutral-4'}
           direction="row"
           flex 
           className="dashboard">
-              <Sidebar
-                active={'schedule' /*active /*views()?.[views().map((x) => matchPath(active, x.path) != null ).indexOf(true)]?.path || '/'*/}
+            <SidebarView
+              views={menu}
+                />
+              {/* <Sidebar
+                active={'schedule' /*active /*views()?.[views().map((x) => matchPath(active, x.path) != null ).indexOf(true)]?.path || '/'}
                 menu={views()} 
                 onSelect={(x: any) => {
                   // let path = generatePath(`/:path`, {path: x.path.toLowerCase()})
@@ -194,7 +237,7 @@ export const Dashboard = (props: any) => {
                 <Route path={`timeline`} element={<Timeline/>} />
               </Routes>
             </React.Suspense>
-            </Box>
+            </Box> */}
                 {/*<div style={{display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingRight: '10px'}}>
                <UserIcon style={{fontSize: '30px', cursor: 'pointer'}} onClick={() => {this.props.history.push('/admin')}}/>
                 </div>*/}
