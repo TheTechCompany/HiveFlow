@@ -2,7 +2,7 @@ import { gql } from 'graphql-tag';
 
 export default gql`
 
-	extend type HiveOrganisation {
+	extend type HiveOrganisation @exclude {
 		schedule: [ScheduleItem!]! @relationship(type: "SCHEDULE", direction: OUT)
 		timeline: [TimelineItem!]! @relationship(type: "PLANNING", direction: OUT)
 
@@ -24,8 +24,14 @@ export default gql`
 		flowWorkInProgress(startDate: DateTime, endDate: DateTime) : WorkInProgress 
 	}
 
+	type Mutation {
+		uploadProjectFiles(project: ID!, path: String): [File!]!
+		deleteProjectFile(project: ID!, path: String): Boolean
+	}
+
 	type File @exclude {
 		id: ID!
+		name: String
 	}
 
 	type Project @auth(rules: [
@@ -40,7 +46,7 @@ export default gql`
 		schedule: [ScheduleItem!]! @relationship(type: "SCHEDULE_PROJECT", direction: IN)
 		plan: [TimelineItem!]! @relationship(type: "PLANNING", direction: IN)
 
-		files: [File!]!
+		files(path: String): [File!]!
 
 		startDate: DateTime
 		endDate: DateTime
