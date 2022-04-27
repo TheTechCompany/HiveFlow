@@ -41,59 +41,55 @@ const Quotes: React.FC<any> = (props) => {
     staleWhileRevalidate: true
   })
 
-  const listData = query.estimates()
+  const listData = query.estimates();
 
   const [ createEstimate ] = useMutation((mutation, args: {name: string}) => {
-    const item = mutation.updateHiveOrganisations({
-      update: {
-        estimates: [{
-          create: [{
-            node: {
+    const item = mutation.createEstimate({
+      input: {
+       
               name: args.name
-            }
-          }]
-        }]
-      }
+        }
+        
     })
     return {
       item: {
-        ...item.hiveOrganisations?.[0]
+        ...item
       }
     }
   }, {
     awaitRefetchQueries: true,
-    refetchQueries: [query.estimates()]
+    refetchQueries: [query.estimates]
   })
 
   const [ updateEstimate ] = useMutation((mutation, args: {id: string, name: string}) => {
     if(!args.id) return;
-    const item = mutation.updateEstimates({
-      where: {id: args.id},
-      update: {
+    const item = mutation.updateEstimate({
+      id: args.id,
+      input: {
         name: args.name,
       }
     })
     return {
       item: { 
-        ...item.estimates?.[0]
+        ...item
       }
     }
   }, {
     awaitRefetchQueries: true,
-    refetchQueries: [query.estimates()]
+    refetchQueries: [query.estimates]
   })
 
   const [ deleteEstimate ] = useMutation((mutation, args: {id: string}) => {
     if(!args.id) return;
-    const item = mutation.deleteEstimates({
-      where: {id: args.id}
+    const item = mutation.deleteEstimate({
+      id: args.id
     })
     return {
-      item: item.nodesDeleted
+      item: item
     }
   }, {
     awaitRefetchQueries: true,
-    refetchQueries: [query.estimates()]
+    refetchQueries: [query.estimates]
   })
 
   

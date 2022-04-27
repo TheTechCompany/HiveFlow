@@ -5,7 +5,7 @@ import moment from 'moment';
 import { stringToColor } from '@hexhive/utils';
 import { Box, Button, Select, Spinner, Text } from 'grommet';
 import { Add } from 'grommet-icons';
-import {TimelineItem, TimelineItemCreateInput, TimelineItemItems, TimelineItemProjectCreateFieldInput, TimelineItemProjectCreateInput, TimelineItemUpdateInput, useMutation, useQuery } from '@hive-flow/api';
+import {TimelineItem, TimelineItemItems, useMutation, useQuery } from '@hive-flow/api';
 import { TimelineHeader, TimelineView } from './Header';
 import _, { filter, toUpper } from 'lodash';
 import { BaseStyle } from '@hexhive/styles';
@@ -159,29 +159,24 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
     const [createTimelineItem, createInfo] = useMutation((mutation, args: { item:  { 
         timeline: string,
-        project?: TimelineItemProjectCreateInput, 
+        project?: any, 
         notes?: string, 
         items?: any[], 
         startDate?: string, 
         endDate?: string
     }  }) => {
    //{create: plan.items.map((x) => ({node: x})) } || []
-        const item = mutation.updateHiveOrganisations({ 
-            update: {
-                timeline: [{create: [{node: {
-                    ...args.item,
-                    items: {
-                        create: (args.item.items || []).map((item) => ({
-                            node: item
-                        }))
-                    
-                }
-                }}]}]
-            }
+        const item = mutation.createTimelineItem({
+            input: {
+                timelineId: args.item.timeline,
+                notes: args.item.notes,
+                startDate: args.item.startDate,
+                endDate: args.item.endDate
+            } 
         })
         return {
             item: {
-                ...item.hiveOrganisations[0]
+                ...item
             },
             error: null
         }
@@ -195,14 +190,13 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
     const [deleteTimelineItem, deleteInfo] = useMutation((mutation, args: { id: string }) => {
         if(!args.id) return {err: "No ID Supplied"}
-        const result = mutation.updateHiveOrganisations({ 
-            update: {
-                timeline: [{ delete: [{where: { node: {id: args.id} }}]}]
-            }
+        const result = mutation.deleteTimelineItem({ 
+            id: args.id
+   
         })
         return {
             item: {
-                ...result.hiveOrganisations[0],
+                ...result
             },
             error: null
         }
@@ -232,43 +226,43 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
         if(args.item.notes) update.notes = args.item.notes;
 
-        if(args.item.items){
-            let items = args.item.items?.map((x) => ({
-                id: x?.id,
-                type: x?.type,
-                location: x?.location,
-                estimate: x?.estimate
-            }))
+        // if(args.item.items){
+        //     let items = args.item.items?.map((x) => ({
+        //         id: x?.id,
+        //         type: x?.type,
+        //         location: x?.location,
+        //         estimate: x?.estimate
+        //     }))
     
-            let old_item = capacity.find((a: { id: string; }) => a.id == args.id)
+        //     let old_item = capacity.find((a: { id: string; }) => a.id == args.id)
     
-            let delete_items = old_item.items?.filter((a: { id: any; }) => items?.map((x) => x.id).indexOf(a.id) < 0)
-            let update_items = items?.filter((a) => a.id)
-            let create_items = items?.filter((a) => !a.id)
+        //     let delete_items = old_item.items?.filter((a: { id: any; }) => items?.map((x) => x.id).indexOf(a.id) < 0)
+        //     let update_items = items?.filter((a) => a.id)
+        //     let create_items = items?.filter((a) => !a.id)
             
-            update = {
-                ...update,
-                items: (delete_items?.map((item: { id: any; }) => ({
-                    delete: {
-                        where: {node: {id: item.id}}
-                    }
-                }))).concat((create_items?.map((item) => ({
-                    create: [{node: item}]
-                })) as any[]).concat(update_items?.map((item) => ({
-                    where: {node: {id: item.id}}, update: {node: {
-                        location: item.location,
-                        type: item.type,
-                        estimate: item.estimate
-                    }}
-                }))
-                )
-                )
-            }
-        }
+        //     update = {
+        //         ...update,
+        //         items: (delete_items?.map((item: { id: any; }) => ({
+        //             delete: {
+        //                 where: {node: {id: item.id}}
+        //             }
+        //         }))).concat((create_items?.map((item) => ({
+        //             create: [{node: item}]
+        //         })) as any[]).concat(update_items?.map((item) => ({
+        //             where: {node: {id: item.id}}, update: {node: {
+        //                 location: item.location,
+        //                 type: item.type,
+        //                 estimate: item.estimate
+        //             }}
+        //         }))
+        //         )
+        //         )
+        //     }
+        // }
 
-        const item = mutation.updateTimelineItems({
-            where: {id: args.id},
-            update: {
+        const item = mutation.updateTimelineItem({
+            id: args.id,
+            input: {
                 ...update
             }
         });
@@ -286,7 +280,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
         return {
             item: {
-                ...item.timelineItems?.[0]
+                ...item
             },
             error: null
         }
@@ -309,8 +303,9 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         color: stringToColor(quote?.name || '')
     }))
 
-    const projects = query.projects({ where: {status_IN: ["Job Open", "Handover"] }})?.map((x) => ({ ...x }))
-    const estimates = query.estimates({ where: {status: "Customer has quote" }})?.map((x) => ({ ...x }))
+
+    const projects = query.projects({ where: {status: ["Job Open", "Handover"] }})?.map((x) => ({ ...x }))
+    const estimates = query.estimates({ where: {status: ["Customer has quote"] }})?.map((x) => ({ ...x }))
 
     // const capacity = query.timelineItems({ where: {timeline: view}});
 

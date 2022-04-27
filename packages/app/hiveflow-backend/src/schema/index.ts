@@ -1,144 +1,104 @@
+import { PrismaClient } from '@prisma/client';
+import { mergeTypeDefs, mergeResolvers } from '@graphql-tools/merge'
 import { gql } from 'graphql-tag';
 
-export default gql`
+import project from './project';
+import estimate from './estimate';
+import schedule from './schedule';
+import equipment from './equipment';
+import reports from './reports';
 
-	extend type HiveOrganisation @exclude {
-		schedule: [ScheduleItem!]! @relationship(type: "SCHEDULE", direction: OUT)
-		timeline: [TimelineItem!]! @relationship(type: "PLANNING", direction: OUT)
+export default (prisma: PrismaClient) => {
+	
+	const { typeDefs: projectTypeDefs, resolvers: projectResolvers } = project(prisma);
+	const { typeDefs: estimateTypeDefs, resolvers: estimateResolvers } = estimate(prisma);
+	const { typeDefs: scheduleTypeDefs, resolvers: scheduleResolvers } = schedule(prisma);
+	const { typeDefs: equipmentTypeDefs, resolvers: equipmentResolvers } = equipment(prisma);
+	const { typeDefs: reportTypeDefs, resolvers: reportResolvers } = reports(prisma);
 
-		projects: [Project!]! @relationship(type: "HAS_PROJECT", direction: OUT)
-		people: [People!]! @relationship(type: "HAS_PEOPLE", direction: OUT)
-		equipment: [Equipment!]! @relationship(type: "HAS_EQUIPMENT", direction: OUT)
-		estimates: [Estimate!]! @relationship(type: "HAS_ESTIMATE", direction: OUT)
+	const resolvers = {
+		HiveOrganisation: {
+			projects: async (root: any) => {
+				return await prisma.project.findMany({where: {organisation: root.id}});
 
-	}
+			}
+		},
+		Query: {
+			organisation: (root: any, args: {ids: string[]}, context: any) => {
+				return {id: context.jwt.organisation} 
+			},
+		}
+	};
 
-	type WorkInProgress @exclude {
-		quoted: Float
-		invoiced: Float
-		start: DateTime
-		end: DateTime
-	}
+	const typeDefs = gql`
 
-	type Query {
-		flowWorkInProgress(startDate: DateTime, endDate: DateTime) : WorkInProgress 
-	}
+		type HiveOrganisation {
+			id: ID
+			schedule: [ScheduleItem!]! 
+			timeline: [TimelineItem!]! 
 
-	type Mutation {
-		uploadProjectFiles(project: ID!, path: String): [File!]!
-		deleteProjectFile(project: ID!, path: String): Boolean
-	}
+			projects: [Project!]! 
+			people: [People!]! 
+			equipment: [Equipment!]!
+			estimates: [Estimate!]!
+		}
 
-	type File @exclude {
-		id: ID!
-		name: String
-	}
+		type WorkInProgress {
+			quoted: Float
+			invoiced: Float
+			start: DateTime
+			end: DateTime
+		}
 
-	type Project @auth(rules: [
-		{operations: [READ], where: {organisation: {id: "$jwt.organisation"}}},
-		{operations: [UPDATE], bind: {organisation: {id: "$jwt.organisation"}}}
-	]) {
-		id: ID! @id
-		name: String
-		
-		organisation: HiveOrganisation @relationship(type: "HAS_PROJECT", direction: IN)
-		
-		schedule: [ScheduleItem!]! @relationship(type: "SCHEDULE_PROJECT", direction: IN)
-		plan: [TimelineItem!]! @relationship(type: "PLANNING", direction: IN)
+		type Query {
+			organisation: HiveOrganisation @merge(keyField: "id", keyArg: "ids")
+			flowWorkInProgress(startDate: DateTime, endDate: DateTime) : WorkInProgress 
+		}
 
-		files(path: String): [File!]!
+		type Mutation {
+			empty: String
+		}
 
-		startDate: DateTime
-		endDate: DateTime
-		status: String
+		type File {
+			id: ID!
+		}
 
-	}
+		type ProjectResult {
+			id: ID! 
+			quoted: Float
+			invoiced: Float
+			organisation: HiveOrganisation 
+		}
 
-	type ProjectResult @auth(rules: [
-		{operations: [READ], where: {organisation: {id: "jwt.organisation"}}},
-	]) {
-		id: ID! @id
-		quoted: Float
-		invoiced: Float
-		organisation: HiveOrganisation @relationship(type: "HAS_PROJECTRESULT", direction: IN)
-	}
 
-	type Estimate @auth(rules: [
-		{operations: [READ], where: {organisation: {id: "$jwt.organisation"}}},
-		{operations: [UPDATE], bind: {organisation: {id: "$jwt.organisation"}}}
-	]) {
-		id: ID! @id
-		name: String
-		status: String
-		date: DateTime
-		price: Float
-		organisation: HiveOrganisation @relationship(type: "HAS_ESTIMATE", direction: IN)
-	}
+		type People {
+			id: ID! 
+			name: String
 
-	type People @auth(rules: [
-		{operations: [READ], where: {organisation: {id: "$jwt.organisation"}}},
-		{operations: [UPDATE], bind: {organisation: {id: "$jwt.organisation"}}}
-	]) {
-		id: ID! @id 
-		name: String
+			organisation: HiveOrganisation
+			inactive: Boolean
+		}
 
-		organisation: HiveOrganisation @relationship(type: "HAS_PEOPLE", direction: IN)
-		inactive: Boolean
-	}
 
-	type Equipment @auth(rules: [
-		{operations: [READ], where: {organisation: {id: "$jwt.organisation"}}},
-		{operations: [UPDATE], bind: {organisation: {id: "$jwt.organisation"}}}
-	]) {
-		id: ID! @id
-		name: String
-		registration: String
-
-		organisation: HiveOrganisation @relationship(type: "HAS_EQUIPMENT", direction: IN)
-
-	}
-
-	type TimelineItemItems @auth(rules: [
-		{operations: [READ], where: {item:  {organisation: {id: "$jwt.organisation"}}}},
-		{operations: [UPDATE], bind: {item: { organisation: {id: "$jwt.organisation"}}}}
-	]) {
-		id: ID @id
-		type: String
-		location: String
-		estimate: Float
-		item: TimelineItem @relationship(type: "PROJECTED", direction: IN)
-	}
-
-	union TimelineProject = Project | Estimate
-
-	type TimelineItem @auth(rules: [
-		{operations: [READ], where: {organisation: {id: "$jwt.organisation"}}},
-		{operations: [UPDATE], bind: { organisation: {id: "$jwt.organisation"}}}
-	]) {
-		id: ID @id
-		timeline: String
-		startDate: DateTime
-		endDate: DateTime
-		notes: String
-		items: [TimelineItemItems!]! @relationship(type: "PROJECTED", direction: OUT)
-		project: TimelineProject @relationship(type: "PLANNING", direction: OUT)
-		organisation: HiveOrganisation @relationship(type: "PLANNING", direction: IN)
-	}
-
-	type ScheduleItem @auth(rules: [
-		{operations: [READ], where: {organisation: {id: "$jwt.organisation"}}},
-		{operations: [UPDATE], bind: {organisation: {id: "$jwt.organisation"}}}
-	]) {
-		id: ID @id
-		date: DateTime
-		project: Project @relationship(type: "SCHEDULE_PROJECT", direction: OUT)
-		people: [People!]! @relationship(type: "SCHEDULE_PEOPLE", direction: OUT)
-		equipment: [Equipment!]! @relationship(type: "SCHEDULE_EQUIPMENT", direction: OUT)
-		notes: [String]
-		owner: HiveUser @relationship(type: "CREATED", direction: IN)
-		managers: [HiveUser!]! @relationship(type: "MANAGING", direction: IN)
-
-		organisation: HiveOrganisation @relationship(type: "SCHEDULE", direction: IN)
-	}
+	
 
 `
+	return {
+		typeDefs: mergeTypeDefs([
+			typeDefs, 
+			projectTypeDefs,
+			estimateTypeDefs,
+			equipmentTypeDefs,
+			reportTypeDefs,
+			scheduleTypeDefs
+		]),
+		resolvers: mergeResolvers([
+			resolvers, 
+			projectResolvers,
+			equipmentResolvers,
+			estimateResolvers,
+			reportResolvers,
+			scheduleResolvers
+		])
+	}
+}

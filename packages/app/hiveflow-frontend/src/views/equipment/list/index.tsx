@@ -67,59 +67,55 @@ export const EquipmentList: React.FC<any> = (props) => {
    // return items.map((x) => ({...x, price: formatter.format(x.price)}))
   }
 
-  const listData = query?.equipment({}) || [];
+  const listData = query?.equipment || [];
 
   const [ createEquipment ] = useMutation((mutation, args: {name: string}) => {
-    const item = mutation.updateHiveOrganisations({
-      update: {
-        equipment: [{
-          create: [{
-            node: {
-              name: args.name
-            }
-          }]
-        }]
+    const item = mutation.createEquipment({
+      input: {
+  
+          name: args.name
+  
       }
     })
     return {
       item: {
-        ...item.hiveOrganisations?.[0]
+        ...item
       }
     }
   }, {
     awaitRefetchQueries: true,
-    refetchQueries: [query.equipment({})]
+    refetchQueries: [query.equipment]
   })
 
   const [ updateEquipment ] = useMutation((mutation, args: {id: string, name: string}) => {
     if(!args.id) return;
     const item = mutation.updateEquipment({
-      where: {id: args.id},
-      update: {
+      id: args.id,
+      input: {
         name: args.name,
       }
     })
     return {
       item: { 
-        ...item.equipment?.[0]
+        ...item
       }
     }
   }, {
     awaitRefetchQueries: true,
-    refetchQueries: [query.equipment({})]
+    refetchQueries: [query.equipment]
   })
 
   const [ deleteEquipment ] = useMutation((mutation, args: {id: string}) => {
     if(!args.id) return;
     const item = mutation.deleteEquipment({
-      where: {id: args.id}
+      id: args.id
     })
     return {
-      item: item.nodesDeleted
+      item: item
     }
   }, {
     awaitRefetchQueries: true,
-    refetchQueries: [query.equipment({})]
+    refetchQueries: [query.equipment]
   })
 
   // constructor(props: any){
