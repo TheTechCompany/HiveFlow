@@ -40,21 +40,15 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
   }
 
   const [ createProject ] = useMutation((mutation, args: {name: string, status: string}) => {
-    const item = mutation.updateHiveOrganisations({
-      update: {
-        projects: [{
-          create: [{
-            node: {
-              name: args.name,
-              status: args.status
-            }
-          }]
-        }]
+    const item = mutation.createProject({
+      input: {
+        name: args.name,
+        status: args.status
       }
     })
     return {
       item: {
-        ...item.hiveOrganisations?.[0]
+        ...item
       }
     }
   }, {
@@ -64,8 +58,8 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
 
   const [ updateProject ] = useMutation((mutation, args: {id: string, name: string, status: string}) => {
     if(!args.id) return;
-    const item = mutation.updateProjects({
-      where: {id: args.id},
+    const item = mutation.updateProject({
+      id: args.id,
       update: {
         name: args.name,
         status: args.status
@@ -73,7 +67,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
     })
     return {
       item: { 
-        ...item.projects?.[0]
+        ...item
       }
     }
   }, {
@@ -83,11 +77,11 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
 
   const [ deleteProject ] = useMutation((mutation, args: {id: string}) => {
     if(!args.id) return;
-    const item = mutation.deleteProjects({
-      where: {id: args.id}
+    const item = mutation.deleteProject({
+      id: args.id
     })
     return {
-      item: item.nodesDeleted
+      item: item
     }
   }, {
     awaitRefetchQueries: true,

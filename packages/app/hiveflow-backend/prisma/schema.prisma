@@ -1,0 +1,114 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider        = "prisma-client-js"
+    previewFeatures = ["interactiveTransactions"]
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Project {
+    id   String @id
+    name String
+
+    schedule ScheduleItem[]
+
+    organisation String
+
+    startDate DateTime
+    endDate   DateTime
+    status    String
+
+}
+
+model Estimate {
+    id           String   @id
+    name         String
+    status       String?
+    createdAt    DateTime @default(now())
+    updatedAt    DateTime @default(now())
+    price        Float?
+    organisation String
+}
+
+model Equipment {
+    id           String @id
+    name         String
+    registration String?
+    organisation String
+}
+
+model ScheduleItem {
+    id String @id
+
+    date      DateTime
+    project   Project  @relation(fields: [projectId], references: [id])
+    projectId String
+
+    people String[]
+    notes  String[]
+
+	permissions ScheduleItemPermission[] @relation(name: "permissionsFor")
+
+    organisation String
+}
+
+model ScheduleItemPermission {
+	id String @id
+
+	owner String
+
+	createdAt DateTime @default(now())
+
+	scheduleItem ScheduleItem @relation(name: "permissionsFor", fields: [scheduleItemId], references: [id])
+	scheduleItemId String
+
+	@@unique([owner, scheduleItemId], name: "schedulePermitted")
+}
+
+model Timeline {
+	id String @id
+	name String 
+
+	items TimelineItem[] @relation("onTimeline")
+
+	organisation String
+}
+
+model TimelineItem {
+	id String @id
+
+	notes String
+
+	startDate DateTime
+	endDate DateTime
+
+	timeline Timeline @relation(name: "onTimeline", fields: [timelineId], references: [id], onDelete: Cascade)
+	timelineId String
+}
+// model TimelineItem {
+// 	id String @id
+
+//   timeline String
+// 	startDate DateTime
+// 	endDate DateTime
+// 	notes String
+// 	items TimelineItemItems[]
+//   projectId String
+// 	organisation String
+// }
+
+// model TimelineItemItems {
+//   id String @id
+//   name String
+//   startDate DateTime
+//   endDate DateTime
+//   notes String
+//   timelineItem TimelineItem @relation(fields: [timelineItemId], references: [id])
+//   timelineItemId String
+//   organisation String
+// }

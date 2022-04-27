@@ -16,9 +16,9 @@ import moment from 'moment';
 
 import { Kanban, FileDialog, FileExplorer } from '@hexhive/ui';
 
-import { useMutation, useQuery, useRefetch } from '@hive-flow/api';
+import { useMutation, useRefetch } from '@hive-flow/api';
 import { KanbanModal } from './KanbanModal';
-import { useApolloClient } from '@apollo/client'
+import { gql, useApolloClient, useQuery } from '@apollo/client'
 import { useParams } from 'react-router-dom';
 
 // const FileExplorer = lazy(() => {
@@ -67,11 +67,31 @@ const client = useApolloClient()
   const {id: job_id, jobParam} = useParams() 
 
 
-  const query = useQuery({
-    suspense: false,
-    staleWhileRevalidate: true
-  })
+  // const query = useQuery({
+  //   suspense: false,
+  //   staleWhileRevalidate: true
+  // })
 
+  const { data } = useQuery(gql`
+    query GetProject($id: ID, $path: String) {
+      projects(where: {id: $id}){
+        id
+        name
+        startDate
+        endDate
+
+        files(path: $path){
+          id
+          name
+        }
+      }
+    }
+  `, {
+    variables: {
+      id: job_id,
+      path: '/'
+    }
+  })
   const refetch = useRefetch();
 
   // const [ removeFile, {isLoading}] = useMutation((mutation, args: {id: string, project: string}) => {
@@ -120,7 +140,7 @@ const client = useApolloClient()
   // })
 
 
-  const job = query.projects({where: {id: job_id}})?.[0]
+  const job = data?.projects?.[0] //query.projects({where: {id: job_id}})?.[0]
 
   useEffect(() => {
     console.log("JOB Changed")

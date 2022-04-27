@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Estimate" ALTER COLUMN "status" DROP NOT NULL,
+ALTER COLUMN "price" DROP NOT NULL;

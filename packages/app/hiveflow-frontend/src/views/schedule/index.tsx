@@ -160,31 +160,15 @@ export const Schedule : React.FC<any> = (props) =>  {
         notes: args.item.notes
       }
     }
-    const result = mutation.updateHiveOrganisations({ 
- 
-      update: {
-      
-       schedule: [{
-         create: [{
-          node: {
-                date: args.item.date,
-                project: {
-                  connect: {where: {node: {
-                    id: args.item.project
-                  }}}
-            },
-            ...query,
-            owner: {
-              connect: {where: {node: {id: activeUser?.id}}}
-            }
-          }           
-         }]
-       }]
+    const result = mutation.createScheduleItem({ 
+      input: {
+        date: args.item.date,
+        project: args.item.project,
       }
     })
     return {
       item: {
-        ...result.hiveOrganisations[0]
+        ...result
       },
       error: null
     }
@@ -214,60 +198,59 @@ export const Schedule : React.FC<any> = (props) =>  {
     };
 
     if(args.item.project != oldScheduleItem.project.id) {
-      query['project'] = {
-        disconnect: {where: {node: {id: oldScheduleItem.project.id}}},
-        connect: {where: {node: {id: args.item.project}}}
-      }
+      query['project'] = args.item.project
     }
+
     if(args.item.notes) query.notes = args.item.notes;
 
-    if(add_people.length > 0){
-      query = {
-        ...query,
-        people: {
-          ...query.people,
-          connect: [{where: {node: {id_IN: add_people.map((x: any) => x.id)}}}]
-        }
-      }
-    }
+    // if(add_people.length > 0){
+    //   query = {
+    //     ...query,
+    //     people: {
+    //       ...query.people,
+    //       connect: [{where: {node: {id_IN: add_people.map((x: any) => x.id)}}}]
+    //     }
+    //   }
+    // }
 
 
-    if(remove_people.length > 0){
-      query = {
-        ...query,
-        people: {
-          ...query.people,
-          disconnect: [{where: {node: {id_IN: remove_people.map((x: any) => x.id)}}}]
-        }
-      }
-    }
+    // if(remove_people.length > 0){
+    //   query = {
+    //     ...query,
+    //     people: {
+    //       ...query.people,
+    //       disconnect: [{where: {node: {id_IN: remove_people.map((x: any) => x.id)}}}]
+    //     }
+    //   }
+    // }
 
-    if(add_equipment.length > 0){
-      query = {
-        ...query,
-        equipment: {
-          ...query.equipment,
-          connect: [{where: {node: {id_IN: add_equipment.map((x: any) => x.id)}}}]
-        }
-      }
-    }
+    // if(add_equipment.length > 0){
+    //   query = {
+    //     ...query,
+    //     equipment: {
+    //       ...query.equipment,
+    //       connect: [{where: {node: {id_IN: add_equipment.map((x: any) => x.id)}}}]
+    //     }
+    //   }
+    // }
 
 
-    if(remove_equipment.length > 0){
-      query = {
-        ...query,
-        equipment: {
-          ...query.equipment,
-          disconnect: [{where: {node: {id_IN: remove_equipment.map((x: any) => x.id)}}}]
-        }
-      }
-    }
-    const result = mutation.updateScheduleItems({where: {id: args.id}, update: {
+    // if(remove_equipment.length > 0){
+    //   query = {
+    //     ...query,
+    //     equipment: {
+    //       ...query.equipment,
+    //       disconnect: [{where: {node: {id_IN: remove_equipment.map((x: any) => x.id)}}}]
+    //     }
+    //   }
+    // }
+
+    const result = mutation.updateScheduleItem({id: args.id, input: {
         ...query
     }})
     return {
       item: {
-        ...result.scheduleItems[0]
+        ...result
       },
       error: null
     }
@@ -281,7 +264,7 @@ export const Schedule : React.FC<any> = (props) =>  {
 
   const [removeItem, infoRemove] = useMutation((mutation, args: {id: string}) => {
     if(!args.id) return {error: "Item Id is required"}
-    const result = mutation.deleteScheduleItems({where: {id: args.id}})
+    const result = mutation.deleteScheduleItem({id: args.id})
     return {
       item: {
         ...result
@@ -300,12 +283,12 @@ export const Schedule : React.FC<any> = (props) =>  {
     console.log(activeUser)
     if(!activeUser?.id) return;
  
-    const result = mutation.updateScheduleItems({where: {id: args.id}, update: {
-        managers: [{connect: [{where: {node: {id: activeUser?.id}}}] }]
-    }})
+    const result = mutation.manageScheduleItem({
+      id: args.id
+    })
     return {
       item: {
-        ...result.scheduleItems[0]
+        success: result
       },
       error: null
     }
@@ -320,9 +303,9 @@ export const Schedule : React.FC<any> = (props) =>  {
 
   const [leaveCard, leaveInfo] = useMutation((mutation, args: {id: string}) => {
     if(!activeUser?.id) return;
-    const result = mutation.updateScheduleItems({where: {id: args.id}, disconnect: {
-      managers: [{where: {node: {id: activeUser?.id}}}]
-    }})
+    const result = mutation.handoverScheduleItem({
+      id: args.id
+    })
     return {
       item: result,
       error: null
@@ -337,59 +320,59 @@ export const Schedule : React.FC<any> = (props) =>  {
 
   const [cloneItem, cloenInfo] = useMutation((mutation, args: {item: any, dates: Date[]}) => {
     
-    let query : any = {};
-    if(args.item.notes) query.notes = args.item.notes;
+    // let query : any = {};
+    // if(args.item.notes) query.notes = args.item.notes;
 
-    if(args.item.people.length > 0){
-      query = {
-        ...query,
-        people: {
-          ...query.people,
-          connect: [{where: {node: {id_IN: args.item.people.map((x: any) => x.id)}}}]
-        }
-      }
-    }
+    // if(args.item.people.length > 0){
+    //   query = {
+    //     ...query,
+    //     people: {
+    //       ...query.people,
+    //       connect: [{where: {node: {id_IN: args.item.people.map((x: any) => x.id)}}}]
+    //     }
+    //   }
+    // }
 
-    if(args.item.equipment.length > 0){
-      query = {
-        ...query,
-        equipment: {
-          ...query.equipment,
-          connect: [{where: {node: {id_IN: args.item.equipment.map((x: any) => x.id)}}}]
-        }
-      }
-    }
+    // if(args.item.equipment.length > 0){
+    //   query = {
+    //     ...query,
+    //     equipment: {
+    //       ...query.equipment,
+    //       connect: [{where: {node: {id_IN: args.item.equipment.map((x: any) => x.id)}}}]
+    //     }
+    //   }
+    // }
 
 
-    const item = mutation.updateHiveOrganisations({
-      update: {
-        schedule: [{create: args.dates.map((date) => ({
-          node: {
-            date: date.toISOString(),
-            project: {
-              connect: {where: {node: {
-                id: args.item.project
-               }}}
-            },
-            ...query,
-            owner: {
-              connect: {where: {node: {id: activeUser?.id}}}
-            }
-          }
-        }))}]
-      }
-    })
-    // const result = mutation.cloneScheduleItem({id: args.id, cloneTo: args.dates})
-    return {
-      item:  {
-        ...item.hiveOrganisations[0]
-      }, //result ||
-      error: null
-    }
+    // const item = mutation.updateHiveOrganisations({
+    //   update: {
+    //     schedule: [{create: args.dates.map((date) => ({
+    //       node: {
+    //         date: date.toISOString(),
+    //         project: {
+    //           connect: {where: {node: {
+    //             id: args.item.project
+    //            }}}
+    //         },
+    //         ...query,
+    //         owner: {
+    //           connect: {where: {node: {id: activeUser?.id}}}
+    //         }
+    //       }
+    //     }))}]
+    //   }
+    // })
+    // // const result = mutation.cloneScheduleItem({id: args.id, cloneTo: args.dates})
+    // return {
+    //   item:  {
+    //     ...item.hiveOrganisations[0]
+    //   }, //result ||
+    //   error: null
+    // }
   }, {
     onCompleted(data) {},
     onError(error) {},
-    refetchQueries: [query.scheduleItems({where:{date_GT: horizon.start?.toISOString(), date_LT: horizon.end?.toISOString()}})],
+    refetchQueries: [],
     awaitRefetchQueries: true,
     suspense: false,  
   })
