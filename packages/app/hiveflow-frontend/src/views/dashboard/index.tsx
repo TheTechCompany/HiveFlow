@@ -26,7 +26,7 @@ import { PeopleList } from '../people/list';
 import {Schedule as ScheduleView } from '../schedule';
 import {PeopleSingle} from '../people/single';
 import { EquipmentList } from '../equipment/list';
-import Quotes from '../quotes';
+import {EstimateView} from '../estimates';
 import { BaseStyle } from '@hexhive/styles';
 
 import Timeline from '../timeline/Timeline'
@@ -163,7 +163,7 @@ export const Dashboard = (props: any) => {
       path: 'estimates',
       label: 'Estimates',
       icon: <Estimates filter="invert(1)" />,
-      component: <Quotes />
+      component: <EstimateView />
     },
     {
       path: 'projects',

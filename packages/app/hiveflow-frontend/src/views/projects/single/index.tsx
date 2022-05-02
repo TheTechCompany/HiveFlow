@@ -73,17 +73,15 @@ const client = useApolloClient()
   // })
 
   const { data } = useQuery(gql`
-    query GetProject($id: ID, $path: String) {
-      projects(where: {id: $id}){
+    query GetProject($id: String) {
+      projects(where: {displayId: $id}){
         id
+        displayId
         name
         startDate
         endDate
 
-        files(path: $path){
-          id
-          name
-        }
+    
       }
     }
   `, {
@@ -326,7 +324,7 @@ const client = useApolloClient()
             direction="row"
             margin={{bottom: 'xsmall'}}
             justify="between">
-            <Heading level='4' margin="small">{job?.id} - {job?.name || "Job Title"}</Heading>
+            <Heading level='4' margin="small">{job?.displayId} - {job?.name || "Job Title"}</Heading>
             
             <Box gap="xsmall" direction="row">
               <Button

@@ -22,10 +22,15 @@ export default (prisma: PrismaClient) => {
 					where['id'] = {in: args.ids}
 				}
 
+                if(args.where?.displayId){
+                    where['displayId'] = args.where.displayId
+                }
+
 				const result = await prisma.project.findMany({
 					where: {
 						organisation: context.jwt.organisation,
-						...where
+						...where,
+                        
 					}
 				})
 
@@ -97,6 +102,7 @@ export default (prisma: PrismaClient) => {
         status: [String]
         start: DateTime
         end: DateTime
+        displayId: String
     }
 
     type Project {

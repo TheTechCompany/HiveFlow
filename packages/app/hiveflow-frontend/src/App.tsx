@@ -45,7 +45,7 @@ function App(props: any) {
       <Router basename={process.env.PUBLIC_URL || "/dashboard/flow"}>
         <Grommet
           theme={BaseStyle}
-          style={{ display: "flex", width: "100%", height: "100%" }}
+          style={{ display: "flex", width: "100vw", height: '100%' }}
           plain
         >
           <ThemeProvider theme={BaseStyle}>

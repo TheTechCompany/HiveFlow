@@ -16,8 +16,12 @@ export default (prisma: PrismaClient) => {
 
         input EstimateWhere {
             id: String
+            displayId: String
             name: String
             status: [String]
+
+            date_GTE: DateTime
+            date_LTE: DateTime
         }
 
         input EstimateInput {
@@ -48,6 +52,7 @@ export default (prisma: PrismaClient) => {
                 if(args.where){
                     if(args.where.id) whereArg['id'] = args.where.id
                     if(args.where.status) whereArg['status'] = {in: args.where.status}
+                    if(args.where.displayId) whereArg['displayId'] = args.where.displayId;
                 }
                 return await prisma.estimate.findMany({where: whereArg})
             }

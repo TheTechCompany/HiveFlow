@@ -35,8 +35,8 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
 
   const history = useNavigate()
 
-  const selectJob = (job : {JobID: string}) => {
-    history(`${job.JobID}`)
+  const selectJob = (id: string) => {
+    history(`${id}`)
   }
 
   const [ createProject ] = useMutation((mutation, args: {name: string, status: string}) => {
@@ -211,7 +211,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
               align: 'center'
             }
           ]}
-          onClickRow={({datum}) => datum.id && selectJob({JobID: datum?.id})}
+          onClickRow={({datum}) => datum.displayId && selectJob(datum?.displayId)}
           data={getJobs()} />
        {/* <SortedList 
           orderBy={"JobID"}
