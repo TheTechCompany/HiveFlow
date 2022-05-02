@@ -6,8 +6,7 @@ export const Deployment = async (provider: Provider, rootServer: string, dbUrl: 
     const config = new Config();
 
     let suffix = config.require('suffix');
-    let imageTag = process.env.IMAGE_TAG //config.require('image-tag');
-
+    let imageTag = process.env.IMAGE_TAG 
 
     const appName = `hive-flow-${suffix}`;
     const appLabels = { appClass: appName };
