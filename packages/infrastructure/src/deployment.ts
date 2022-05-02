@@ -1,8 +1,8 @@
 import { Provider } from '@pulumi/kubernetes'
 import * as k8s from '@pulumi/kubernetes'
-import { Config, Output } from '@pulumi/pulumi'
+import { Config, Output, all } from '@pulumi/pulumi'
 
-export const Deployment = async (provider: Provider, rootServer: string, dbUrl: Output<any>) => {
+export const Deployment = async (provider: Provider, rootServer: string, dbUrl: Output<any>, dbPass: Output<any>) => {
     const config = new Config();
 
     let suffix = config.require('suffix');
@@ -37,7 +37,7 @@ export const Deployment = async (provider: Provider, rootServer: string, dbUrl: 
                             { name: 'NODE_ENV', value: 'production' },
                             { name: 'ROOT_SERVER', value: `http://${rootServer}` },
                             { name: 'VERSION_SHIM', value: '1.0.5' },
-                            { name: "DATABASE_URL", value: dbUrl.apply((url) => `postgresql://postgres:${config.require('postgres-password')}@${url}.default.svc.cluster.local:5432/hiveflow`) },
+                            { name: "DATABASE_URL", value: all([dbUrl, dbPass]).apply(([url, pass]) => `postgresql://postgres:${pass}@${url}.default.svc.cluster.local:5432/hiveflow`) },
 
                             // { name: 'UI_URL',  value: `https://${domainName}/dashboard` },
                             // { name: 'BASE_URL',  value: `https://${domainName}`},

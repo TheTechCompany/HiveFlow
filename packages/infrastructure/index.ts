@@ -24,10 +24,12 @@ const main = (async () => {
     
     const rootServer = gatewayRef.getOutput('gatewayUrl');
     const dbUrl = gatewayRef.getOutput('postgres_name');
+    const dbPass = gatewayRef.getOutput('postgres_pass');
+
 
     const provider = new Provider('eks', { kubeconfig });
 
-    const deployment = await rootServer.apply(async (url) => await Deployment(provider, url, dbUrl));
+    const deployment = await rootServer.apply(async (url) => await Deployment(provider, url, dbUrl, dbPass));
     const service = await Service(provider)
 
     return {

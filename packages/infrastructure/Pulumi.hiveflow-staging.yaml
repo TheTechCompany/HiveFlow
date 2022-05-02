@@ -1,4 +1,6 @@
 config:
   aws:region: ap-southeast-2
+  hiveflow-app:org: ultraviolet
   hiveflow-app:suffix: staging
+  hiveflow-app:image-tag: staging
 
