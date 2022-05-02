@@ -6,9 +6,6 @@ export const Service = async (provider: Provider) => {
     const config = new Config();
 
     let suffix = config.require('suffix');
-    let imageTag = config.require('image-tag');
-
-    let redundancy = config.require('redundancy');
 
     const appName = `hive-flow-${suffix}`;
     const appLabels = { appClass: appName };
