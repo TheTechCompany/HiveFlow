@@ -158,7 +158,7 @@ jobs:
         working-directory: ./packages/infrastructure
         id: postgres_url
       
-      - run: echo "::set-output name=pass::$(pulumi stack -s ultraviolet/apps/staging output postgres_pass )" 
+      - run: echo "::set-output name=pass::$(pulumi stack -s ultraviolet/apps/staging output postgres_pass)" 
         working-directory: ./packages/infrastructure
         id: postgres_pass
 
