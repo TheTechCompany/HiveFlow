@@ -13,6 +13,7 @@ datasource db {
 
 model Project {
     id   String @id
+    displayId String?
     name String
 
     schedule ScheduleItem[]
@@ -23,16 +24,20 @@ model Project {
     endDate   DateTime
     status    String
 
+    @@unique([organisation, displayId])
 }
 
 model Estimate {
     id           String   @id
+    displayId    String? 
     name         String
     status       String?
     createdAt    DateTime @default(now())
     updatedAt    DateTime @default(now())
     price        Float?
     organisation String
+
+    @@unique([ displayId, organisation ])
 }
 
 model Equipment {

@@ -89,7 +89,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
   })
 
   const getJobs = () => {
-    let items = projects?.map((x) => ({id: x?.id, name: x?.name, status: x?.status}))
+    let items = projects?.map((x) => ({id: x?.id, displayId: x?.displayId, name: x?.name, status: x?.status}))
 
     if(property && direction){
       items = items?.sort((first, last) => {
@@ -192,7 +192,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
           }}
           columns={[
             {
-              property: 'id',
+              property: 'displayId',
               header: 'ID',
               size: 'xsmall',
               sortable: true

@@ -6,8 +6,8 @@ export default (prisma: PrismaClient) => {
     const typeDefs = `
 
         type Query {
-            schedule: [ScheduleItem]
-            timelines(where: TimelineWhere): [Timeline]
+            scheduleItems(where: ScheduleWhere): [ScheduleItem]
+            timelineItems(where: TimelineWhere): [TimelineItem]
         }
 
         type Mutation {
@@ -39,7 +39,15 @@ export default (prisma: PrismaClient) => {
 
         input TimelineWhere {
             id: ID
-            name: String
+            timeline: String
+            startDate_LTE: DateTime
+            endDate_GTE: DateTime
+        }
+
+        input ScheduleWhere {
+            id: ID
+            date_GTE: DateTime
+            date_LTE: DateTime
         }
 
         input TimelineInput {
@@ -106,15 +114,15 @@ export default (prisma: PrismaClient) => {
 
     const resolvers = {
         Query: {
-            schedule: async (root: any, args: any, context: any) => {
+            scheduleItems: async (root: any, args: any, context: any) => {
                 return await prisma.scheduleItem.findMany({where: {organisation: context.jwt.organisation}})
             },
-            timelines: async (root: any, args: any, context: any) => {
+            timelineItems: async (root: any, args: any, context: any) => {
                 // return await pri
                 let whereArg: any = {organisation: context.jwt.organisation}
                 if(args.where){
                     if(args.where.id) whereArg = {...whereArg, id: args.where.id};
-                    if(args.where.name) whereArg = {...whereArg, name: args.where.name};
+                    if(args.where.name) whereArg = {...whereArg, name: args.where.timeline};
                 }
                 return await prisma.timeline.findMany({where: whereArg, include: {items: true}})
             }

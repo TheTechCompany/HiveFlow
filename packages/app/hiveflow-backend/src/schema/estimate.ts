@@ -29,6 +29,8 @@ export default (prisma: PrismaClient) => {
 
         type Estimate  {
             id: ID! 
+            displayId: String
+
             name: String
             status: String
             date: DateTime
@@ -52,9 +54,12 @@ export default (prisma: PrismaClient) => {
         },
         Mutation: {
             createEstimate: async  (root: any, args: any, context: any) => {
+                const count = await prisma.estimate.count({ where: {organisation: context.jwt.organisation }})
+
                 return await prisma.estimate.create({
                     data: {
                         id: nanoid(),
+                        displayId: `${count + 1}`,
                         name: args.input.name,
                         status: args.input.status,
                         price: args.input.price,

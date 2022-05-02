@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client"
+import { nanoid } from "nanoid";
 
 export default (prisma: PrismaClient) => {
     
@@ -41,12 +42,13 @@ export default (prisma: PrismaClient) => {
 
 						const project = prisma.project.create({
 							data: {
-								id: `${count}`,
+                                id: nanoid(),
+								displayId: `${count + 1}`,
 								name: args.input.name,
 								organisation: context.jwt.organisation,
 								startDate: new Date(),
 								endDate: new Date(),
-								status: 'draft'
+								status: args.input.status || 'draft'
 							}
 						})
 						return project
@@ -99,6 +101,8 @@ export default (prisma: PrismaClient) => {
 
     type Project {
         id: ID! 
+
+        displayId: String
         name: String
         
         organisation: HiveOrganisation

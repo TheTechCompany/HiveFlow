@@ -30,7 +30,7 @@ const Quotes: React.FC<any> = (props) => {
   // const [listData, setListData] = useState<any[]>([])
 
   const listKeys : ColumnConfig<{id: string; name: any; price: any;}>[] = [
-    { property: 'id', header: 'Quote ID', sortable: true, size: 'small', primary: true },
+    { property: 'displayId', header: 'Quote ID', sortable: true, size: 'small', primary: true },
     { property: 'name', header: 'Quote Name', sortable: true, size: 'large' },
     { property: 'status', header: 'Status', sortable: true, size: 'small'},
     { property: 'price', header: 'Total Value',  render: (row) => formatter.format(row.price), sortable: true, size: 'small', align: 'start' }
@@ -58,7 +58,7 @@ const Quotes: React.FC<any> = (props) => {
     }
   }, {
     awaitRefetchQueries: true,
-    refetchQueries: [query.estimates]
+    refetchQueries: [query.estimates()]
   })
 
   const [ updateEstimate ] = useMutation((mutation, args: {id: string, name: string}) => {

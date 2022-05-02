@@ -37,6 +37,7 @@ export default (prisma: PrismaClient) => {
         },
         Mutation: {
             createEquipment: async (root: any, args: any, context: any) => {
+
                 return await prisma.equipment.create({
                     data: {
                         id: nanoid(),
