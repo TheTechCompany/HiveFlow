@@ -1106,10 +1106,10 @@
   resolved "https://registry.yarnpkg.com/@hexhive/styles/-/styles-0.0.6-alpha.13.tgz#4c316bdbb8a6c1489faf4912b26400cdff43be8b"
   integrity sha512-bZcFH+VpAV7MpxTRdK+o+HQyEpWoCCXxA6j21g7JiTr+skzxb+yoMIGUESxJ6FgpTh6HjxYE4gHWIx/YRWxrgQ==
 
-"@hexhive/ui@0.0.12-alpha.4":
-  version "0.0.12-alpha.4"
-  resolved "https://registry.yarnpkg.com/@hexhive/ui/-/ui-0.0.12-alpha.4.tgz#b1df49837252fba03a1cada00e517ad31afffcfd"
-  integrity sha512-Z+0XPtwIfyLUpoQw1qHkBTGc55S0GERF6XOsBj4sa9U0EzoneM/mI8UASt6k5uhxLlbpt7lhjawRhlwWBt3jZQ==
+"@hexhive/ui@0.0.12-alpha.6":
+  version "0.0.12-alpha.6"
+  resolved "https://registry.yarnpkg.com/@hexhive/ui/-/ui-0.0.12-alpha.6.tgz#7da25e2024b893afba1fba4d05f7719e324c3abe"
+  integrity sha512-TX21RW5SdeETy9w8FPZF3FcSOv3B7OlvFsPPbA3ALdnTyniQaCio04qxkOj7IPWETgiWakL/ibLVDZJW5RjDLQ==
   dependencies:
     "@hexhive/styles" "^0.0.6-alpha.13"
     "@hexhive/utils" "^0.0.6-alpha.13"

@@ -12,13 +12,15 @@ import { useEffect } from 'react';
 import { Menu, Previous, Next } from 'grommet-icons';
 import {DraftPane } from './draft-pane';
 import { useQuery as useApollo, gql, useApolloClient } from '@apollo/client';
+import { ScheduleModal } from '../../modals/schedule';
 
 export const Schedule : React.FC<any> = (props) =>  {
 
   //User
+  const [ modalOpen, openModal ] = useState(false);
+
   const { activeUser } = useAuth() //{activeUser: {sub: '1'}}
 
-  console.log(activeUser)
   const client = useApolloClient();
 
   const [ horizon, setHorizon ] = useState<{start: Date, end: Date}>({
@@ -42,16 +44,13 @@ export const Schedule : React.FC<any> = (props) =>  {
 
   const slowResult = useApollo(gql`
     query Slow {
-      hiveUsers {
-        id
-        name
-      }
-      people(where: {inactive_NOT: true}) {
+      users {
         id
         name
       }
       projects{
         id
+        displayId
         name
       }
       equipment {
@@ -121,13 +120,12 @@ export const Schedule : React.FC<any> = (props) =>  {
       include: ['Q', 'Slow']
     })
   }
-  console.log(data)
 
   const draftSchedule = data?.timelineItems || []
   const schedule : any[] = data?.scheduleItems || []//query.scheduleItems({where: {date_GT: horizon.start?.toISOString(), date_LT: horizon.end?.toISOString()}})
 
   const projects = slowData?.projects || []// query.projects({})?.map((x) => ({...x})) || [];
-  const people = slowData?.people || []// query.people({})?.map((x) => ({...x})) || [];
+  const people = slowData?.users || []// query.people({})?.map((x) => ({...x})) || [];
   const equipment = slowData?.equipment || [] //query.equipment({})?.map((x) => ({...x})) || []
 
   const users = slowData?.hiveUsers || [] //query.hiveUsers({})?.map((x) => ({...x})) || []
@@ -183,7 +181,6 @@ export const Schedule : React.FC<any> = (props) =>  {
   const [updateItem, infoItem] = useMutation((mutation, args: {id: string, item: any}) => {
     
     
-    console.log("UPDATE", args)
     let oldScheduleItem = schedule.find((a) => a.id == args.id)
     
     let add_people = args.item.people.filter((a: any) => oldScheduleItem.people.map((x: any) => x.id).indexOf(a.id) < 0)
@@ -280,7 +277,6 @@ export const Schedule : React.FC<any> = (props) =>  {
   })
 
   const [joinCard, joinInfo] = useMutation((mutation, args: {id: string}) => {
-    console.log(activeUser)
     if(!activeUser?.id) return;
  
     const result = mutation.manageScheduleItem({
@@ -377,17 +373,9 @@ export const Schedule : React.FC<any> = (props) =>  {
     suspense: false,  
   })
 
-  useEffect(() => {
-      // scheduleActions.getScheduleItems({start: horizon.start, end: horizon.end}, '').then((schedule) => {
-      //   setSchedule(schedule)
-      //   console.log("Schedule", schedule);
-      // });
-    
-  }, [])
   
   const [ draftsOpen, openDrafts ] = useState<boolean>(false);
 
-  console.log("Schedule view", schedule);
 
     return (
       <Box
@@ -398,6 +386,16 @@ export const Schedule : React.FC<any> = (props) =>  {
             open={draftsOpen}
             drafts={draftSchedule}
             projects={projects} />
+
+          <ScheduleModal
+              open={modalOpen}
+              projects={projects}
+              people={people}
+              equipment={equipment}
+              onClose={() => {
+                openModal(false)
+              }}
+            />
         <ScheduleView 
           actions={{
             left: (<Button 
@@ -407,97 +405,46 @@ export const Schedule : React.FC<any> = (props) =>  {
           isLoading={query.$state.isLoading}
           onJoinCard={(card: any) => {
             joinCard({args: {id: card.id}}).then((resp) => {
-              console.log("JOin", card, resp);
               refetchSchedule()
             })
 
           }}
           onLeaveCard={(card: any) => {
             leaveCard({args: {id: card.id}}).then((resp) => {
-              console.log("JOin", card, resp);
             })
           }}
           date={horizon.start}
           onHorizonChanged={async (start, end) => {
-            console.log("Horizon", start, end)
             setHorizon({start, end})
 
-            // refetchSchedule()
             
-            // scheduleActions.getScheduleItems({start, end}, '').then((schedule) => {
-            //   setSchedule(schedule)
-            //   console.log("Schedule", schedule);
-            // });
-
-
-//            const info = await refetch(query.ScheduleMany({startDate: start, endDate: end}))
-            
-            //   console.log("REFETCH", info)
           
           }}
           events={(schedule || []).map((x) => ({
             id: x?.id || '',
             people: x?.people || [],
             equipment: x?.equipment || [],
-            project: {name: x?.project?.name?.toString() || '', id: x?.project?.id?.toString() || ''},
+            project: {displayId: x?.project?.displayId || '', name: x?.project?.name?.toString() || '', id: x?.project?.id?.toString() || ''},
             notes: x?.notes || [],
             managers: x?.managers || [],
             date: x?.date,
             owner: {id: x?.owner?.id?.toString() || '', name: x?.owner?.name?.toString() || ''}
           }))}
-          onCreateItem={(item, ts) => {
-            createItem({args: {
-              item: {
-              ...item,
-              date: new Date(ts.valueOf())
-            }}}).then(async (data) => {
-              //const info = await refetch(query.ScheduleMany({startDate: horizon.start, endDate: horizon.end}))
+          onCreateItem={(ts) => {
 
-              refetchSchedule()
-              //await refetch(() => query.ScheduleMany)
-             
-              // scheduleActions.getScheduleItems({start: horizon.start, end: horizon.end}, '').then((schedule) => {
-              //   // setSchedule(schedule)
-              //   console.log("Schedule", schedule);
-              // });
-            })
+            openModal(true);
+          
           }}
 
-          onSaveItem={(item, ts) => {
-            updateItem({args: {
-              id: item.id,
-              item: {
-                project: item.project,
-                people: item.people,
-                equipment: item.equipment,
-                notes: item.notes
-             }
-            }}).then((data) => {
-              refetchSchedule();
-              // scheduleActions.getScheduleItems({start: horizon.start, end: horizon.end}, '').then((schedule) => {
-              //   // setSchedule(schedule)
-              //   console.log("Schedule", schedule);
-           
-              // })
-            })
+          onUpdateItem={(item) => {
+            
           }}
-          onCloneItem={(item, dates, newDates) => {
-            cloneItem({args: {item, dates: newDates}}).then((resp) => {
-              refetchSchedule()
-              console.log("Clone resp", resp, newDates)
-            })
-          }}
+         
           onDeleteItem={(item) => { 
             removeItem({args: {id: item.id}}).then((resp) => {
-              console.log("Delete result")
               refetchSchedule()
             })
-          }}
-          user={activeUser}
-          users={users}
-          projects={projects || []}
-          people={people}
-          equipment={equipment}/>
+          }}/>
       </Box>
     );
 
