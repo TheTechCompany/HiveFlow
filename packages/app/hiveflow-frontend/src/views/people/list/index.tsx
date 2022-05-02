@@ -48,47 +48,47 @@ export const PeopleList: React.FC<any> = (props) => {
    }
 
    const [ createPeople ] = useMutation((mutation, args: {name: string}) => {
-      const item = mutation.updateHiveOrganisations({
-        update: {
-          people: [{
-            create: [{
-              node: {
-                name: args.name
-              }
-            }]
-          }]
-        }
-      })
-      return {
-        item: {
-          ...item.hiveOrganisations?.[0]
-        }
-      }
+      // const item = mutation.updateHiveOrganisations({
+      //   update: {
+      //     people: [{
+      //       create: [{
+      //         node: {
+      //           name: args.name
+      //         }
+      //       }]
+      //     }]
+      //   }
+      // })
+      // return {
+      //   item: {
+      //     ...item.hiveOrganisations?.[0]
+      //   }
+      // }
     })
   
     const [ updatePeople ] = useMutation((mutation, args: {id: string, name: string}) => {
-      if(!args.id) return;
-      const item = mutation.updatePeople({
-        where: {id: args.id},
-        update: {
-          name: args.name,
-        }
-      })
-      return {
-        item: { 
-          ...item.people?.[0]
-        }
-      }
+      // if(!args.id) return;
+      // const item = mutation.updatePeople({
+      //   where: {id: args.id},
+      //   update: {
+      //     name: args.name,
+      //   }
+      // })
+      // return {
+      //   item: { 
+      //     ...item.people?.[0]
+      //   }
+      // }
     })
   
     const [ deletePeople ] = useMutation((mutation, args: {id: string}) => {
-      if(!args.id) return;
-      const item = mutation.deletePeople({
-        where: {id: args.id}
-      })
-      return {
-        item: item.nodesDeleted
-      }
+      // if(!args.id) return;
+      // const item = mutation.deletePeople({
+      //   where: {id: args.id}
+      // })
+      // return {
+      //   item: item.nodesDeleted
+      // }
     })
   
    // componentWillMount(){
