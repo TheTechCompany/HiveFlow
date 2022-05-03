@@ -681,7 +681,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                         project: plan.project?.id,
                         startDate: plan.startDate?.toISOString(),
                         endDate: plan.endDate?.toISOString(),
-                        timeline: view?.id,
+                        timeline: view?.id || timelines?.[0]?.id,
                         notes: plan.notes,
                         items:  plan.items || []
                     }
