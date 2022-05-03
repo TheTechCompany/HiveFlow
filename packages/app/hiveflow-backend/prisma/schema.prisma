@@ -17,6 +17,7 @@ model Project {
     name String
 
     schedule ScheduleItem[]
+    timeline TimelineItem[] @relation(name: "projectTimeline")
 
     organisation String
 
@@ -36,6 +37,8 @@ model Estimate {
     updatedAt    DateTime @default(now())
     price        Float?
     organisation String
+
+    timeline TimelineItem[] @relation(name: "estimateTimeline")
 
     @@unique([ displayId, organisation ])
 }
@@ -59,6 +62,8 @@ model ScheduleItem {
 
 	permissions ScheduleItemPermission[] @relation(name: "permissionsFor")
 
+    owner String?
+
     organisation String
 }
 
@@ -79,6 +84,8 @@ model Timeline {
 	id String @id
 	name String 
 
+    resources String[]
+
 	items TimelineItem[] @relation("onTimeline")
 
 	organisation String
@@ -86,6 +93,12 @@ model Timeline {
 
 model TimelineItem {
 	id String @id
+
+    estimate Estimate? @relation(name: "estimateTimeline", fields: [estimateId], references: [id])
+    estimateId String?
+
+    project Project? @relation(name: "projectTimeline", fields: [projectId], references: [id])
+    projectId String?
 
 	notes String
 

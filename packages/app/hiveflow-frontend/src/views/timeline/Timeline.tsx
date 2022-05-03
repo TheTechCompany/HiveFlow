@@ -11,6 +11,7 @@ import _, { filter, toUpper } from 'lodash';
 import { BaseStyle } from '@hexhive/styles';
 import { useQuery as useApollo, useApolloClient, gql } from '@apollo/client';
 import { TimelineModal } from '../../modals/timeline';
+import { CreateTimelineModal } from '../../modals/create-timeline';
 
 interface TimelineProps {
 
@@ -50,9 +51,11 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     const client = useApolloClient()
 
     const [selected, setSelected] = useState<any | undefined>()
+
+    const [ createModalOpen, openCreateModal ] = useState(false)
     const [erpModal, openERP] = useState<boolean>(false);
 
-    const [view, setView] = useState<TimelineView>("Projects");
+    const [view, setView] = useState<TimelineView>();
 
     const [date, setDate] = useState<Date>(sampleDate)
     const [horizon, setHorizon] = useState<{ start: Date, end: Date } | undefined>()
@@ -62,25 +65,35 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         staleWhileRevalidate: true
     })
 
+    const { data: timelineData } = useApollo(gql`
+        query Timelines {
+            timelines {
+                id
+                name
+            }
+        }
+    `)
+
+   const { timelines = [] } = timelineData || {}
 
     const { data } = useApollo(gql`
-        query Q{
+        query Q($timelineId: String){
+      
 
-            timelineItems(where: {timeline: "${view}"}){
+            timelineItems(where: {timeline: $timelineId}){
                 id
                 startDate
                 endDate
                 notes
                 project {
-                    ... on Project {
-                        id
-                        name
-                    }
-
-                    ... on Estimate {
-                        id
-                        name
-                    }
+                    id
+                    displayId
+                    name
+                }
+                estimate {
+                    id
+                    displayId
+                    name
                 }
 
                 items {
@@ -95,6 +108,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     `, {
         fetchPolicy: 'cache-and-network',
         variables: {
+            timelineId: view?.id || timelines?.[0]?.id,
             startDate: horizon?.start?.toISOString(),
             endDate: horizon?.end?.toISOString(),
         }
@@ -117,45 +131,60 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         }
     })
 
-    const peopleData = useApollo(gql`
-        query People {
-            timelineItems(where: {timeline: "People"}){
-                id
-                startDate
-                endDate
-                notes
-                project {
-                    ... on Project {
-                        id
-                        name
-                    }
+    // const peopleData = useApollo(gql`
+    //     query People {
+    //         timelineItems(where: {timeline: "People"}){
+    //             id
+    //             startDate
+    //             endDate
+    //             notes
+    //             project {
+    //                 ... on Project {
+    //                     id
+    //                     name
+    //                 }
 
-                    ... on Estimate {
-                        id
-                        name
-                    }
-                }
+    //                 ... on Estimate {
+    //                     id
+    //                     name
+    //                 }
+    //             }
 
-                items {
-                    id
-                    type
-                    location
-                    estimate
-                }
+    //             items {
+    //                 id
+    //                 type
+    //                 location
+    //                 estimate
+    //             }
            
-            }
-        }
-    `, {
+    //         }
+    //     }
+    // `, {
         
-    })
+    // })
 
     const refetchTimeline = () => {
         client.refetchQueries({include: ['Q']})
     }
 
+    // const timelines = data?.timelines || [];
+
     const capacity = data?.timelineItems || []
 
     console.log(data)
+
+    const [ createTimeline ] = useMutation((mutation, args: {
+        name: string
+
+    }) => {
+        const item = mutation.createTimeline({input: {name: args.name}})
+
+        return {
+            item: {
+                ...item,
+            }
+        }
+    })
 
     const [createTimelineItem, createInfo] = useMutation((mutation, args: { item:  { 
         timeline: string,
@@ -169,6 +198,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         const item = mutation.createTimelineItem({
             input: {
                 timelineId: args.item.timeline,
+                project: args.item.project,
                 notes: args.item.notes,
                 startDate: args.item.startDate,
                 endDate: args.item.endDate
@@ -220,6 +250,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
         let update : any = {};
 
+        if(args.item.project) update.project = args.item.project;
 
         if(args.item.startDate) update.startDate = args.item.startDate;
         if(args.item.endDate) update.endDate = args.item.endDate;
@@ -303,13 +334,13 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         color: stringToColor(quote?.name || '')
     }))
 
-
-    const projects = query.projects({ where: {status: ["Job Open", "Handover"] }})?.map((x) => ({ ...x }))
+//where: {status: ["Job Open", "Handover"] }
+    const projects = query.projects({ })?.map((x) => ({ ...x }))
     const estimates = query.estimates({ where: {status: ["Customer has quote"] }})?.map((x) => ({ ...x }))
 
     // const capacity = query.timelineItems({ where: {timeline: view}});
 
-    const people : any[] = peopleData?.data?.timelineItems;
+    const people : any[] =  [] //peopleData?.data?.timelineItems;
 
     const [timeline, setTimeline] = useState<any[]>([])
 
@@ -453,124 +484,135 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
             setInitialLoad(false)
         }
     }, [query.$state.isLoading])
+
+    const mapItems = (item: any) => {
+        return {
+            id: item?.id,
+            name: `${item?.project?.displayId} - ${item?.project?.name}`,
+            start: item?.startDate,
+            end: item?.endDate,
+            color: getColorBars({ hatched: (item?.project || {})?.__type == "Estimate", items: item?.items || [] })
+        }
+    }
     //stringToColor(`${capacity_plan?.project?.id} - ${capacity_plan?.project?.name}` || ''),
 
-    useEffect(() => {
-        if (capacity && view == "Projects") {
-            setTimeline(capacity.map((capacity_plan: { project: any; id: any; notes: boolean | React.ReactChild | React.ReactFragment | React.ReactPortal | null | undefined; startDate: string | number | Date; endDate: string | number | Date; items: any[]; }, ix: any) => {
-                let project = capacity_plan?.project
-                console.log(project)
+    //TODO add capacity information
+    // useEffect(() => {
+    //     if (capacity && view == "Projects") {
+    //         setTimeline(capacity.map((capacity_plan: { project: any; id: any; notes: boolean | React.ReactChild | React.ReactFragment | React.ReactPortal | null | undefined; startDate: string | number | Date; endDate: string | number | Date; items: any[]; }, ix: any) => {
+    //             let project = capacity_plan?.project
+    //             console.log(project)
 
-                return {
-                id: capacity_plan?.id || `capacity-${ix}`,
-                name: `${project?.id} - ${project?.name}`.substring(0, 20) || '',
-                notes: capacity_plan.notes,
-                start: new Date(capacity_plan?.startDate),
-                end: new Date(capacity_plan?.endDate),
-                color: getColorBars({ hatched: (project || {})?.__type == "Estimate", items: capacity_plan?.items || [] }),
-                hoverInfo: (
-                    <Box round="xsmall" overflow="hidden"  direction="column">
-                        <Box pad="xsmall" background="accent-2" margin={{bottom: 'xsmall'}} direction="row" justify="between">
-                            {/* <Text weight="bold">{capacity_plan?.project?.name?.substring(0, 15)}</Text> */}
-                            <Text weight="bold">Total Hours: </Text>
-                            <Text>{
-                                capacity_plan?.items?.reduce((previous: any, current: any) => {
-                                    return previous += (current?.estimate || 0)
-                                }, 0)}hrs
-                            </Text>
-                        </Box>
-                        <Box pad="xsmall">
-                            {capacity_plan?.items?.slice().sort((a: { location: any; }, b: { location: any; }) => (a?.location || '') > (b?.location || '') ? -1 : 1).map((x: { type: boolean | React.ReactChild | React.ReactFragment | React.ReactPortal | null | undefined; location: any; estimate: boolean | React.ReactChild | React.ReactFragment | React.ReactPortal | null | undefined; }) => (
-                                <Box align="center" direction="row" justify="between">
-                                        <Box direction="row" align="center">
-                                            <ColorDot color={HourTypes[x?.type  as any || '']} size={10}/>
-                                            <Text>{x?.type}{x?.location ? ` - ${x?.location}` : ''} :</Text>
-                                        </Box>
-                                    <Text margin={{left: 'small'}}>{x?.estimate}hrs</Text>
-                                </Box>
-                            ))}
-                        </Box>
-                        <Text size="small">
-                            {capacity_plan?.notes}
-                        </Text>
-                    </Box>
-                ),
-                showLabel: `${capacity_plan?.items?.reduce((previous: any, current: any) => {
-                    return previous += (current?.estimate || 0)
-                }, 0)}hrs`,
-                collapsibleContent: (
-                    <Text>More</Text>
-                )
-            }}))
-        } else if (capacity && view == "People") {
-            setTimeline(capacity.map((capacity_plan: { project: any; endDate: Date; startDate: Date; id: any; notes: any; items: any[]; }, ix: any) => {
-                let project = capacity_plan?.project
+    //             return {
+    //             id: capacity_plan?.id || `capacity-${ix}`,
+    //             name: `${project?.id} - ${project?.name}`.substring(0, 20) || '',
+    //             notes: capacity_plan.notes,
+    //             start: new Date(capacity_plan?.startDate),
+    //             end: new Date(capacity_plan?.endDate),
+    //             color: getColorBars({ hatched: (project || {})?.__type == "Estimate", items: capacity_plan?.items || [] }),
+    //             hoverInfo: (
+    //                 <Box round="xsmall" overflow="hidden"  direction="column">
+    //                     <Box pad="xsmall" background="accent-2" margin={{bottom: 'xsmall'}} direction="row" justify="between">
+    //                         {/* <Text weight="bold">{capacity_plan?.project?.name?.substring(0, 15)}</Text> */}
+    //                         <Text weight="bold">Total Hours: </Text>
+    //                         <Text>{
+    //                             capacity_plan?.items?.reduce((previous: any, current: any) => {
+    //                                 return previous += (current?.estimate || 0)
+    //                             }, 0)}hrs
+    //                         </Text>
+    //                     </Box>
+    //                     <Box pad="xsmall">
+    //                         {capacity_plan?.items?.slice().sort((a: { location: any; }, b: { location: any; }) => (a?.location || '') > (b?.location || '') ? -1 : 1).map((x: { type: boolean | React.ReactChild | React.ReactFragment | React.ReactPortal | null | undefined; location: any; estimate: boolean | React.ReactChild | React.ReactFragment | React.ReactPortal | null | undefined; }) => (
+    //                             <Box align="center" direction="row" justify="between">
+    //                                     <Box direction="row" align="center">
+    //                                         <ColorDot color={HourTypes[x?.type  as any || '']} size={10}/>
+    //                                         <Text>{x?.type}{x?.location ? ` - ${x?.location}` : ''} :</Text>
+    //                                     </Box>
+    //                                 <Text margin={{left: 'small'}}>{x?.estimate}hrs</Text>
+    //                             </Box>
+    //                         ))}
+    //                     </Box>
+    //                     <Text size="small">
+    //                         {capacity_plan?.notes}
+    //                     </Text>
+    //                 </Box>
+    //             ),
+    //             showLabel: `${capacity_plan?.items?.reduce((previous: any, current: any) => {
+    //                 return previous += (current?.estimate || 0)
+    //             }, 0)}hrs`,
+    //             collapsibleContent: (
+    //                 <Text>More</Text>
+    //             )
+    //         }}))
+    //     } else if (capacity && view == "People") {
+    //         setTimeline(capacity.map((capacity_plan: { project: any; endDate: Date; startDate: Date; id: any; notes: any; items: any[]; }, ix: any) => {
+    //             let project = capacity_plan?.project
 
-                let weeks = moment(capacity_plan?.endDate).diff(moment(capacity_plan?.startDate), 'weeks')
-                return {
-                    id: capacity_plan?.id || `capacity-${ix}`,
-                    name: `${moment(capacity_plan?.startDate).format("DD/MM/YY")} - ${moment(capacity_plan?.endDate).format("DD/MM/YY")}`.substring(0, 20) || '',
-                    start: new Date(capacity_plan?.startDate),
-                    end: new Date(capacity_plan?.endDate),
-                    notes: capacity_plan.notes,
-                    hoverInfo: (
-                        <Box round="xsmall" overflow="hidden"  direction="column">
-                            <Box pad="xsmall" background="accent-2" margin={{bottom: 'xsmall'}} direction="row" justify="between">
-                                {/* <Text weight="bold">{capacity_plan?.project?.name?.substring(0, 15)}</Text> */}
-                                <Text weight="bold">Total People: </Text>
-                                <Text>{
-                                    capacity_plan?.items?.reduce((previous: any, current: any) => {
-                                        return previous += (current?.estimate || 0)
-                                    }, 0)}
-                                </Text>
-                            </Box>
+    //             let weeks = moment(capacity_plan?.endDate).diff(moment(capacity_plan?.startDate), 'weeks')
+    //             return {
+    //                 id: capacity_plan?.id || `capacity-${ix}`,
+    //                 name: `${moment(capacity_plan?.startDate).format("DD/MM/YY")} - ${moment(capacity_plan?.endDate).format("DD/MM/YY")}`.substring(0, 20) || '',
+    //                 start: new Date(capacity_plan?.startDate),
+    //                 end: new Date(capacity_plan?.endDate),
+    //                 notes: capacity_plan.notes,
+    //                 hoverInfo: (
+    //                     <Box round="xsmall" overflow="hidden"  direction="column">
+    //                         <Box pad="xsmall" background="accent-2" margin={{bottom: 'xsmall'}} direction="row" justify="between">
+    //                             {/* <Text weight="bold">{capacity_plan?.project?.name?.substring(0, 15)}</Text> */}
+    //                             <Text weight="bold">Total People: </Text>
+    //                             <Text>{
+    //                                 capacity_plan?.items?.reduce((previous: any, current: any) => {
+    //                                     return previous += (current?.estimate || 0)
+    //                                 }, 0)}
+    //                             </Text>
+    //                         </Box>
 
-                            <Box pad="xsmall">
-                                {capacity_plan?.items?.slice().sort((a: { location: any; }, b: { location: any; }) => (a?.location || '') > (b?.location || '') ? -1 : 1).map((x: { type: boolean | React.ReactChild | React.ReactFragment | React.ReactPortal | null | undefined; location: any; estimate: boolean | React.ReactChild | React.ReactFragment | React.ReactPortal | null | undefined; }) => (
-                                    <Box align="center" direction="row" justify="between">
-                                        <Box direction="row" align="center">
-                                        <ColorDot color={HourTypes[x?.type as any || '']} size={10}/>
-                                        <Text>{x?.type}{x?.location ? ` - ${x?.location}` : ''} :</Text>
-                                        </Box>
-                                        <Text margin={{left: 'small'}}>{x?.estimate}</Text>
-                                    </Box>
-                                ))}
-                            </Box>
-                            <Box pad="xsmall" margin={{bottom: 'xsmall'}} direction="row" justify="between">
-                                {/* <Text weight="bold">{capacity_plan?.project?.name?.substring(0, 15)}</Text> */}
-                                <Text weight="bold">Total Hours: </Text>
-                                <Text>{
-                                    capacity_plan?.items?.reduce((previous: any, current: any) => {
-                                        return previous += (current?.estimate || 0)
-                                    }, 0) * 45}hrs
-                                </Text>
-                            </Box>
-                        </Box>
-                    ),
-                    color: getColorBars({ hatched: (project || {}).__type == "Estimate", items: capacity_plan?.items || [] }),
-                    showLabel: `${(capacity_plan?.items?.reduce((previous: any, current: any) => {
-                        return previous += (current?.estimate || 0)
-                    }, 0) * 45)}hrs/week`,
-                    collapsibleContent: (
-                        <Text>More</Text>
-                    )
-                }
-            }))
-        }
-    }, [JSON.stringify(capacity), view])
+    //                         <Box pad="xsmall">
+    //                             {capacity_plan?.items?.slice().sort((a: { location: any; }, b: { location: any; }) => (a?.location || '') > (b?.location || '') ? -1 : 1).map((x: { type: boolean | React.ReactChild | React.ReactFragment | React.ReactPortal | null | undefined; location: any; estimate: boolean | React.ReactChild | React.ReactFragment | React.ReactPortal | null | undefined; }) => (
+    //                                 <Box align="center" direction="row" justify="between">
+    //                                     <Box direction="row" align="center">
+    //                                     <ColorDot color={HourTypes[x?.type as any || '']} size={10}/>
+    //                                     <Text>{x?.type}{x?.location ? ` - ${x?.location}` : ''} :</Text>
+    //                                     </Box>
+    //                                     <Text margin={{left: 'small'}}>{x?.estimate}</Text>
+    //                                 </Box>
+    //                             ))}
+    //                         </Box>
+    //                         <Box pad="xsmall" margin={{bottom: 'xsmall'}} direction="row" justify="between">
+    //                             {/* <Text weight="bold">{capacity_plan?.project?.name?.substring(0, 15)}</Text> */}
+    //                             <Text weight="bold">Total Hours: </Text>
+    //                             <Text>{
+    //                                 capacity_plan?.items?.reduce((previous: any, current: any) => {
+    //                                     return previous += (current?.estimate || 0)
+    //                                 }, 0) * 45}hrs
+    //                             </Text>
+    //                         </Box>
+    //                     </Box>
+    //                 ),
+    //                 color: getColorBars({ hatched: (project || {}).__type == "Estimate", items: capacity_plan?.items || [] }),
+    //                 showLabel: `${(capacity_plan?.items?.reduce((previous: any, current: any) => {
+    //                     return previous += (current?.estimate || 0)
+    //                 }, 0) * 45)}hrs/week`,
+    //                 collapsibleContent: (
+    //                     <Text>More</Text>
+    //                 )
+    //             }
+    //         }))
+    //     }
+    // }, [JSON.stringify(capacity), view])
 
-    useEffect(() => {
-        if (quotes && view == 'Estimates') {
-            let status = [...new Set<string>(quotes?.map((x: { status: any; }) => x.status))]
-            if(filter.length == 0){
-                setFilter(status)
-            }
-            setFilters(status)
+    // useEffect(() => {
+    //     if (quotes && view == 'Estimates') {
+    //         let status = [...new Set<string>(quotes?.map((x: { status: any; }) => x.status))]
+    //         if(filter.length == 0){
+    //             setFilter(status)
+    //         }
+    //         setFilters(status)
 
-            parseEstimates()
+    //         parseEstimates()
           
-        }
-    }, [JSON.stringify(quotes), view])
+    //     }
+    // }, [JSON.stringify(quotes), view])
 
     useEffect(() => {
         parseEstimates()
@@ -607,13 +649,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         }
     }
 
-    const getData = () => {
-        if (view === 'Estimates') {
-            return timeline?.filter(filterData);
-        } else {
-            return timeline?.filter(filterData)
-        }
-    }
+   
 
     const createTimelinePlan = (plan: { id?: string, project?: { id?: string, type?: string }, notes?: string, items?: any[], startDate?: Date, endDate?: Date }) => {
         if (plan.id) {
@@ -642,10 +678,10 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
             createTimelineItem({
                 args: {
                     item: {
-                        timeline: view,
-                        project: {Project: {connect: {where: {node: {id: plan.project?.id}}}}},
+                        project: plan.project?.id,
                         startDate: plan.startDate?.toISOString(),
                         endDate: plan.endDate?.toISOString(),
+                        timeline: view?.id,
                         notes: plan.notes,
                         items:  plan.items || []
                     }
@@ -698,8 +734,22 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         <Box
             flex
             direction="column">
+            <CreateTimelineModal 
+                open={createModalOpen} 
+                onClose={() => openCreateModal(false)}
+                onSubmit={(timeline) => {
+                    createTimeline({
+                        args: {
+                            name: timeline.name
+                        }
+                    }).then(() => {
+                        refetchTimeline()
+                        openCreateModal(false)
+                    })
+                }}
+                />
             <TimelineModal
-                type={view}
+                type={"Projects"}
                 selected={selected}
                 onClose={() => {
                     openERP(false)
@@ -714,17 +764,21 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                     setSelected(undefined)
                 }}
                 onSubmit={createTimelinePlan}
-                projects={projects?.map((x) => ({ id: x.id, name: x.name, type: "Project" })).concat(estimates?.map((x) => ({ id: x.id, name: x.name, type: "Estimate" })) || []) || []}
+                projects={projects?.map((x) => ({ id: x.id, displayId: x.displayId, name: x.name, type: "Project" })).concat(estimates?.map((x) => ({ id: x.id, displayId: x.displayId, name: x.name, type: "Estimate" })) || []) || []}
                 open={erpModal} />
             <TimelineHeader
+                timelines={timelines}
                 filter={filter}
                 filters={filters}
+                onCreateTimeline={() => {
+                    openCreateModal(true);
+                }}
                 onFilterChanged={(filter: React.SetStateAction<string[]>) => {
                     setFilter(filter)
                 }}
                 onAdd={() => openERP(true)}
-                view={view}
-                onViewChange={(view: string) => setView(view as any)} />
+                view={view || timelines?.[0]}
+                onViewChange={(view) => setView(view)} />
 
             <Box
                 margin={{top: 'xsmall'}}
@@ -828,7 +882,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                     resizable
                     mode="month"
                     links={[]}
-                    data={timeline.filter(filterData)}
+                    data={data?.timelineItems?.map(mapItems) || [] || timeline.filter(filterData)}
                     date={date}
                     itemHeight={30}
                     onUpdateTask={async (task: any, info: any) => {

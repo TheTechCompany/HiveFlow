@@ -12,12 +12,15 @@ import { useEffect } from 'react';
 import { Menu, Previous, Next } from 'grommet-icons';
 import {DraftPane } from './draft-pane';
 import { useQuery as useApollo, gql, useApolloClient } from '@apollo/client';
-import { ScheduleModal } from '../../modals/schedule';
+import { ScheduleItem, ScheduleModal } from '../../modals/schedule';
 
 export const Schedule : React.FC<any> = (props) =>  {
 
   //User
   const [ modalOpen, openModal ] = useState(false);
+  const [ modalDate, setModalDate ] = useState<Date>();
+
+  const [ selected, setSelected ] = useState<ScheduleItem>();
 
   const { activeUser } = useAuth() //{activeUser: {sub: '1'}}
 
@@ -28,7 +31,6 @@ export const Schedule : React.FC<any> = (props) =>  {
     end: new Date( moment(new Date()).endOf('isoWeek').valueOf() )
   })
 
-  const refetch = useRefetch();
 
   const query = useQuery({
     suspense: false,
@@ -94,6 +96,7 @@ export const Schedule : React.FC<any> = (props) =>  {
       }
       project {
         id
+        displayId
         name
       }
       notes
@@ -181,24 +184,24 @@ export const Schedule : React.FC<any> = (props) =>  {
   const [updateItem, infoItem] = useMutation((mutation, args: {id: string, item: any}) => {
     
     
-    let oldScheduleItem = schedule.find((a) => a.id == args.id)
+    // let oldScheduleItem = schedule.find((a) => a.id == args.id)
     
-    let add_people = args.item.people.filter((a: any) => oldScheduleItem.people.map((x: any) => x.id).indexOf(a.id) < 0)
-    let remove_people = oldScheduleItem.people.filter((a: any) => args.item.people.map((x: any) => x.id).indexOf(a.id) < 0)
+    // let add_people = args.item.people.filter((a: any) => oldScheduleItem.people.map((x: any) => x.id).indexOf(a.id) < 0)
+    // let remove_people = oldScheduleItem.people.filter((a: any) => args.item.people.map((x: any) => x.id).indexOf(a.id) < 0)
 
-    let add_equipment = args.item.equipment.filter((a: any) => oldScheduleItem.equipment.map((x: any) => x.id).indexOf(a.id) < 0)
-    let remove_equipment = oldScheduleItem.equipment.filter((a: any) => args.item.equipment.map((x: any) => x.id).indexOf(a.id) < 0)
+    // let add_equipment = args.item.equipment.filter((a: any) => oldScheduleItem.equipment.map((x: any) => x.id).indexOf(a.id) < 0)
+    // let remove_equipment = oldScheduleItem.equipment.filter((a: any) => args.item.equipment.map((x: any) => x.id).indexOf(a.id) < 0)
 
 
     let query : any = {
       
     };
 
-    if(args.item.project != oldScheduleItem.project.id) {
-      query['project'] = args.item.project
-    }
+    // if(args.item.project != oldScheduleItem.project.id) {
+    //   query['project'] = args.item.project
+    // }
 
-    if(args.item.notes) query.notes = args.item.notes;
+    // if(args.item.notes) query.notes = args.item.notes;
 
     // if(add_people.length > 0){
     //   query = {
@@ -243,8 +246,9 @@ export const Schedule : React.FC<any> = (props) =>  {
     // }
 
     const result = mutation.updateScheduleItem({id: args.id, input: {
-        ...query
+        ...args.item
     }})
+
     return {
       item: {
         ...result
@@ -388,12 +392,61 @@ export const Schedule : React.FC<any> = (props) =>  {
             projects={projects} />
 
           <ScheduleModal
+            selected={selected}
               open={modalOpen}
+              date={modalDate}
               projects={projects}
               people={people}
               equipment={equipment}
+              onDelete={() => {
+                removeItem({
+                  args: {
+                    id: selected?.id
+                  }
+                }).then(() => {
+                  openModal(false);
+                  setModalDate(undefined);
+                  setSelected(undefined)
+                  refetchSchedule();
+                })
+              }}
+              onSubmit={(item) => {
+                //TODO create schedule item
+                if(!item.id){
+                  createItem({
+                    args: {
+                      item: {
+                        project: item.project,
+                        date: modalDate
+                      }
+                    }
+                  }).then(() => {
+                    openModal(false);
+                    setModalDate(undefined);
+                    setSelected(undefined)
+                    refetchSchedule();
+                  })
+                }else{
+                  updateItem({
+                    args: {
+                      id: selected.id,
+                      item: {
+                        project: item.project,
+                        date: modalDate
+                      }
+                    }
+                  }).then(() => {
+                    openModal(false);
+                    setModalDate(undefined);
+                    setSelected(undefined)
+                    refetchSchedule();
+                  })
+                }
+              }}
               onClose={() => {
                 openModal(false)
+                setModalDate(undefined)
+                setSelected(undefined)
               }}
             />
         <ScheduleView 
@@ -433,18 +486,19 @@ export const Schedule : React.FC<any> = (props) =>  {
           onCreateItem={(ts) => {
 
             openModal(true);
+            setModalDate(ts)
           
           }}
 
           onUpdateItem={(item) => {
-            
+            console.log({item})
+
+            setSelected(item);
+            openModal(true);
+            setModalDate(item.date);
           }}
          
-          onDeleteItem={(item) => { 
-            removeItem({args: {id: item.id}}).then((resp) => {
-              refetchSchedule()
-            })
-          }}/>
+         />
       </Box>
     );
 

@@ -4,6 +4,8 @@ import { Add, Filter } from 'grommet-icons';
 import styled from 'styled-components';
 
 export interface TimelineProps{
+    timelines?: any[];
+    
     onAdd?: () => void; 
     view?: TimelineView;
     onViewChange?: (view: TimelineView) => void;
@@ -12,10 +14,15 @@ export interface TimelineProps{
     filter?: string[]
     filters?: string[]
 
+    onCreateTimeline?: () => void;
     onFilterChanged?: (filter: string[]) => void;
 }
 
-export type TimelineView = "Projects" | "People" | "Estimates" ;
+export interface TimelineView {
+    id: string, 
+    name: string
+};
+
 export const BaseTimelineHeader: React.FC<TimelineProps> = (props) => {
     console.log(props.view)
     const [ filterOpen, openFilter ] = useState<boolean>(false);
@@ -46,16 +53,31 @@ export const BaseTimelineHeader: React.FC<TimelineProps> = (props) => {
 
                 <Select
                     size="small"
-                    placeholder="View"
+                    placeholder="Timeline"
                     plain
-                    value={props.view || "Projects"}
+                    labelKey={"name"}
+                    valueKey={{key: 'id', reduce: true}}
+                    value={props.view?.id}
                     onChange={({ option }) => {
-                        props.onViewChange?.(option)
+                        if(option.id == 'create'){
+                            props.onCreateTimeline?.();
+                        }else{
+                            props.onViewChange?.(option)
+                        }
                     }}
-                    options={["Projects", "People", "Estimates"]} />
+                    options={(props.timelines || ["Projects", "People", "Estimates"].map((x) => ({name: x}))).concat([{id: 'create', name: "Create Timeline"}])}>
+                    {(datum) => (
+                        <Box
+                            background={datum.id == 'create' ? '#dfdfdf' : undefined}
+                            pad="xsmall"
+                            direction='row'>
+                            <Text>{datum.name}</Text>
+                        </Box>
+                    )}
+                </Select>
             </Box>
             <Box background="#ffffff42" round="xsmall">
-                {(props.view == "Projects" || props.view == "People") ? (
+                { true ? (
                      <Button plain style={{padding: 6}} size="small" onClick={props.onAdd} icon={<Add size="20px" />} />
                 ) : (
                     <>

@@ -7,7 +7,8 @@ export default (prisma: PrismaClient) => {
 
         type Query {
             scheduleItems(where: ScheduleWhere): [ScheduleItem]
-            timelineItems(where: TimelineWhere): [TimelineItem]
+            timelines(where: TimelineWhere): [Timeline]
+            timelineItems(where: TimelineItemWhere): [TimelineItem]
         }
 
         type Mutation {
@@ -39,6 +40,11 @@ export default (prisma: PrismaClient) => {
 
         input TimelineWhere {
             id: ID
+            name: String
+        }
+
+        input TimelineItemWhere {
+            id: ID
             timeline: String
             startDate_LTE: DateTime
             endDate_GTE: DateTime
@@ -63,6 +69,8 @@ export default (prisma: PrismaClient) => {
         
         input TimelineItemInput {
             timelineId: String
+            project: String
+            estimate: String
             startDate: DateTime
             endDate: DateTime
             notes: String
@@ -74,8 +82,9 @@ export default (prisma: PrismaClient) => {
             startDate: DateTime
             endDate: DateTime
             notes: String
-            items: [TimelineItemItems!]! 
-            project: TimelineProject
+            items: [TimelineItemItems] 
+            project: Project
+            estimate: Estimate
             organisation: HiveOrganisation 
         }
 
@@ -102,11 +111,12 @@ export default (prisma: PrismaClient) => {
             id: ID
             date: DateTime
             project: Project
-            people: [People!]!
-            equipment: [Equipment!]!
+            people: [People]
+            equipment: [Equipment]
             notes: [String]
+            managers: [HiveUser] 
+
             owner: HiveUser 
-            managers: [HiveUser!]! 
 
             organisation: HiveOrganisation 
         }
@@ -115,16 +125,53 @@ export default (prisma: PrismaClient) => {
     const resolvers = {
         Query: {
             scheduleItems: async (root: any, args: any, context: any) => {
-                return await prisma.scheduleItem.findMany({where: {organisation: context.jwt.organisation}})
+
+                let query : any = {};
+
+                if(args.where?.date_GTE) query['date'] = {...query['date'], gte: args.where.date_GTE};
+                if(args.where?.date_LTE) query['date'] = {...query['date'], lte: args.where.date_LTE};
+                if(args.where?.id) query['id'] = args.where.id;
+
+                const items = await prisma.scheduleItem.findMany({
+                    where: {
+                        organisation: context.jwt.organisation,
+                        ...query
+                    },
+                    include: {
+                        project: true,
+                        
+                    }
+                })
+                return items.map((item) => ({
+                    ...item,
+                    owner: item.owner ? {id: item.owner} : undefined
+                }))
+            },
+            timelines: async (root: any, args: any) => {
+                return await prisma.timeline.findMany({include: {items: true}});
             },
             timelineItems: async (root: any, args: any, context: any) => {
                 // return await pri
                 let whereArg: any = {organisation: context.jwt.organisation}
                 if(args.where){
                     if(args.where.id) whereArg = {...whereArg, id: args.where.id};
-                    if(args.where.name) whereArg = {...whereArg, name: args.where.timeline};
+                    if(args.where.timeline) whereArg = {...whereArg, timeline: {id: args.where.timeline}};
                 }
-                return await prisma.timeline.findMany({where: whereArg, include: {items: true}})
+                
+                console.log({whereArg, where: args.where})
+
+                return await prisma.timelineItem.findMany({
+                    where: {
+                        id: args.where.id,
+                        timeline: {
+                            id: args.where.timeline
+                        }
+                    },
+                    include: {
+                        project: true,
+                        estimate: true
+                    }
+                })
             }
         },
         Mutation: {
@@ -150,9 +197,25 @@ export default (prisma: PrismaClient) => {
             },
             createTimelineItem: async (root: any, args: {input: any}, context: any) => {
                 // return await prisma.
+
+                let relatedItem : any = {};
+                if(args.input.project) relatedItem = {
+                    project: {
+                        connect: {id: args.input.project}
+                    },
+                }
+                if(args.input.estimate){
+                    relatedItem = {
+                        estimate: {
+                            connect: {id: args.input.estimate}
+                        },
+                    }
+                }
                 return await prisma.timelineItem.create({
                     data: {
                         id: nanoid(),
+                    
+                        ...relatedItem,
                         startDate: args.input.startDate,
                         endDate: args.input.endDate,
                         notes: args.input.notes || '',
@@ -163,17 +226,31 @@ export default (prisma: PrismaClient) => {
                 })
             },
             updateTimelineItem: async (root: any, args: {id: string, input: any}, context: any) => {
+                let relatedItem : any = {};
+                if(args.input.project) relatedItem = {
+                    projectId: args.input.project,
+                    estimateId: undefined
+                }
+                if(args.input.estimate){
+                    relatedItem = {
+                        estimateId: args.input.estimate,
+                        
+                        project: undefined
+                    }
+                }
+
                 return await prisma.timelineItem.update({
                     where: {id: args.id},
                     data: {
+                        ...relatedItem,
                         startDate: args.input.startDate,
                         endDate: args.input.endDate,
                         notes: args.input.notes || '',
-                        timeline: {
-                            connect: {
-                                id: args.input.timelineId
-                            }
-                        }
+                        // timeline: {
+                        //     connect: {
+                        //         id: args.input.timelineId
+                        //     }
+                        // }
                     }
                 })
             },
@@ -184,14 +261,16 @@ export default (prisma: PrismaClient) => {
             },
             createScheduleItem: async (root: any, args: {input: any}, context: any) => {
                 // return await prisma.
+                console.log({jwt: context.jwt})
                 return await prisma.scheduleItem.create({
                     data: {
                         id: nanoid(),
                         date: args.input.date,
-                        notes: args.input.notes || '',
+                        notes: args.input.notes || [],
                         project: {
                             connect: {id: args.input.project}
                         },
+                        owner: context.jwt.id,
                         organisation: context.jwt.organisation
                     }
                 })

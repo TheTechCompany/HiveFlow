@@ -42,6 +42,9 @@ export interface EstimateInput {
 }
 
 export interface EstimateWhere {
+  date_GTE?: InputMaybe<Scalars["DateTime"]>;
+  date_LTE?: InputMaybe<Scalars["DateTime"]>;
+  displayId?: InputMaybe<Scalars["String"]>;
   id?: InputMaybe<Scalars["String"]>;
   name?: InputMaybe<Scalars["String"]>;
   status?: InputMaybe<Array<InputMaybe<Scalars["String"]>>>;
@@ -55,6 +58,7 @@ export interface ProjectInput {
 }
 
 export interface ProjectWhere {
+  displayId?: InputMaybe<Scalars["String"]>;
   end?: InputMaybe<Scalars["DateTime"]>;
   start?: InputMaybe<Scalars["DateTime"]>;
   status?: InputMaybe<Array<InputMaybe<Scalars["String"]>>>;
@@ -81,16 +85,23 @@ export interface TimelineInput {
 
 export interface TimelineItemInput {
   endDate?: InputMaybe<Scalars["DateTime"]>;
+  estimate?: InputMaybe<Scalars["String"]>;
   notes?: InputMaybe<Scalars["String"]>;
+  project?: InputMaybe<Scalars["String"]>;
   startDate?: InputMaybe<Scalars["DateTime"]>;
   timelineId?: InputMaybe<Scalars["String"]>;
 }
 
-export interface TimelineWhere {
+export interface TimelineItemWhere {
   endDate_GTE?: InputMaybe<Scalars["DateTime"]>;
   id?: InputMaybe<Scalars["ID"]>;
   startDate_LTE?: InputMaybe<Scalars["DateTime"]>;
   timeline?: InputMaybe<Scalars["String"]>;
+}
+
+export interface TimelineWhere {
+  id?: InputMaybe<Scalars["ID"]>;
+  name?: InputMaybe<Scalars["String"]>;
 }
 
 export const scalarsEnumsHash: import("gqty").ScalarsEnumsHash = {
@@ -131,6 +142,9 @@ export const generatedSchema = {
     status: { __type: "String" },
   },
   EstimateWhere: {
+    date_GTE: { __type: "DateTime" },
+    date_LTE: { __type: "DateTime" },
+    displayId: { __type: "String" },
     id: { __type: "String" },
     name: { __type: "String" },
     status: { __type: "[String]" },
@@ -181,6 +195,7 @@ export const generatedSchema = {
     quoted: { __type: "Float" },
   },
   ProjectWhere: {
+    displayId: { __type: "String" },
     end: { __type: "DateTime" },
     start: { __type: "DateTime" },
     status: { __type: "[String]" },
@@ -196,13 +211,13 @@ export const generatedSchema = {
   ScheduleItem: {
     __typename: { __type: "String!" },
     date: { __type: "DateTime" },
-    equipment: { __type: "[Equipment!]!" },
+    equipment: { __type: "[Equipment]" },
     id: { __type: "ID" },
-    managers: { __type: "[HiveUser!]!" },
+    managers: { __type: "[HiveUser]" },
     notes: { __type: "[String]" },
     organisation: { __type: "HiveOrganisation" },
     owner: { __type: "HiveUser" },
-    people: { __type: "[People!]!" },
+    people: { __type: "[People]" },
     project: { __type: "Project" },
   },
   ScheduleItemInput: {
@@ -230,7 +245,7 @@ export const generatedSchema = {
     __typename: { __type: "String!" },
     endDate: { __type: "DateTime" },
     id: { __type: "ID" },
-    items: { __type: "[TimelineItemItems!]!" },
+    items: { __type: "[TimelineItemItems]" },
     notes: { __type: "String" },
     organisation: { __type: "HiveOrganisation" },
     project: { __type: "TimelineProject" },
@@ -239,7 +254,9 @@ export const generatedSchema = {
   },
   TimelineItemInput: {
     endDate: { __type: "DateTime" },
+    estimate: { __type: "String" },
     notes: { __type: "String" },
+    project: { __type: "String" },
     startDate: { __type: "DateTime" },
     timelineId: { __type: "String" },
   },
@@ -251,16 +268,17 @@ export const generatedSchema = {
     location: { __type: "String" },
     type: { __type: "String" },
   },
-  TimelineProject: {
-    __typename: { __type: "String!" },
-    $on: { __type: "$TimelineProject!" },
-  },
-  TimelineWhere: {
+  TimelineItemWhere: {
     endDate_GTE: { __type: "DateTime" },
     id: { __type: "ID" },
     startDate_LTE: { __type: "DateTime" },
     timeline: { __type: "String" },
   },
+  TimelineProject: {
+    __typename: { __type: "String!" },
+    $on: { __type: "$TimelineProject!" },
+  },
+  TimelineWhere: { id: { __type: "ID" }, name: { __type: "String" } },
   WorkInProgress: {
     __typename: { __type: "String!" },
     end: { __type: "DateTime" },
@@ -348,8 +366,9 @@ export const generatedSchema = {
     },
     timelineItems: {
       __type: "[TimelineItem]",
-      __args: { where: "TimelineWhere" },
+      __args: { where: "TimelineItemWhere" },
     },
+    timelines: { __type: "[Timeline]", __args: { where: "TimelineWhere" } },
   },
   subscription: {},
   [SchemaUnionsKey]: { TimelineProject: ["Estimate", "Project"] },
@@ -441,13 +460,13 @@ export interface Schedule {
 export interface ScheduleItem {
   __typename?: "ScheduleItem";
   date?: Maybe<ScalarsEnums["DateTime"]>;
-  equipment: Array<Equipment>;
+  equipment?: Maybe<Array<Maybe<Equipment>>>;
   id?: Maybe<ScalarsEnums["ID"]>;
-  managers: Array<HiveUser>;
+  managers?: Maybe<Array<Maybe<HiveUser>>>;
   notes?: Maybe<Array<Maybe<ScalarsEnums["String"]>>>;
   organisation?: Maybe<HiveOrganisation>;
   owner?: Maybe<HiveUser>;
-  people: Array<People>;
+  people?: Maybe<Array<Maybe<People>>>;
   project?: Maybe<Project>;
 }
 
@@ -463,7 +482,7 @@ export interface TimelineItem {
   __typename?: "TimelineItem";
   endDate?: Maybe<ScalarsEnums["DateTime"]>;
   id?: Maybe<ScalarsEnums["ID"]>;
-  items: Array<TimelineItemItems>;
+  items?: Maybe<Array<Maybe<TimelineItemItems>>>;
   notes?: Maybe<ScalarsEnums["String"]>;
   organisation?: Maybe<HiveOrganisation>;
   project?: Maybe<TimelineProject>;
@@ -577,8 +596,11 @@ export interface Query {
     where?: Maybe<ScheduleWhere>;
   }) => Maybe<Array<Maybe<ScheduleItem>>>;
   timelineItems: (args?: {
-    where?: Maybe<TimelineWhere>;
+    where?: Maybe<TimelineItemWhere>;
   }) => Maybe<Array<Maybe<TimelineItem>>>;
+  timelines: (args?: {
+    where?: Maybe<TimelineWhere>;
+  }) => Maybe<Array<Maybe<Timeline>>>;
 }
 
 export interface Subscription {

@@ -173,13 +173,13 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
                                 onSearch={(searchString) => { setSearch(searchString) }}
                                 onChange={({option}) => { setPlan({ ...plan, project: option.id }) }}
                                 value={plan.project}
-                                labelKey={(item) => item.id + ' - ' + item.name}
+                                labelKey={(item) => item.displayId + ' - ' + item.name}
                                 valueKey={{key: "id", reduce: true}}
                                 options={props.projects?.filter((a) => !search || `${a.id} - ${a.name}`.indexOf(search) > -1) || []}>
                                 {(option) => (
                                     <Box pad="small" direction="row" align="center">
                                         <ColorDot color={option.type == "Project" ? '#A3B696': '#edc25c'} size={10}/>
-                                        <Text>{option.id} - {option.name}</Text>
+                                        <Text>{option.displayId} - {option.name}</Text>
                                     </Box>
                                 )}
                             </Select>
