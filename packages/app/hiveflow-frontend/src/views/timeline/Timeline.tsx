@@ -695,19 +695,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     }
 
     const updateTimelinePlan = _.debounce(async (id: string, item: { notes?: string, start: Date, end: Date }) => {
-        let ix = timeline.map((x) => x.id).indexOf(id);
-        let times = timeline.slice();
 
-        const old = Object.assign({}, timeline[ix]) //.find((a) => a.id == id)
-
-
-        times[ix].startDate = item.start;
-        times[ix].endDate = item.end;
-        console.log(times[ix])
-
-        setTimeline(times)
-
-        console.log(timeline)
         try {
             const result = await updateTimelineItem({
                 args: {
@@ -721,10 +709,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
             })
             refetchTimeline()
         } catch (e) {
-            times[ix] = old;
-            setTimeline(times)
-
-            console.log(e)
+            console.log({e})
         }
         return true;
 
@@ -886,6 +871,8 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                     date={date}
                     itemHeight={30}
                     onUpdateTask={async (task: any, info: any) => {
+                        console.log({task, info});
+
                         //Task is old state, info is new {start:Date, end: Date}
 
                         // let ix = timeline.map((x) => x.id).indexOf(task.id?.toString());
