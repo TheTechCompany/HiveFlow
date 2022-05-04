@@ -68,14 +68,13 @@ export const Schedule : React.FC<any> = (props) =>  {
      timelineItems (where: {timeline: "Projects", startDate_LTE: $endDate, endDate_GTE: $startDate}){
        id
        project{
-          ... on Project { 
             id
             name
-          }
-          ... on Estimate {
+       }
+
+       estimate {
             id
             name
-          }
        }
        items {
           type
