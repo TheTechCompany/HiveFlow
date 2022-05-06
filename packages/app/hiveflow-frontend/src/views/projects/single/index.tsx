@@ -152,9 +152,16 @@ const client = useApolloClient()
     {
       title: "Files",
       component: (
-        <Box flex align='center' justify='center'>
-          <Text>Coming back soon...</Text>
-        </Box>
+          <FileExplorer
+              path={'/'}
+              onNavigate={(path) => {
+
+              }}
+              breadcrumbs={[]}
+              onDrop={(files) => {
+                
+              }}
+            />
       ) 
       // (
       // <SharedFiles
