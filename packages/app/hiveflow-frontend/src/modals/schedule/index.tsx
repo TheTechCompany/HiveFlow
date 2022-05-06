@@ -79,6 +79,13 @@ export const ScheduleModal : React.FC<ScheduleModalProps> = (props) => {
         props.onSubmit?.(item)
     }
 
+    const filterProjects = (item: any) => {
+        if(!projectSearchString) return true;
+        if(projectSearchString.length == 0) return true;
+        if(item?.name?.indexOf(projectSearchString) > -1 || item?.displayId?.indexOf(projectSearchString) > -1) return true;
+        return false;
+    }
+
     return (
         <BaseModal
             width='large'
@@ -95,7 +102,7 @@ export const ScheduleModal : React.FC<ScheduleModalProps> = (props) => {
                 onSearch={(searchString) => setProjectSearchString(searchString)}
                 valueKey={{key: 'id', reduce: true}}
                 labelKey={(project) => `${project.displayId} - ${project.name}`}
-                options={props.projects?.filter((a) => !projectSearchString || projectSearchString.length == 0 || a?.name.indexOf(projectSearchString) > -1 || a?.displayId.indexOf(projectSearchString)) }
+                options={props.projects?.filter(filterProjects) }
                 />
             
             <Box    
