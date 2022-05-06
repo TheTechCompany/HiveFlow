@@ -312,8 +312,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         return {
             item: {
                 ...item
-            },
-            error: null
+            }
         }
     }, {
         onCompleted(data) { },
@@ -885,9 +884,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                         // times[ix].endDate = info.end;
 
                         // setTimeline(times)
-
-                        console.log(task, info)
-                        if (!task.id?.toString()) return;
+                        if (!task.id) return;
                         updateTimelinePlan(task.id.toString(), info)
                     }}
                 />

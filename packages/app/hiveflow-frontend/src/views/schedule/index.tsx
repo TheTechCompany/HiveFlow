@@ -450,7 +450,7 @@ export const Schedule : React.FC<any> = (props) =>  {
             />
         <ScheduleView 
           actions={{
-            left: (<Button 
+            left: draftSchedule?.length > 0 && (<Button 
               onClick={() => openDrafts(!draftsOpen)} 
                hoverIndicator icon={draftsOpen ? <Previous /> : <Next />} />)
           }}
