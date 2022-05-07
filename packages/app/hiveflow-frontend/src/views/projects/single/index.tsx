@@ -14,7 +14,7 @@ import moment from 'moment';
 
 // import utils from '../../../utils';
 
-import { Kanban, FileDialog, FileExplorer } from '@hexhive/ui';
+import { Kanban, FileDialog, FileExplorer, Timeline } from '@hexhive/ui';
 
 import { useMutation, useRefetch } from '@hive-flow/api';
 import { KanbanModal } from './KanbanModal';
@@ -37,7 +37,7 @@ export interface ProjectSingleProps {
   }
 }
 
-const STATUS = ["Issued", "Workshop", "Finished"];
+const STATUS = ["Backlog", "In Progress", "Reviewing", "Finished"];
 
 
 export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
@@ -136,6 +136,72 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
 
 
   const _tabs = [
+   
+    {
+      title: "Tickets",
+      component: <Kanban
+        onDrag={(result) => {
+          console.log(result.destination?.droppableId)
+          if (result.destination?.droppableId != undefined) {
+            let f = files.slice()
+            let f_ix = f.map((x) => x.id).indexOf(result.draggableId)
+            f[f_ix].status = STATUS[parseInt(result.destination?.droppableId || '')]
+            setFiles(f)
+
+            const loaded = UseLoading(result.draggableId)
+
+            // updateFile({args: {id: result.draggableId, status: STATUS[parseInt(result.destination?.droppableId)]}}).then(() => {
+
+            //   loaded()
+            //   setLoadingFiles(f)
+            // })
+
+
+            /*  utils.job.updateFile(job_id, result.draggableId, {status: STATUS[parseInt(result.destination?.droppableId)]}).then(() => {
+                //TODO reset if error  
+              })*/
+
+          }
+        }}
+        renderCard={(item) => {
+          return (
+            <Box
+              onClick={() => {
+                setShowFiles([item])
+                openDialog(true)
+              }}
+              direction="column"
+              background="light-2"
+              round="xsmall"
+              pad="small">
+              <Text>{item.name}</Text>
+            </Box>
+          )
+        }}
+        columns={STATUS.map((x) => ({
+          id: x,
+          title: x,
+          ttl: x == "Finished" ? 14 * 24 * 60 * 60 * 1000 : undefined,
+          menu: [
+            { label: "Archive all cards", onClick: () => { } },
+            {
+              label: "Column Settings", onClick: () => {
+                showKanbanMenu(true)
+                setSelectedColumn(x)
+              }
+            }
+          ],
+          rows: files.filter((a: any) => a.status == x).map((x) => ({ ...x }))
+        }))} />
+    },
+    {
+      title: "Timeline",
+      component: (
+        <Timeline
+            data={[]} 
+          />
+      )
+    },
     {
       title: "Files",
       component: (
@@ -242,63 +308,6 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
       // onChange={(files) => setFiles(files)}
       // jobId={job_id} />)
     },
-    {
-      title: "Project board",
-      component: <Kanban
-        onDrag={(result) => {
-          console.log(result.destination?.droppableId)
-          if (result.destination?.droppableId != undefined) {
-            let f = files.slice()
-            let f_ix = f.map((x) => x.id).indexOf(result.draggableId)
-            f[f_ix].status = STATUS[parseInt(result.destination?.droppableId || '')]
-            setFiles(f)
-
-            const loaded = UseLoading(result.draggableId)
-
-            // updateFile({args: {id: result.draggableId, status: STATUS[parseInt(result.destination?.droppableId)]}}).then(() => {
-
-            //   loaded()
-            //   setLoadingFiles(f)
-            // })
-
-
-            /*  utils.job.updateFile(job_id, result.draggableId, {status: STATUS[parseInt(result.destination?.droppableId)]}).then(() => {
-                //TODO reset if error  
-              })*/
-
-          }
-        }}
-        renderCard={(item) => {
-          return (
-            <Box
-              onClick={() => {
-                setShowFiles([item])
-                openDialog(true)
-              }}
-              direction="column"
-              background="light-2"
-              round="xsmall"
-              pad="small">
-              <Text>{item.name}</Text>
-            </Box>
-          )
-        }}
-        columns={STATUS.map((x) => ({
-          id: x,
-          title: x,
-          ttl: x == "Finished" ? 14 * 24 * 60 * 60 * 1000 : undefined,
-          menu: [
-            { label: "Archive all cards", onClick: () => { } },
-            {
-              label: "Column Settings", onClick: () => {
-                showKanbanMenu(true)
-                setSelectedColumn(x)
-              }
-            }
-          ],
-          rows: files.filter((a: any) => a.status == x).map((x) => ({ ...x }))
-        }))} />
-    }
   ]
 
   const UseLoading = (id: string) => {
@@ -373,20 +382,26 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
         margin={{ bottom: 'xsmall' }}
         justify="between">
         <Heading level='4' margin="small">{job?.displayId} - {job?.name || "Job Title"}</Heading>
-
         <Box gap="xsmall" direction="row">
-          <Button
+        <Button
             onClick={() => setSelectedTab(0)}
             style={{ borderBottom: selectedTab == 0 ? '3px solid #E75D3D' : undefined, padding: 8 }}
             plain
             hoverIndicator
-            label="Files" />
+            label="Tickets" />
           <Button
             onClick={() => setSelectedTab(1)}
             style={{ borderBottom: selectedTab == 1 ? '3px solid #E75D3D' : undefined, padding: 8 }}
             plain
             hoverIndicator
-            label="Project board" />
+            label="Timeline" />
+          <Button
+            onClick={() => setSelectedTab(2)}
+            style={{ borderBottom: selectedTab == 2 ? '3px solid #E75D3D' : undefined, padding: 8 }}
+            plain
+            hoverIndicator
+            label="Files" />
+
         </Box>
       </Box>
       <FileDialog

@@ -158,7 +158,7 @@ export default (prisma: PrismaClient) => {
                     if(args.where.timeline) whereArg = {...whereArg, timeline: {id: args.where.timeline}};
                 }
                 
-                console.log({whereArg, where: args.where})
+                // console.log({whereArg, where: args.where})
 
                 return await prisma.timelineItem.findMany({
                     where: {
@@ -261,7 +261,7 @@ export default (prisma: PrismaClient) => {
             },
             createScheduleItem: async (root: any, args: {input: any}, context: any) => {
                 // return await prisma.
-                console.log({jwt: context.jwt})
+                // console.log({jwt: context.jwt})
                 return await prisma.scheduleItem.create({
                     data: {
                         id: nanoid(),
@@ -293,7 +293,7 @@ export default (prisma: PrismaClient) => {
                 })
             },
             manageScheduleItem: async (root: any, args: any, context: any) => {
-                console.log({Jwt: context.jwt})
+                // console.log({Jwt: context.jwt})
                 const res = await prisma.scheduleItem.update({
                     where: {id: args.id},
                     data: {

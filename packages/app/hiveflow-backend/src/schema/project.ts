@@ -30,7 +30,7 @@ export default (prisma: PrismaClient) => {
 				
                     'Authorization': `Bearer ${context.token}`
 				})
-                console.log({data})
+                // console.log({data})
                 return data.files;
             }
         },
@@ -115,7 +115,7 @@ export default (prisma: PrismaClient) => {
 				
                     'Authorization': `Bearer ${context.token}`
 				})
-                console.log({data})
+                // console.log({data})
                 return data.createDirectory;
             },
             updateProjectFolder: async () => {
@@ -140,7 +140,6 @@ export default (prisma: PrismaClient) => {
                 const appPath = `/Application Data/Flow/${args.project}`
                 const dataPath = path.join(appPath, args.path)
 
-                console.log({dataPath, files: args.files})
 
                 const files = await Promise.all(args.files?.map(async (file: any) => {
                     const { createReadStream, filename } = await file;
@@ -173,7 +172,7 @@ export default (prisma: PrismaClient) => {
 
                 // new File()
 
-                console.log({dataPath, files})
+                // console.log({dataPath, files})
 
                 const formData = new FormData();
    
@@ -218,7 +217,7 @@ export default (prisma: PrismaClient) => {
                     //         files: files.map((x) => [x.data])
                     //     }
                     // })
-                    console.log({errors: data.errors})
+                    // console.log({errors: data.errors})
                     return data?.data?.uploadFiles;
                 }catch(e){
                     console.log({e})
