@@ -1,7 +1,13 @@
 import { PrismaClient } from "@prisma/client"
 import { nanoid } from "nanoid";
-import { gql, request } from 'graphql-request'
+import { request } from 'graphql-request'
 import path from 'path'
+import FormData from 'form-data';
+
+import axios from 'axios';
+import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core'
+import fetch from "cross-fetch";
+import { createUploadLink } from 'apollo-upload-client'
 
 export default (prisma: PrismaClient) => {
     
@@ -115,8 +121,114 @@ export default (prisma: PrismaClient) => {
             updateProjectFolder: async () => {
 
             },
-            uploadProjectFiles: async () => {
+            uploadProjectFiles: async (root: any, args: {project: string, files: any[], path: string}, context: any) => {
+                
+                const uploadLink = createUploadLink({
+                    uri: context.gatewayUrl,
+                    fetch: fetch,
+                    headers: {
+                        'X-Hive-JWT': `${context.token}`,
+				
+                        'Authorization': `Bearer ${context.token}`
+                    }
+                })
+                const client = new ApolloClient({
+                    link: uploadLink,
+                    cache: new InMemoryCache()
+                })
 
+                const appPath = `/Application Data/Flow/${args.project}`
+                const dataPath = path.join(appPath, args.path)
+
+                console.log({dataPath, files: args.files})
+
+                const files = await Promise.all(args.files?.map(async (file: any) => {
+                    const { createReadStream, filename } = await file;
+                    
+                    const fileData = await new Promise<Buffer>((resolve, reject) => {
+                        const readStream = createReadStream();
+                        const buffers: Buffer[] = [];
+
+                        readStream.on('error', reject)
+            
+                        readStream.on('data', (data: Buffer) => {
+                            buffers.push(data)
+                        })
+            
+                        readStream.on('end', () => {
+                            resolve(Buffer.concat(buffers))
+                        })
+                    })
+                    return {name: filename, data: fileData}
+                }))
+
+				const fileQuery = gql`
+					mutation UploadProjectFiles ($files: [Upload!]) {
+						uploadFiles(path: "${dataPath}", files: $files){
+                            id
+                            name
+                        }
+					}
+				`
+
+                // new File()
+
+                console.log({dataPath, files})
+
+                const formData = new FormData();
+   
+                formData.append('operations', JSON.stringify({
+                    query: fileQuery,
+                    variables: {}
+                }));
+                // formData.append('path', dataPath)
+
+                let map : any = {};
+                
+                files.forEach((item, ix) => {
+                    map[`${ix}`] = [`variables.files.${ix}`]
+                })
+
+                formData.append('map', JSON.stringify(map))
+
+
+                for(var i = 0; i < files.length; i++){
+
+                    // map[`${i}`] = [`variable.files.${i}`]
+
+                    formData.append(`${i}`, files[i].data, {filename: files[i].name})
+
+                    // formData.append("files[]", files[i].data)
+                }
+
+
+                try{
+                   const resp = await axios.post(context.gatewayUrl, formData, {
+                        headers: {
+                            'X-Hive-JWT': `${context.token}`,
+                            'Authorization': `Bearer ${context.token}`
+                        }
+                    })
+
+                    const data = resp.data;
+
+                    // const data = await client.mutate({
+                    //     mutation: fileQuery,
+                    //     variables: {
+                    //         files: files.map((x) => [x.data])
+                    //     }
+                    // })
+                    console.log({errors: data.errors})
+                    return data?.data?.uploadFiles;
+                }catch(e){
+                    console.log({e})
+                }   
+
+				// const data = await request(context.gatewayUrl, fileQuery, formData, {
+                //     // 'Content-Type': 'mulipart/form-data',
+				
+				// })
+               
             },
             deleteProjectFile: async () => {
 
@@ -137,7 +249,7 @@ export default (prisma: PrismaClient) => {
         createProjectFolder(project: ID!, path: String): File
         updateProjectFolder(project: ID!, path: String): File
 
-		uploadProjectFiles(project: ID!, path: String): [File!]!
+		uploadProjectFiles(project: ID!, path: String, files: [Upload]): [File!]!
 		deleteProjectFile(project: ID!, path: String): Boolean
     }
 

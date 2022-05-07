@@ -42,7 +42,8 @@ const prisma = new PrismaClient();
       typeDefs,
       resolvers,
       // driver
-    }
+    },
+    uploads: true
 	})
 
 	await graphServer.init()

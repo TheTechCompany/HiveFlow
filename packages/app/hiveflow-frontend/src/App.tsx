@@ -9,18 +9,31 @@ import { ThemeProvider } from "styled-components";
 import { AuthProvider } from "@hexhive/auth-ui";
 import { getConfig } from "./actions/gateway";
 import { HiveFlowConfiguration, HiveFlowProvider } from "./context";
+import { createUploadLink } from 'apollo-upload-client'
 
 
 const API_URL = localStorage.getItem('HEXHIVE_API');
+
+
+const uploadLink = createUploadLink({
+  uri: process.env.NODE_ENV == 'production'
+  ? `${API_URL || process.env.REACT_APP_API}/graphql`
+  : "http://localhost:7000/graphql",
+
+  headers: {
+    "keep-alive": "true"
+  },
+  credentials: 'include'
+  
+})
+
 
 const authServer = process.env.REACT_APP_API
 ? `${process.env.REACT_APP_API}`
 : "http://localhost:7000"
 
 const client = new ApolloClient({
-  uri: process.env.NODE_ENV == 'production'
-    ? `${API_URL || process.env.REACT_APP_API}/graphql`
-    : "http://localhost:7000/graphql",
+  link: uploadLink,
   cache: new InMemoryCache(),
   credentials: "include",
 });
