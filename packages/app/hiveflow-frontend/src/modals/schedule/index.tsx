@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react'
 
 import { BaseModal } from '@hexhive/ui'
-import { Box, Button, Select, Tab, Tabs } from 'grommet';
-import {PeopleTab} from './tabs/people-tab';
-import {EquipmentTab} from './tabs/equipment-tab';
+import { Box, Button as GButton, Text, Select, Tab, Tabs } from 'grommet';
+import { PeopleTab } from './tabs/people-tab';
+import { EquipmentTab } from './tabs/equipment-tab';
 import NoteTab from './tabs/note-tab';
 import moment from 'moment';
 
+import { Autocomplete, Dialog, Button, DialogContent, TextField } from '@mui/material';
+import { ScheduleModalHeader } from './header';
+
 export interface ScheduleItem {
     id?: string;
-    project?: string;
-    people?: string[];
+    project?: {id: string};
+    people?: {id: string}[];
     equipment?: string[];
     notes?: string[];
 }
@@ -18,7 +21,7 @@ export interface ScheduleItem {
 export interface ScheduleModalProps {
     open: boolean;
     onClose?: () => void;
-    onSubmit?: (item: ScheduleItem) => void;
+    onSubmit?: (item: any) => void;
     onDelete?: () => void;
 
     selected?: any;
@@ -31,47 +34,43 @@ export interface ScheduleModalProps {
 
 }
 
-export const ScheduleModal : React.FC<ScheduleModalProps> = (props) => {
+export const ScheduleModal: React.FC<ScheduleModalProps> = (props) => {
 
-    const [ item, setItem ] = useState<ScheduleItem>({})
+    const [item, setItem] = useState<ScheduleItem>({})
 
     useEffect(() => {
         setItem({
             ...props.selected,
-            project: props.selected?.project?.id
+            // project: props.selected?.project?.id
         });
     }, [props.selected]);
 
-    const menu = [
-        'People',
-        'Equipment',
-        'Notes'
-    ]
+ 
 
-    const [ projectSearchString, setProjectSearchString ] = useState('')
+    const [projectSearchString, setProjectSearchString] = useState('')
 
-    const [ activeTab, setActiveTab ] = useState('')
+    const [activeTab, setActiveTab] = useState('people')
 
-    console.log({item})
+    console.log({ item })
     const renderActiveTab = () => {
-        switch(activeTab){
+        switch (activeTab) {
             case 'people':
                 return (
-                    <PeopleTab 
+                    <PeopleTab
                         labelKey='name'
                         selected={item.people}
                         onChange={(people) => {
-                            console.log({people})
-                            setItem({...item, people: people})
+                            console.log({ people })
+                            setItem({ ...item, people: people })
                         }}
                         options={props.people?.filter((a) => item.people?.map((x: any) => x.id).indexOf(a.id) < 0)}
-                        />
+                    />
                 );
             case 'equipment':
                 return (
                     <EquipmentTab
                         labelKey='name'
-                        options={props.equipment || []}    
+                        options={props.equipment || []}
                     />
                 );
             case 'notes':
@@ -82,63 +81,60 @@ export const ScheduleModal : React.FC<ScheduleModalProps> = (props) => {
     }
 
     const onSubmit = () => {
-        props.onSubmit?.(item)
+        props.onSubmit?.({
+            ...item,
+            project: item?.project?.id
+        })
     }
 
     const filterProjects = (item: any) => {
-        if(!projectSearchString) return true;
-        if(projectSearchString.length == 0) return true;
-        if(item?.name?.indexOf(projectSearchString) > -1 || item?.displayId?.indexOf(projectSearchString) > -1) return true;
+        if (!projectSearchString) return true;
+        if (projectSearchString.length == 0) return true;
+        if (item?.name?.indexOf(projectSearchString) > -1 || item?.displayId?.indexOf(projectSearchString) > -1) return true;
         return false;
     }
 
-    console.log({peopel: item.people})
+    console.log({ peopel: item.people })
     return (
-        <BaseModal
-            width='large'
+        <Dialog
+            maxWidth='md'
             title={`Schedule - ${moment(props.date).format('DD/MM/yy')}`}
             open={props.open}
-            onDelete={props.selected && props.onDelete}
-            onSubmit={onSubmit}
+
             onClose={props.onClose}
-            >
-
-            <Select 
-                value={item.project}
-                onChange={({value}) => setItem({...item, project: value})}
-                onSearch={(searchString) => setProjectSearchString(searchString)}
-                valueKey={{key: 'id', reduce: true}}
-                labelKey={(project) => `${project.displayId} - ${project.name}`}
-                options={props.projects?.filter(filterProjects) }
-                />
-            
-            <Box    
+        >
+            <Box 
+                direction='column'
                 flex
-                >
-                <Box
-                    gap="xsmall"
-                    background={'neutral-1'}
-                    direction='row'>
-                    {menu.map((item) => (
-                        <Button
-                        plain
-                        active={activeTab === item.toLowerCase()}
-                        style={{padding: 6, borderRadius: 3}}
-                        hoverIndicator
-                        label={item}
-                        onClick={() => setActiveTab(item.toLowerCase())} />
-                    ))}
-                
-                </Box>
-                
+                style={{minHeight: '60vh'}}>
+            {/* onDelete={props.selected && props.onDelete}
+            onSubmit={onSubmit} */}
+            <Box pad="small" direction='row' background={'accent-2'}>
+                <Text>Create schedule for {moment(props.date).format('DD/MM/yy')}</Text>
+            </Box>
 
+            <ScheduleModalHeader
+                item={item}
+                onChange={(item) => setItem(item)}
+                projects={props.projects}
+                setActiveTab={setActiveTab}
+                activeTab={activeTab}
+                />
+            <Box flex background={'neutral-2'}>
                 <Box
-                    height={{min: '200px'}}
+                    height={{ min: '200px' }}
                     flex>
                     {renderActiveTab()}
+                    
+                </Box>
+                <Box pad="xsmall" direction='row' justify='end'>
+                        <Button onClick={props.onClose}>Cancel</Button>
+                        <Button onClick={onSubmit} variant="contained" >Save</Button>
                 </Box>
             </Box>
-            
-        </BaseModal>
+          
+            </Box>
+
+        </Dialog>
     )
 }

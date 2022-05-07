@@ -33,15 +33,14 @@ export const PeopleList: React.FC<any> = (props) => {
 
    const { data } = useQuery(gql`
       query GetPeople {
-         people {
+         users {
             id
             name
-            inactive
          }
       }
    `)
 
-   const people = data?.people || [];
+   const people = data?.users || [];
 
    const refetch = () => {
       client.refetchQueries({include: ['GetPeople']})
@@ -179,12 +178,7 @@ export const PeopleList: React.FC<any> = (props) => {
                   setDirection(direction)
                }}
                columns={[
-                  {
-                     size: 'small',
-                     property: 'id',
-                     header: "ID",
-                     sortable: true
-                  },
+             
                   {
                      property: 'name',
                      header: "Name",
