@@ -123,51 +123,6 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
   `)
 
 
-  // const [ removeFile, {isLoading}] = useMutation((mutation, args: {id: string, project: string}) => {
-  //   const result = mutation.removeFileFromProject({id: args.id, project: args.project})
-
-  //   return {
-  //     item: result,
-  //     error: null
-  //   }
-  // }, {
-  //   onCompleted(data) {},
-  //   onError(error) {},
-  //   refetchQueries: [query.projects({where: {id: job_id}})],
-  //   suspense: false,
-  //   awaitRefetchQueries: true
-  // } )
-
-  // const [ updateFile, info] = useMutation((mutation, args: {id: string, name?: string, status?: string}) => {
-  //   const result = mutation.updateFile({id: args.id, name: args.name, status: args.status})
-  //   return {
-  //     item: {
-  //       ...result
-  //     },
-  //     error: null
-  //   }
-  // },  {
-  //   onCompleted(data) {},
-  //   onError(error) {},
-  //   refetchQueries: [query.projects({where: {id: job_id}})],
-  //   suspense: false,
-  //   awaitRefetchQueries: true
-  // })
-
-  // const [ updateFiles, filesUpdate] = useMutation((mutation, args: {ids: string[], status?: string}) => {
-  //   const result = mutation.updateFiles({ids: args.ids, status: args.status})
-  //   return {
-  //     item: result?.slice(),
-  //     error: null
-  //   }
-  // },  {
-  //   onCompleted(data) {},
-  //   onError(error) {},
-  //   refetchQueries: [query.projects({where: {id: job_id}})],
-  //   suspense: false,
-  //   awaitRefetchQueries: true
-  // })
-
 
   const job = data?.projects?.[0] //query.projects({where: {id: job_id}})?.[0]
 
