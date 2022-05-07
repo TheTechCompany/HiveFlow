@@ -111,7 +111,7 @@ export default (prisma: PrismaClient) => {
             id: ID
             date: DateTime
             project: Project
-            people: [People]
+            people: [HiveUser]
             equipment: [Equipment]
             notes: [String]
             managers: [HiveUser] 
@@ -144,6 +144,7 @@ export default (prisma: PrismaClient) => {
                 })
                 return items.map((item) => ({
                     ...item,
+                    people: item?.people?.map((x) => ({id: x})),
                     owner: item.owner ? {id: item.owner} : undefined
                 }))
             },
@@ -267,6 +268,9 @@ export default (prisma: PrismaClient) => {
                         id: nanoid(),
                         date: args.input.date,
                         notes: args.input.notes || [],
+                        people: {
+                            set: args.input.people || []
+                        },
                         project: {
                             connect: {id: args.input.project}
                         },
@@ -281,6 +285,9 @@ export default (prisma: PrismaClient) => {
                     data: {
                         date: args.input.date,
                         notes: args.input.notes || '',
+                        people: {
+                            set: args.input.people || []
+                        },
                         project: {
                             connect: {id: args.input.project}
                         }

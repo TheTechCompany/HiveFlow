@@ -164,6 +164,7 @@ export const Schedule : React.FC<any> = (props) =>  {
       input: {
         date: args.item.date,
         project: args.item.project,
+        people: args.item.people
       }
     })
     return {
@@ -416,6 +417,7 @@ export const Schedule : React.FC<any> = (props) =>  {
                     args: {
                       item: {
                         project: item.project,
+                        people: item.people?.map((x: any) => x.id),
                         date: modalDate
                       }
                     }
@@ -431,6 +433,7 @@ export const Schedule : React.FC<any> = (props) =>  {
                       id: selected.id,
                       item: {
                         project: item.project,
+                        people: item.people?.map((x: any) => x.id),
                         date: modalDate
                       }
                     }

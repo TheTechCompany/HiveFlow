@@ -220,7 +220,7 @@ export default (prisma: PrismaClient) => {
                     // console.log({errors: data.errors})
                     return data?.data?.uploadFiles;
                 }catch(e){
-                    console.log({e})
+                    // console.log({e})
                 }   
 
 				// const data = await request(context.gatewayUrl, fileQuery, formData, {

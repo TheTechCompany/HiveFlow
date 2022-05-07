@@ -52,13 +52,19 @@ export const ScheduleModal : React.FC<ScheduleModalProps> = (props) => {
 
     const [ activeTab, setActiveTab ] = useState('')
 
+    console.log({item})
     const renderActiveTab = () => {
         switch(activeTab){
             case 'people':
                 return (
                     <PeopleTab 
                         labelKey='name'
-                        options={props.people}
+                        selected={item.people}
+                        onChange={(people) => {
+                            console.log({people})
+                            setItem({...item, people: people})
+                        }}
+                        options={props.people?.filter((a) => item.people?.map((x: any) => x.id).indexOf(a.id) < 0)}
                         />
                 );
             case 'equipment':
@@ -86,6 +92,7 @@ export const ScheduleModal : React.FC<ScheduleModalProps> = (props) => {
         return false;
     }
 
+    console.log({peopel: item.people})
     return (
         <BaseModal
             width='large'
