@@ -10,19 +10,10 @@ import schema from "./schema";
 import jwt from "jsonwebtoken";
 import { PrismaClient } from '@prisma/client'
 
-import { Pool } from 'pg';
 
 const prisma = new PrismaClient();
 
 (async () => {
-
-
-  const pool = new Pool({
-    host: 'localhost',
-    user: 'postgres',
-    password: 'test',
-    database: 'hiveflowtest'
-  })
 
 
   // const driver = neo4j.driver(

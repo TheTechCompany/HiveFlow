@@ -1,9 +1,33 @@
 import { PrismaClient } from "@prisma/client"
 import { nanoid } from "nanoid";
+import { gql, request } from 'graphql-request'
+import path from 'path'
 
 export default (prisma: PrismaClient) => {
     
     const resolvers = {
+        Project: {
+            files: async (root: any, args: any, context: any) => {
+                const appPath = `/Application Data/Flow/${root.displayId}`
+                const dataPath = path.join(appPath, args.path)
+				const fileQuery = gql`
+					{
+						files(path: "${dataPath}") {
+							id
+							name
+						}
+					}
+				`
+
+				const data = await request(context.gatewayUrl, fileQuery, {}, {
+					'X-Hive-JWT': `${context.token}`,
+				
+                    'Authorization': `Bearer ${context.token}`
+				})
+                console.log({data})
+                return data.files;
+            }
+        },
         Query: {
             projects: async (root: any, args: any, context: any)=> {
                 let where : any = {};
@@ -37,7 +61,8 @@ export default (prisma: PrismaClient) => {
 				return result.map((x) => ({
 					...x,
 					organisation: {id: x.organisation}
-				}));            }
+				}));            
+            }
         },
         Mutation: {
 			createProject: async (root: any, args: {input: any}, context: any) => {
@@ -67,7 +92,29 @@ export default (prisma: PrismaClient) => {
             deleteProject: async () => {
 
             },
+            createProjectFolder: async (root: any, args: any, context: any) => {
+                const appPath = `/Application Data/Flow/${args.project}`
+                const dataPath = path.join(appPath, args.path)
 
+				const fileQuery = gql`
+					mutation CreateProjectFolder {
+						createDirectory(path: "${dataPath}", recursive: true){
+                            id
+                        }
+					}
+				`
+
+				const data = await request(context.gatewayUrl, fileQuery, {}, {
+					'X-Hive-JWT': `${context.token}`,
+				
+                    'Authorization': `Bearer ${context.token}`
+				})
+                console.log({data})
+                return data.createDirectory;
+            },
+            updateProjectFolder: async () => {
+
+            },
             uploadProjectFiles: async () => {
 
             },
@@ -86,6 +133,9 @@ export default (prisma: PrismaClient) => {
         createProject(input: ProjectInput): Project!
 		updateProject(id: ID!, update: ProjectInput): Project!
 		deleteProject(id: ID!): Project!
+
+        createProjectFolder(project: ID!, path: String): File
+        updateProjectFolder(project: ID!, path: String): File
 
 		uploadProjectFiles(project: ID!, path: String): [File!]!
 		deleteProjectFile(project: ID!, path: String): Boolean
@@ -116,7 +166,7 @@ export default (prisma: PrismaClient) => {
         schedule: [ScheduleItem!]! 
         plan: [TimelineItem!]!
 
-        files(path: String): [File!]!
+        files(path: String): [File]
 
         startDate: DateTime
         endDate: DateTime

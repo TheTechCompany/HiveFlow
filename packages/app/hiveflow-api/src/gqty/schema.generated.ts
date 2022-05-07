@@ -172,7 +172,7 @@ export const generatedSchema = {
     __typename: { __type: "String!" },
     displayId: { __type: "String" },
     endDate: { __type: "DateTime" },
-    files: { __type: "[File!]!", __args: { path: "String" } },
+    files: { __type: "[File]", __args: { path: "String" } },
     id: { __type: "ID!" },
     name: { __type: "String" },
     organisation: { __type: "HiveOrganisation" },
@@ -244,11 +244,12 @@ export const generatedSchema = {
   TimelineItem: {
     __typename: { __type: "String!" },
     endDate: { __type: "DateTime" },
+    estimate: { __type: "Estimate" },
     id: { __type: "ID" },
     items: { __type: "[TimelineItemItems]" },
     notes: { __type: "String" },
     organisation: { __type: "HiveOrganisation" },
-    project: { __type: "TimelineProject" },
+    project: { __type: "Project" },
     startDate: { __type: "DateTime" },
     timeline: { __type: "Timeline" },
   },
@@ -294,6 +295,10 @@ export const generatedSchema = {
     },
     createEstimate: { __type: "Estimate", __args: { input: "EstimateInput" } },
     createProject: { __type: "Project!", __args: { input: "ProjectInput" } },
+    createProjectFolder: {
+      __type: "File",
+      __args: { path: "String", project: "ID!" },
+    },
     createScheduleItem: {
       __type: "ScheduleItem",
       __args: { input: "ScheduleItemInput" },
@@ -327,6 +332,10 @@ export const generatedSchema = {
     updateProject: {
       __type: "Project!",
       __args: { id: "ID!", update: "ProjectInput" },
+    },
+    updateProjectFolder: {
+      __type: "File",
+      __args: { path: "String", project: "ID!" },
     },
     updateScheduleItem: {
       __type: "ScheduleItem",
@@ -426,7 +435,9 @@ export interface Project {
   __typename?: "Project";
   displayId?: Maybe<ScalarsEnums["String"]>;
   endDate?: Maybe<ScalarsEnums["DateTime"]>;
-  files: (args?: { path?: Maybe<Scalars["String"]> }) => Array<File>;
+  files: (args?: {
+    path?: Maybe<Scalars["String"]>;
+  }) => Maybe<Array<Maybe<File>>>;
   id: ScalarsEnums["ID"];
   name?: Maybe<ScalarsEnums["String"]>;
   organisation?: Maybe<HiveOrganisation>;
@@ -481,11 +492,12 @@ export interface Timeline {
 export interface TimelineItem {
   __typename?: "TimelineItem";
   endDate?: Maybe<ScalarsEnums["DateTime"]>;
+  estimate?: Maybe<Estimate>;
   id?: Maybe<ScalarsEnums["ID"]>;
   items?: Maybe<Array<Maybe<TimelineItemItems>>>;
   notes?: Maybe<ScalarsEnums["String"]>;
   organisation?: Maybe<HiveOrganisation>;
-  project?: Maybe<TimelineProject>;
+  project?: Maybe<Project>;
   startDate?: Maybe<ScalarsEnums["DateTime"]>;
   timeline?: Maybe<Timeline>;
 }
@@ -519,6 +531,10 @@ export interface Mutation {
   }) => Maybe<Equipment>;
   createEstimate: (args?: { input?: Maybe<EstimateInput> }) => Maybe<Estimate>;
   createProject: (args?: { input?: Maybe<ProjectInput> }) => Project;
+  createProjectFolder: (args: {
+    path?: Maybe<Scalars["String"]>;
+    project: Scalars["ID"];
+  }) => Maybe<File>;
   createScheduleItem: (args?: {
     input?: Maybe<ScheduleItemInput>;
   }) => Maybe<ScheduleItem>;
@@ -559,6 +575,10 @@ export interface Mutation {
     id: Scalars["ID"];
     update?: Maybe<ProjectInput>;
   }) => Project;
+  updateProjectFolder: (args: {
+    path?: Maybe<Scalars["String"]>;
+    project: Scalars["ID"];
+  }) => Maybe<File>;
   updateScheduleItem: (args?: {
     id?: Maybe<Scalars["ID"]>;
     input?: Maybe<ScheduleItemInput>;

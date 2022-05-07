@@ -5,7 +5,7 @@ import React, {
 
 import { Tabs, Text, Tab, Box, Heading, Spinner, Button } from 'grommet';
 
-
+import { Divider, Menu, MenuItem, MenuList } from '@mui/material'
 // import SharedFiles from '@hexhive/auth-ui';
 
 import { files as fileActions } from '../../../actions'
@@ -20,6 +20,7 @@ import { useMutation, useRefetch } from '@hive-flow/api';
 import { KanbanModal } from './KanbanModal';
 import { gql, useApolloClient, useQuery } from '@apollo/client'
 import { useParams } from 'react-router-dom';
+import { FolderModal } from 'app/hiveflow-frontend/src/modals/folder-modal';
 
 // const FileExplorer = lazy(() => {
 //   //@ts-ignore
@@ -66,6 +67,11 @@ const client = useApolloClient()
 
   const {id: job_id, jobParam} = useParams() 
 
+  const [ anchorPos, setAnchorPos ] = useState<{top: number, left: number}>()
+  const [ createFolderOpen, openCreateFolder ] = useState<boolean>(false)
+
+  const [ activePath, setActivePath ] = useState('/');
+
 
   // const query = useQuery({
   //   suspense: false,
@@ -73,7 +79,7 @@ const client = useApolloClient()
   // })
 
   const { data } = useQuery(gql`
-    query GetProject($id: String) {
+    query GetProject($id: String, $path: String) {
       projects(where: {displayId: $id}){
         id
         displayId
@@ -81,16 +87,31 @@ const client = useApolloClient()
         startDate
         endDate
 
+        files(path: $path) {
+          id
+          name
+          directory
+          size
+        }
     
       }
     }
   `, {
     variables: {
       id: job_id,
-      path: '/'
+      path: activePath
     }
   })
   const refetch = useRefetch();
+
+  const [ createDirectory ] = useMutation((mutation, args: any) => {
+    const item = mutation.createProjectFolder({project: job_id, path: `${activePath}/${args.path}` })
+    return {
+      item: {
+        ...item
+      }
+    }
+  })
 
   // const [ removeFile, {isLoading}] = useMutation((mutation, args: {id: string, project: string}) => {
   //   const result = mutation.removeFileFromProject({id: args.id, project: args.project})
@@ -148,20 +169,62 @@ const client = useApolloClient()
     // }
   }, [JSON.stringify(job)])
 
+
   const _tabs = [
     {
       title: "Files",
       component: (
-          <FileExplorer
-              path={'/'}
-              onNavigate={(path) => {
+        <Box flex onContextMenu={(evt) => {
+          evt.preventDefault()
+          setAnchorPos({top: evt.clientY, left: evt.clientX})
+        }}>
+          <FolderModal
+            open={createFolderOpen}
+            onClose={() => {
+              openCreateFolder(false)
+            }}
+            onSubmit={(folder) => {
+              createDirectory({args: {
+                path: folder.name
+              }}).then(() => {
+                openCreateFolder(false)
 
+              })
+            }}
+            />
+          <Menu
+            anchorReference={'anchorPosition'}
+            anchorPosition={anchorPos}
+            open={Boolean(anchorPos)}
+            onClose={() => setAnchorPos(undefined)}
+            >
+            <MenuItem onClick={() => {
+              openCreateFolder(true)
+              setAnchorPos(undefined)
+            }}>New Folder</MenuItem>
+            <Divider />
+            <MenuItem onClick={() => {
+                setAnchorPos(undefined)
+            }} style={{color: 'red'}}>Delete</MenuItem>
+          </Menu>
+          <FileExplorer
+              path={activePath}
+              previewEngines={[
+                {
+                  filetype: '.png',
+                  component: ({file}) => <Box>file</Box>
+                }
+              ]}
+              onNavigate={(path) => {
+                setActivePath(path)
               }}
+              files={job?.files?.map((x: any) => ({...x, isFolder: x.directory})) || []}
               breadcrumbs={[]}
               onDrop={(files) => {
                 
               }}
             />
+          </Box>
       ) 
       // (
       // <SharedFiles
