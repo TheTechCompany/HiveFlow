@@ -135,6 +135,8 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
   }, [JSON.stringify(job)])
 
 
+  const [ links, setLinks ] = useState([]);
+
   const _tabs = [
    
     {
@@ -198,7 +200,15 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
       title: "Timeline",
       component: (
         <Timeline
-            data={[]} 
+            data={[
+              {id: '1', start: new Date(), end: new Date(2022, 4, 10), name: "Item 1", color: 'red', showLabel: true},
+              {id: '2', start: new Date(), end: new Date(2022, 10, 12), name: "Item 1", color: 'red', showLabel: true},
+            ]}
+            links={links}
+            onCreateLink={(link) => {
+              setLinks([...links, link])
+            }}
+             
           />
       )
     },
@@ -252,7 +262,6 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
               setActivePath(path)
             }}
             files={job?.files?.map((x: any) => ({ ...x, isFolder: x.directory })) || []}
-            breadcrumbs={[]}
             onDrop={(files) => {
               uploadFiles({
                 variables: {
