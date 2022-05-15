@@ -10,6 +10,7 @@ export interface DataTableColumn {
     size?: string;
     sortable?: boolean;
     align?: string;
+    render?: any;
 }
 
 export interface DataTableProps {
@@ -59,7 +60,7 @@ export const DataTable : React.FC<DataTableProps> = (props) => {
                             {props.columns?.map((column) => (
                                 <TableCell 
                                     sx={{paddingLeft: '32px'}}
-                                    align={column.align == "center" ? "center" : "left"}>{data?.[column.property]}</TableCell>
+                                    align={column.align == "center" ? "center" : "left"}>{column.render ? column.render?.(data || {}) : data?.[column.property]}</TableCell>
                             ))}
                         </TableRow>
                     ))}
