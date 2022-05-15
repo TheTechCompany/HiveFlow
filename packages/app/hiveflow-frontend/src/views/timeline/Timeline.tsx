@@ -77,10 +77,10 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
    const { timelines = [] } = timelineData || {}
 
     const { data } = useApollo(gql`
-        query Q($timelineId: String){
+        query Q($startDate: DateTime, $endDate: DateTime){
       
 
-            timelineItems(where: {timeline: $timelineId}){
+            timelineItems(where: {startDate_LTE: $endDate, endDate_GTE: $startDate}) {
                 id
                 startDate
                 endDate
@@ -107,7 +107,6 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     `, {
         fetchPolicy: 'cache-and-network',
         variables: {
-            timelineId: view?.id || timelines?.[0]?.id,
             startDate: horizon?.start?.toISOString(),
             endDate: horizon?.end?.toISOString(),
         }
@@ -686,7 +685,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     const createTimelinePlan = (plan: { id?: string, project?: { id?: string, type?: string }, notes?: string, data?: any[], startDate?: Date, endDate?: Date }) => {
         console.log({plan})
         plan.data = plan.data.map((x) => ({item: x.item, location: x.location, quantity: x.quantity}))
-        
+
         let attachUpdate : any = {};
 
         if(plan.project.type == "Estimate"){

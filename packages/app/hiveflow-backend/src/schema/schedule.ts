@@ -188,6 +188,7 @@ export default (prisma: PrismaClient) => {
                 // return await pri
                 let whereArg: any = {organisation: context.jwt.organisation}
                 if(args.where){
+                    console.log({where: args.where})
                     if(args.where.id) whereArg = {...whereArg, id: args.where.id};
                     if(args.where.timeline) whereArg = {...whereArg, timeline: {id: args.where.timeline}};
                     if(args.where.startDate_LTE) whereArg.startDate = {lte: args.where.startDate_LTE};
@@ -196,7 +197,7 @@ export default (prisma: PrismaClient) => {
                 
                 return await prisma.timelineItem.findMany({
                     where: {
-                        ...whereArg
+                        ...whereArg,
                     },
                     include: {
                         project: true,
@@ -250,7 +251,8 @@ export default (prisma: PrismaClient) => {
                         startDate: args.input.startDate,
                         endDate: args.input.endDate,
                         notes: args.input.notes || '',
-                        timeline: args.input.timelineId
+                        timeline: args.input.timelineId,
+                        organisation: context?.jwt?.organisation
                     }
                 })
             },
