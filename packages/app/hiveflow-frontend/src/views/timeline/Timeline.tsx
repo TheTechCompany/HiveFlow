@@ -735,7 +735,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         }
     }
 
-    const updateTimelinePlan = _.debounce(async (id: string, item: { notes?: string, start: Date, end: Date }) => {
+    const updateTimelinePlan =as ync (id: string, item: { notes?: string, start: Date, end: Date }) => {
 
         try {
             const result = await updateTimelineItem({
@@ -754,7 +754,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         }
         return true;
 
-    }, 500)
+    }
 
     return (
         <Box
