@@ -2,7 +2,6 @@ FROM node:16-alpine
 
 ARG BUILD_ENV=github
 
-
 RUN apk update && apk add openssl
 
 WORKDIR /app
