@@ -26,10 +26,10 @@ export interface TimelineModalProps {
         startDate?: Date,
         endDate?: Date,
         notes?: string,
-        items?: {
+        data?: {
             location?: string;
-            type?: string;
-            estimate?: number;
+            item?: string;
+            quantity?: number;
         }[]}) => void;
 }
 
@@ -44,17 +44,17 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
         startDate?: string,
         endDate?: string,
         notes?: string,
-        items?: {
+        data?: {
             [key: string]: any;
             location: string;
-            type: string;
-            estimate?: number;
+            item: string;
+            quantity?: number;
         }[]
 
-    }>({items: [], startDate: '', endDate: ''})
+    }>({data: [], startDate: '', endDate: ''})
 
     useEffect(() => {
-        console.log(props.selected)
+        console.log({selected: props.selected})
         setPlan(props.selected ? {
             ...Object.assign({}, props.selected),
             project: props.selected?.project?.id,
@@ -68,7 +68,7 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
     const onClose = () => {
         props.onClose?.();
         setSearch('');
-        setPlan({items: []})
+        setPlan({data: []})
     }
 
     const onDelete = () => {
@@ -88,28 +88,28 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
         }
 
         props.onSubmit?.(submit_plan);
-        setPlan({items: []})
+        setPlan({data: []})
         setSearch('');
     }
 
     const addCapacityItem = () => {
-        let items = plan.items?.slice() || [];
+        let items = plan.data?.slice() || [];
 
-        items.push({type: '', location: '', estimate: undefined})
-        setPlan({...plan, items: items})
+        items.push({item: '', location: '', quantity: 0})
+        setPlan({...plan, data: items})
     }
 
     const removeCapacityItem = (ix : number) => {
-        let items = plan.items?.slice() || [];
+        let items = plan.data?.slice() || [];
 
         items.splice(ix, 1);
-        setPlan({...plan, items: items})
+        setPlan({...plan, data: items})
     }
 
     const updateCapacityItem = (ix: number, field: string, value: any) => {
-        let items = plan.items?.slice() || []
+        let items = plan.data?.slice() || []
         items[ix] = Object.assign(items[ix], {[field]: value});
-        setPlan({...plan, items: items})
+        setPlan({...plan, data: items})
     }
 
     const updateNotes = (e: any) => {

@@ -94,16 +94,16 @@ model ScheduleItemPermission {
 	@@unique([owner, scheduleItemId], name: "schedulePermitted")
 }
 
-model Timeline {
-	id String @id
-	name String 
+// model Timeline {
+// 	id String @id
+// 	name String 
 
-    resources String[]
+//     resources String[]
 
-	items TimelineItem[] @relation("onTimeline")
+// 	items TimelineItem[] @relation("onTimeline")
 
-	organisation String
-}
+// 	organisation String
+// }
 
 model TimelineItem {
 	id String @id
@@ -114,13 +114,16 @@ model TimelineItem {
     project Project? @relation(name: "projectTimeline", fields: [projectId], references: [id])
     projectId String?
 
-	notes String
+    data Json?
+
+	notes String?
 
 	startDate DateTime
 	endDate DateTime
 
-	timeline Timeline @relation(name: "onTimeline", fields: [timelineId], references: [id], onDelete: Cascade)
-	timelineId String
+    timeline String
+	// timeline Timeline @relation(name: "onTimeline", fields: [timelineId], references: [id], onDelete: Cascade)
+	// timelineId String
 }
 // model TimelineItem {
 // 	id String @id

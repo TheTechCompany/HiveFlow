@@ -96,11 +96,10 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                     name
                 }
 
-                items {
-                    id
-                    type
+                data {
+                    item
                     location
-                    estimate
+                    quantity
                 }
            
             }
@@ -189,6 +188,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     const [createTimelineItem, createInfo] = useMutation((mutation, args: { item:  { 
         timeline: string,
         project?: any, 
+        estimate?: any,
         notes?: string, 
         items?: any[], 
         startDate?: string, 
@@ -198,9 +198,11 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
             input: {
                 timelineId: args.item.timeline,
                 project: args.item.project,
+                estimate: args.item.estimate,
                 notes: args.item.notes,
                 startDate: args.item.startDate,
-                endDate: args.item.endDate
+                endDate: args.item.endDate,
+                data: args.item?.items
             } 
         })
         return {
@@ -239,6 +241,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
     const [updateTimelineItem, updateInfo] = useMutation((mutation, args: { id: string, item: { 
         project?: string, 
+        estimate?: string, 
         notes?: string, 
         items?: any[], 
         startDate?: string, 
@@ -250,12 +253,13 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         let update : any = {};
 
         if(args.item.project) update.project = args.item.project;
+        if(args.item.estimate) update.estimate = args.item.estimate;
 
         if(args.item.startDate) update.startDate = args.item.startDate;
         if(args.item.endDate) update.endDate = args.item.endDate;
 
         if(args.item.notes) update.notes = args.item.notes;
-
+        if(args.item.items) update.data = args.item.items;
         // if(args.item.items){
         //     let items = args.item.items?.map((x) => ({
         //         id: x?.id,
@@ -340,7 +344,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
     const people : any[] =  [] //peopleData?.data?.timelineItems;
 
-    const [timeline, setTimeline] = useState<any[]>([])
+    // const [timeline, setTimeline] = useState<any[]>([])
 
     const getWonLost = (total: number, item: any, default_color: string) => {
         let gradient = [];
@@ -354,12 +358,12 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     }
 
     const getColorBars = (plan: { hatched?: boolean, items?: any[] }) => {
-        let total = plan.items?.reduce((previous: any, current: any) => previous += current.estimate, 0)
+        let total = plan.items?.reduce((previous: any, current: any) => previous += current.quantity, 0)
 
         let sum = plan.items?.reduce((previous, current) => {
 
-            if (!previous[current.type]) previous[current.type] = 0
-            previous[current.type] += current.estimate
+            if (!previous[current.item]) previous[current.item] = 0
+            previous[current.item] += current.quantity
             return previous
         }, {})
 
@@ -392,44 +396,44 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         }, _weeks)
 
         console.log(weeks)
-        setTimeline(Object.keys(weeks).sort((a, b) => a == b ? 0 : a > b ? -1 : 1).map((start, ix) => {
-            let value = weeks[start].value;
-            delete weeks[start].value;
-            return {
-                id: `${start}`,
-                name: `Week ${moment(new Date(parseInt(start))).format("W/yyyy")}`,
-                color: getWonLost(value, weeks[start], stringToColor(moment(new Date(parseInt(start))).format("DD/mm/yyyy"))),
-                start: new Date(parseInt(start)),
-                end: new Date(moment(new Date(parseInt(start))).add(7, 'days').valueOf()),
-                showLabel: formatter.format(value),
-                hoverInfo: (
-                    <Box round="xsmall" overflow="hidden"  direction="column">
-                        <Box pad="xsmall" background="accent-2" margin={{bottom: 'xsmall'}} direction="row" justify="between">
-                            {/* <Text weight="bold">{capacity_plan?.project?.name?.substring(0, 15)}</Text> */}
-                            <Text>
-                                {formatter.format(value)}
-                            </Text>
-                        </Box>
-                        <Box pad="xsmall">
-                            {Object.keys(weeks[start]).map((x) => {
-                                let item = weeks[start][x]
-                                return (
-                                <Box align="center" direction="row" justify="between">
-                                        <Box direction="row" align="center">
-                                            <ColorDot color={StatusTypes[x || '']} size={10}/>
-                                            <Text>{((item / value )* 100).toFixed(2)}% - {x}</Text>
-                                        </Box>
-                                    <Text margin={{left: 'small'}}>{formatter.format(item)}</Text>
-                                </Box>
-                                )
-                            }
-                            )}
-                        </Box>
+        // setTimeline(Object.keys(weeks).sort((a, b) => a == b ? 0 : a > b ? -1 : 1).map((start, ix) => {
+        //     let value = weeks[start].value;
+        //     delete weeks[start].value;
+        //     return {
+        //         id: `${start}`,
+        //         name: `Week ${moment(new Date(parseInt(start))).format("W/yyyy")}`,
+        //         color: getWonLost(value, weeks[start], stringToColor(moment(new Date(parseInt(start))).format("DD/mm/yyyy"))),
+        //         start: new Date(parseInt(start)),
+        //         end: new Date(moment(new Date(parseInt(start))).add(7, 'days').valueOf()),
+        //         showLabel: formatter.format(value),
+        //         hoverInfo: (
+        //             <Box round="xsmall" overflow="hidden"  direction="column">
+        //                 <Box pad="xsmall" background="accent-2" margin={{bottom: 'xsmall'}} direction="row" justify="between">
+        //                     {/* <Text weight="bold">{capacity_plan?.project?.name?.substring(0, 15)}</Text> */}
+        //                     <Text>
+        //                         {formatter.format(value)}
+        //                     </Text>
+        //                 </Box>
+        //                 <Box pad="xsmall">
+        //                     {Object.keys(weeks[start]).map((x) => {
+        //                         let item = weeks[start][x]
+        //                         return (
+        //                         <Box align="center" direction="row" justify="between">
+        //                                 <Box direction="row" align="center">
+        //                                     <ColorDot color={StatusTypes[x || '']} size={10}/>
+        //                                     <Text>{((item / value )* 100).toFixed(2)}% - {x}</Text>
+        //                                 </Box>
+        //                             <Text margin={{left: 'small'}}>{formatter.format(item)}</Text>
+        //                         </Box>
+        //                         )
+        //                     }
+        //                     )}
+        //                 </Box>
                  
-                    </Box>
-                ),
-            }
-        }))
+        //             </Box>
+        //         ),
+        //     }
+        // }))
     }
 
 
@@ -489,7 +493,37 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
             name: `${item?.project?.displayId} - ${item?.project?.name}`,
             start: item?.startDate,
             end: item?.endDate,
-            color: getColorBars({ hatched: (item?.project || {})?.__type == "Estimate", items: item?.items || [] })
+            color: getColorBars({ hatched: Boolean(item?.esimate), items: item?.data || [] }),
+            showLabel: `${item?.data?.reduce((previous: any, current: any) => {
+                                return previous += (current?.quantity || 0)
+            }, 0)}hrs`,
+            hoverInfo: (
+                <Box round="xsmall" overflow="hidden"  direction="column">
+                                     <Box pad="xsmall" background="accent-2" margin={{bottom: 'xsmall'}} direction="row" justify="between">
+                                         {/* <Text weight="bold">{capacity_plan?.project?.name?.substring(0, 15)}</Text> */}
+                                         <Text weight="bold">Total Hours: </Text>
+                                         <Text>{
+                                            item?.data?.reduce((previous: any, current: any) => {
+                                                return previous += (current?.quantity || 0)
+                                            }, 0)}hrs
+                                        </Text>
+                                    </Box>
+                                    <Box pad="xsmall">
+                                        {item?.data?.slice().sort((a: { location: any; }, b: { location: any; }) => (a?.location || '') > (b?.location || '') ? -1 : 1).map((x: {item: string, location: string, quantity: number}) => (
+                                            <Box align="center" direction="row" justify="between">
+                                                    <Box direction="row" align="center">
+                                                        { <ColorDot color={HourTypes[x?.item  as any || '']} size={10}/> }
+                                                        <Text>{x?.item}{x?.location ? ` - ${x?.location}` : ''} :</Text>
+                                                    </Box>
+                                                <Text margin={{left: 'small'}}>{x?.quantity}hrs</Text>
+                                            </Box>
+                                        ))}
+                                    </Box>
+                                    <Text size="small">
+                                        { item?.notes || ''}
+                                    </Text>
+                                </Box>
+            )
         }
     }
     //stringToColor(`${capacity_plan?.project?.id} - ${capacity_plan?.project?.name}` || ''),
@@ -649,7 +683,17 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
    
 
-    const createTimelinePlan = (plan: { id?: string, project?: { id?: string, type?: string }, notes?: string, items?: any[], startDate?: Date, endDate?: Date }) => {
+    const createTimelinePlan = (plan: { id?: string, project?: { id?: string, type?: string }, notes?: string, data?: any[], startDate?: Date, endDate?: Date }) => {
+        console.log({plan})
+        plan.data = plan.data.map((x) => ({item: x.item, location: x.location, quantity: x.quantity}))
+        
+        let attachUpdate : any = {};
+
+        if(plan.project.type == "Estimate"){
+            attachUpdate.estimate = plan.project?.id
+        }else{
+            attachUpdate.project = plan.project?.id
+        }
         if (plan.id) {
             console.log("Update", plan)
 
@@ -660,11 +704,11 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                 args: {
                     id: plan.id,
                     item: {
-                        project: plan.project?.id,
+                        ...attachUpdate,
                         startDate: plan.startDate?.toISOString(),
                         endDate: endDate?.toISOString(),
                         notes: plan.notes,
-                        items: plan.items || []
+                        items: plan.data || []
                     }
                 }
             }).then(() => {
@@ -676,12 +720,12 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
             createTimelineItem({
                 args: {
                     item: {
-                        project: plan.project?.id,
+                        ...attachUpdate,
                         startDate: plan.startDate?.toISOString(),
                         endDate: plan.endDate?.toISOString(),
-                        timeline: view?.id || timelines?.[0]?.id,
+                        timeline: plan.project?.type,
                         notes: plan.notes,
-                        items:  plan.items || []
+                        items:  plan.data || []
                     }
                 }
             }).then((data) => {
@@ -750,7 +794,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                 projects={projects?.map((x) => ({ id: x.id, displayId: x.displayId, name: x.name, type: "Project" })).concat(estimates?.map((x) => ({ id: x.id, displayId: x.displayId, name: x.name, type: "Estimate" })) || []) || []}
                 open={erpModal} />
             <TimelineHeader
-                timelines={timelines}
+                timelines={[{name: "Projects"}, {name: "People"}, {name: "Estimates"}]}
                 filter={filter}
                 filters={filters}
                 onCreateTimeline={() => {
@@ -864,7 +908,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                     resizable
                     mode="month"
                     links={[]}
-                    data={data?.timelineItems?.map(mapItems) || [] || timeline.filter(filterData)}
+                    data={data?.timelineItems?.map(mapItems) || []}
                     date={date}
                     itemHeight={30}
                     onUpdateTask={async (task: any, info: any) => {

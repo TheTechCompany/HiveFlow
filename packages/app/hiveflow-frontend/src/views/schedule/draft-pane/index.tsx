@@ -6,9 +6,9 @@ export const DraftPane = (props: any) => {
 console.log(props)
 
 	const getHours = (item: any) => {
-		return (item?.items || []).reduce((prev: any, curr: any) => {
+		return (item?.data || []).reduce((prev: any, curr: any) => {
 			if(!prev[curr.location]) prev[curr.location] = 0;
-			prev[curr.location] += curr.estimate;
+			prev[curr.location] += curr.quantity;
 			return prev;
 		}, {})
 	}
@@ -42,7 +42,7 @@ console.log(props)
 					>
 					{props.open && <Text size="small">{props.projects.find((a: any) => a?.id == x.project?.id)?.name}</Text>}
 				
-					<Text size="small">{x.project?.id}</Text>
+					<Text size="small">{x.project?.displayId}</Text>
 				</Box>
 				{props.open && <Box direction="column">
 					{renderHours(x)}

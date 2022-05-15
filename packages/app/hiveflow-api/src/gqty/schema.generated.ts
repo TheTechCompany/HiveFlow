@@ -86,7 +86,14 @@ export interface TimelineInput {
   name?: InputMaybe<Scalars["String"]>;
 }
 
+export interface TimelineItemDataInput {
+  item?: InputMaybe<Scalars["String"]>;
+  location?: InputMaybe<Scalars["String"]>;
+  quantity?: InputMaybe<Scalars["Float"]>;
+}
+
 export interface TimelineItemInput {
+  data?: InputMaybe<Array<InputMaybe<TimelineItemDataInput>>>;
   endDate?: InputMaybe<Scalars["DateTime"]>;
   estimate?: InputMaybe<Scalars["String"]>;
   notes?: InputMaybe<Scalars["String"]>;
@@ -214,6 +221,8 @@ export const generatedSchema = {
   },
   ScheduleItem: {
     __typename: { __type: "String!" },
+    canEdit: { __type: "Boolean" },
+    createdAt: { __type: "DateTime" },
     date: { __type: "DateTime" },
     equipment: { __type: "[Equipment]" },
     id: { __type: "ID" },
@@ -248,6 +257,7 @@ export const generatedSchema = {
   TimelineInput: { name: { __type: "String" } },
   TimelineItem: {
     __typename: { __type: "String!" },
+    data: { __type: "[TimelineItemData]" },
     endDate: { __type: "DateTime" },
     estimate: { __type: "Estimate" },
     id: { __type: "ID" },
@@ -258,7 +268,19 @@ export const generatedSchema = {
     startDate: { __type: "DateTime" },
     timeline: { __type: "Timeline" },
   },
+  TimelineItemData: {
+    __typename: { __type: "String!" },
+    item: { __type: "String" },
+    location: { __type: "String" },
+    quantity: { __type: "Float" },
+  },
+  TimelineItemDataInput: {
+    item: { __type: "String" },
+    location: { __type: "String" },
+    quantity: { __type: "Float" },
+  },
   TimelineItemInput: {
+    data: { __type: "[TimelineItemDataInput]" },
     endDate: { __type: "DateTime" },
     estimate: { __type: "String" },
     notes: { __type: "String" },
@@ -386,7 +408,6 @@ export const generatedSchema = {
       __type: "[TimelineItem]",
       __args: { where: "TimelineItemWhere" },
     },
-    timelines: { __type: "[Timeline]", __args: { where: "TimelineWhere" } },
   },
   subscription: {},
   [SchemaUnionsKey]: { TimelineProject: ["Estimate", "Project"] },
@@ -479,6 +500,8 @@ export interface Schedule {
 
 export interface ScheduleItem {
   __typename?: "ScheduleItem";
+  canEdit?: Maybe<ScalarsEnums["Boolean"]>;
+  createdAt?: Maybe<ScalarsEnums["DateTime"]>;
   date?: Maybe<ScalarsEnums["DateTime"]>;
   equipment?: Maybe<Array<Maybe<Equipment>>>;
   id?: Maybe<ScalarsEnums["ID"]>;
@@ -500,6 +523,7 @@ export interface Timeline {
 
 export interface TimelineItem {
   __typename?: "TimelineItem";
+  data?: Maybe<Array<Maybe<TimelineItemData>>>;
   endDate?: Maybe<ScalarsEnums["DateTime"]>;
   estimate?: Maybe<Estimate>;
   id?: Maybe<ScalarsEnums["ID"]>;
@@ -509,6 +533,13 @@ export interface TimelineItem {
   project?: Maybe<Project>;
   startDate?: Maybe<ScalarsEnums["DateTime"]>;
   timeline?: Maybe<Timeline>;
+}
+
+export interface TimelineItemData {
+  __typename?: "TimelineItemData";
+  item?: Maybe<ScalarsEnums["String"]>;
+  location?: Maybe<ScalarsEnums["String"]>;
+  quantity?: Maybe<ScalarsEnums["Float"]>;
 }
 
 export interface TimelineItemItems {
@@ -632,9 +663,6 @@ export interface Query {
   timelineItems: (args?: {
     where?: Maybe<TimelineItemWhere>;
   }) => Maybe<Array<Maybe<TimelineItem>>>;
-  timelines: (args?: {
-    where?: Maybe<TimelineWhere>;
-  }) => Maybe<Array<Maybe<Timeline>>>;
 }
 
 export interface Subscription {
@@ -658,6 +686,7 @@ export interface SchemaObjectTypes {
   Subscription: Subscription;
   Timeline: Timeline;
   TimelineItem: TimelineItem;
+  TimelineItemData: TimelineItemData;
   TimelineItemItems: TimelineItemItems;
   WorkInProgress: WorkInProgress;
 }
@@ -678,6 +707,7 @@ export type SchemaObjectTypesNames =
   | "Subscription"
   | "Timeline"
   | "TimelineItem"
+  | "TimelineItemData"
   | "TimelineItemItems"
   | "WorkInProgress";
 

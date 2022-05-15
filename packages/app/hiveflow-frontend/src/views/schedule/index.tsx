@@ -65,21 +65,23 @@ export const Schedule : React.FC<any> = (props) =>  {
   
   const { data } = useApollo(gql`
    query Q ($startDate: DateTime, $endDate: DateTime) {
-     timelineItems (where: {timeline: "Projects", startDate_LTE: $endDate, endDate_GTE: $startDate}){
+     timelineItems (where: {timeline: "Project", startDate_LTE: $endDate, endDate_GTE: $startDate}){
        id
        project{
           id
+          displayId
           name
        }
 
        estimate {
             id
+            displayId
             name
        }
-       items {
-          type
+       data {
+          item
           location
-          estimate
+          quantity
        }
      }
     scheduleItems (where: {date_GTE: $startDate, date_LTE: $endDate} ) {

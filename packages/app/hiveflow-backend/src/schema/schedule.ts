@@ -7,7 +7,6 @@ export default (prisma: PrismaClient) => {
 
         type Query {
             scheduleItems(where: ScheduleWhere): [ScheduleItem]
-            timelines(where: TimelineWhere): [Timeline]
             timelineItems(where: TimelineItemWhere): [TimelineItem]
         }
 
@@ -76,6 +75,19 @@ export default (prisma: PrismaClient) => {
             startDate: DateTime
             endDate: DateTime
             notes: String
+            data: [TimelineItemDataInput]
+        }
+
+        input TimelineItemDataInput {
+            item: String
+            location: String
+            quantity: Float
+        }
+        
+        type TimelineItemData {
+            item: String
+            location: String
+            quantity: Float
         }
 
         type TimelineItem {
@@ -87,6 +99,7 @@ export default (prisma: PrismaClient) => {
             items: [TimelineItemItems] 
             project: Project
             estimate: Estimate
+            data: [TimelineItemData]
             organisation: HiveOrganisation 
         }
 
@@ -168,9 +181,9 @@ export default (prisma: PrismaClient) => {
                 console.log({result})
                 return result;
             },
-            timelines: async (root: any, args: any) => {
-                return await prisma.timeline.findMany({include: {items: true}});
-            },
+            // timelines: async (root: any, args: any) => {
+            //     return await prisma.timeline.findMany({include: {items: true}});
+            // },
             timelineItems: async (root: any, args: any, context: any) => {
                 // return await pri
                 let whereArg: any = {organisation: context.jwt.organisation}
@@ -182,9 +195,7 @@ export default (prisma: PrismaClient) => {
                 return await prisma.timelineItem.findMany({
                     where: {
                         id: args.where.id,
-                        timeline: {
-                            id: args.where.timeline
-                        }
+                        timeline:  args.where.timeline
                     },
                     include: {
                         project: true,
@@ -194,26 +205,26 @@ export default (prisma: PrismaClient) => {
             }
         },
         Mutation: {
-            createTimeline: async (root: any, args: {input: any}, context: any) => {
-                return await prisma.timeline.create({
-                    data: {
-                        id: nanoid(),
-                        name: args.input.name,
-                        organisation: context.jwt.organisation
-                    }
-                })
-            },
-            updateTimeline: async (root: any, args: {id: any, input: any}, context: any) => {
-                return await prisma.timeline.update({
-                    where: {id: args.id},
-                    data: {
-                        name: args.input.name
-                    }
-                })
-            },
-            deleteTimeline: async (root: any, args: {id: any}, context: any) => {
-                return await prisma.timeline.delete({where: {id: args.id}});
-            },
+            // createTimeline: async (root: any, args: {input: any}, context: any) => {
+            //     return await prisma.timeline.create({
+            //         data: {
+            //             id: nanoid(),
+            //             name: args.input.name,
+            //             organisation: context.jwt.organisation
+            //         }
+            //     })
+            // },
+            // updateTimeline: async (root: any, args: {id: any, input: any}, context: any) => {
+            //     return await prisma.timeline.update({
+            //         where: {id: args.id},
+            //         data: {
+            //             name: args.input.name
+            //         }
+            //     })
+            // },
+            // deleteTimeline: async (root: any, args: {id: any}, context: any) => {
+            //     return await prisma.timeline.delete({where: {id: args.id}});
+            // },
             createTimelineItem: async (root: any, args: {input: any}, context: any) => {
                 // return await prisma.
 
@@ -233,14 +244,12 @@ export default (prisma: PrismaClient) => {
                 return await prisma.timelineItem.create({
                     data: {
                         id: nanoid(),
-                    
                         ...relatedItem,
+                        data: args.input.data,
                         startDate: args.input.startDate,
                         endDate: args.input.endDate,
                         notes: args.input.notes || '',
-                        timeline: {
-                            connect: {id: args.input.timelineId}
-                        }
+                        timeline: args.input.timelineId
                     }
                 })
             },
@@ -265,6 +274,7 @@ export default (prisma: PrismaClient) => {
                         startDate: args.input.startDate,
                         endDate: args.input.endDate,
                         notes: args.input.notes || '',
+                        data: args.input.data
                         // timeline: {
                         //     connect: {
                         //         id: args.input.timelineId

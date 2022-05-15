@@ -65,7 +65,7 @@ export const BaseTimelineHeader: React.FC<TimelineProps> = (props) => {
                             props.onViewChange?.(option)
                         }
                     }}
-                    options={(props.timelines || ["Projects", "People", "Estimates"].map((x) => ({name: x}))).concat([{id: 'create', name: "Create Timeline"}])}>
+                    options={props.timelines}>
                     {(datum) => (
                         <Box
                             background={datum.id == 'create' ? '#dfdfdf' : undefined}

@@ -27,7 +27,7 @@ export const CapacityTab = ({
                 gap="xsmall"
                 height={'min-content'}
                 overflow={'scroll'}>
-                {plan.items?.map((x: any, ix: number) => (
+                {plan.data?.map((x: any, ix: number) => (
                     <CapacityItem
                         item={x}
                         type={type}
