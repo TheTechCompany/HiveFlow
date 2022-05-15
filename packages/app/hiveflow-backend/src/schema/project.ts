@@ -10,7 +10,7 @@ import fetch from "cross-fetch";
 import { createUploadLink } from 'apollo-upload-client'
 
 export default (prisma: PrismaClient) => {
-    
+
     const resolvers = {
         Project: {
             files: async (root: any, args: any, context: any) => {
