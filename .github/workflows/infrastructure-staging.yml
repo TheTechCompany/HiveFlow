@@ -121,10 +121,7 @@ jobs:
         run: |
           echo "BUCKET_URL=${{ secrets.PROD_APP_BUCKET }}" >> $GITHUB_ENV  
         if: ${{ github.ref == 'refs/heads/master' }}
-        
-      - name: Make Bucket URL
-        run: echo "BUCKET_URL=S3_STAGING_${{matrix.apps}}_BUCKET" | tr a-z A-Z >> $GITHUB_ENV
-
+  
       - name: Upload new web-build
         run: |
           aws s3 sync packages/app/hiveflow-${{ matrix.apps }}/dist/ s3://${{ env.BUCKET_URL }}/hiveflow-${{matrix.apps}} --delete

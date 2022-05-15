@@ -123,7 +123,7 @@ export default (prisma: PrismaClient) => {
             owner: HiveUser 
 
             createdAt: DateTime
-            
+
             organisation: HiveOrganisation 
         }
     `
@@ -179,8 +179,6 @@ export default (prisma: PrismaClient) => {
                     if(args.where.timeline) whereArg = {...whereArg, timeline: {id: args.where.timeline}};
                 }
                 
-                // console.log({whereArg, where: args.where})
-
                 return await prisma.timelineItem.findMany({
                     where: {
                         id: args.where.id,
