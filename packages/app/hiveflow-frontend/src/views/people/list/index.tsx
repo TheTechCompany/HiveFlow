@@ -1,6 +1,8 @@
 import React, { Component, useState } from 'react';
 
-import { Box, DataTable, Text, TextInput } from 'grommet'
+import { Box, Text, TextInput } from 'grommet'
+
+import { DataTable } from '../../../components/DataTable'
 
 import {
    Search as IoSearch
@@ -172,10 +174,15 @@ export const PeopleList: React.FC<any> = (props) => {
             background="neutral-1">
 
             <DataTable
-               pin
-               onSort={({ property, direction }) => {
-                  setProperty(property)
-                  setDirection(direction)
+               order={direction}
+               orderBy={property}
+               onSort={(_property) => {
+                  if(property == _property){
+                     setDirection(direction == 'asc' ? 'desc' : 'asc')
+                   }else{
+                     setProperty(_property)
+                     setDirection('asc')
+                   }
                }}
                columns={[
              

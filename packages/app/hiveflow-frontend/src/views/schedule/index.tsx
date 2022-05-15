@@ -9,7 +9,7 @@ import { schedule as scheduleActions } from '../../actions'
 import { useContext } from 'react';
 import { AuthContext, useAuth } from '@hexhive/auth-ui';
 import { useEffect } from 'react';
-import { Menu, Previous, Next } from 'grommet-icons';
+import { Menu, ChevronLeft as Previous, ChevronRight as Next } from '@mui/icons-material';
 import {DraftPane } from './draft-pane';
 import { useQuery as useApollo, gql, useApolloClient } from '@apollo/client';
 import { ScheduleItem, ScheduleModal } from '../../modals/schedule';
@@ -85,6 +85,9 @@ export const Schedule : React.FC<any> = (props) =>  {
     scheduleItems (where: {date_GTE: $startDate, date_LTE: $endDate} ) {
       id
       date
+      
+      canEdit
+
       people{
         id
         name
@@ -107,6 +110,8 @@ export const Schedule : React.FC<any> = (props) =>  {
         id
         name
       }
+
+      createdAt
     }
    
   }
@@ -137,34 +142,14 @@ export const Schedule : React.FC<any> = (props) =>  {
 
     if(!args.item.project) return {error: 'Project is required'}
 
-    if(args.item.equipment?.length > 0){
-      query = {
-        ...query,
-        equipment: {
-          connect: [{where: {node: {id_IN: args.item?.equipment?.map((x: any) => x.id)}}}]
-        },
-      }
-    }
-
-    if(args.item.people?.length > 0){
-      query = {
-        ...query,
-        people: {
-          connect: [{where: {node: {id_IN: args.item?.people?.map((x: any) => x.id)}}}]
-        },
-      }
-    }
-    if(args.item.notes){
-      query = {
-        ...query,
-        notes: args.item.notes
-      }
-    }
+   
     const result = mutation.createScheduleItem({ 
       input: {
         date: args.item.date,
         project: args.item.project,
-        people: args.item.people
+        people: args.item.people,
+        equipment: args.item.equipment,
+        notes: args.item.notes,
       }
     })
     return {
@@ -283,12 +268,12 @@ export const Schedule : React.FC<any> = (props) =>  {
   const [joinCard, joinInfo] = useMutation((mutation, args: {id: string}) => {
     if(!activeUser?.id) return;
  
-    const result = mutation.manageScheduleItem({
+    const result = mutation.joinScheduleItem({
       id: args.id
     })
     return {
       item: {
-        success: result
+        ...result
       },
       error: null
     }
@@ -303,11 +288,11 @@ export const Schedule : React.FC<any> = (props) =>  {
 
   const [leaveCard, leaveInfo] = useMutation((mutation, args: {id: string}) => {
     if(!activeUser?.id) return;
-    const result = mutation.handoverScheduleItem({
+    const result = mutation.leaveScheduleItem({
       id: args.id
     })
     return {
-      item: result,
+      item: {...result},
       error: null
     }
   }, {
@@ -318,8 +303,12 @@ export const Schedule : React.FC<any> = (props) =>  {
     suspense: false,  
   })
 
-  const [cloneItem, cloenInfo] = useMutation((mutation, args: {item: any, dates: Date[]}) => {
+  const [cloneItem, cloenInfo] = useMutation((mutation, args: {id: string, dates: Date[]}) => {
     
+    const items = mutation.cloneScheduleItem({
+      id: args.id,
+      dates: args.dates.map((x) => x.toISOString())
+    })
     // let query : any = {};
     // if(args.item.notes) query.notes = args.item.notes;
 
@@ -369,6 +358,9 @@ export const Schedule : React.FC<any> = (props) =>  {
     //   }, //result ||
     //   error: null
     // }
+    return {
+      item: [...items]
+    }
   }, {
     onCompleted(data) {},
     onError(error) {},
@@ -392,12 +384,26 @@ export const Schedule : React.FC<any> = (props) =>  {
             projects={projects} />
 
           <ScheduleModal
-            selected={selected}
+              selected={schedule.find((a) => a.id == selected?.id)}
               open={modalOpen}
               date={modalDate}
               projects={projects}
               people={people}
               equipment={equipment}
+              onJoin={() => {
+                console.log("onJoin")
+                  joinCard({args: {id: selected.id}}).then((resp) => {
+                    refetchSchedule()
+                  })
+               
+              }}
+              onLeave={() => {
+                console.log("onLeave")
+                  leaveCard({args: {id: selected.id}}).then((resp) => {
+                    refetchSchedule()
+                  })
+                
+              }}
               onDelete={() => {
                 removeItem({
                   args: {
@@ -412,12 +418,27 @@ export const Schedule : React.FC<any> = (props) =>  {
               }}
               onSubmit={(item) => {
                 //TODO create schedule item
-                if(!item.id){
+                if(item.cloneDates){
+                  console.log("Clone Dates", {item})
+                  cloneItem({
+                    args: {
+                      id: selected.id,
+                      dates: item.cloneDates
+                    }
+                  }).then(() => {
+                    openModal(false);
+                    setModalDate(undefined);
+                    setSelected(undefined)
+                    refetchSchedule();
+                  })
+                }else if(!item.id){
                   createItem({
                     args: {
                       item: {
                         project: item.project,
+                        equipment: item.equipment?.map((x: any) => x.id),
                         people: item.people?.map((x: any) => x.id),
+                        notes: item.notes || [],
                         date: modalDate
                       }
                     }
@@ -433,7 +454,9 @@ export const Schedule : React.FC<any> = (props) =>  {
                       id: selected.id,
                       item: {
                         project: item.project,
+                        equipment: item.equipment?.map((x: any) => x.id),
                         people: item.people?.map((x: any) => x.id),
+                        notes: item.notes || [],
                         date: modalDate
                       }
                     }
@@ -458,16 +481,7 @@ export const Schedule : React.FC<any> = (props) =>  {
                hoverIndicator icon={draftsOpen ? <Previous /> : <Next />} />)
           }}
           isLoading={query.$state.isLoading}
-          onJoinCard={(card: any) => {
-            joinCard({args: {id: card.id}}).then((resp) => {
-              refetchSchedule()
-            })
-
-          }}
-          onLeaveCard={(card: any) => {
-            leaveCard({args: {id: card.id}}).then((resp) => {
-            })
-          }}
+      
           date={horizon.start}
           onHorizonChanged={async (start, end) => {
             setHorizon({start, end})
@@ -494,10 +508,11 @@ export const Schedule : React.FC<any> = (props) =>  {
 
           onUpdateItem={(item) => {
             console.log({item})
-
-            setSelected(item);
-            openModal(true);
-            setModalDate(item.date);
+            // if(item.canEdit){
+              setSelected(item);
+              openModal(true);
+              setModalDate(item.date);
+            // }
           }}
          
          />

@@ -1,11 +1,12 @@
 import { refetch, useMutation, useQuery } from '@hive-flow/api';
 import { useTypeConfiguration } from '../../../context';
-import { DataTable, Box, TextInput, Select } from 'grommet';
+import { Box, TextInput, Select } from 'grommet';
 import React, {
   Component, useEffect, useState
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { DataTable } from '../../../components/DataTable'
 
 // import { useQuery } from '../../../gqless';
 import { Header } from './header';
@@ -181,14 +182,17 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
         round="xsmall"
         background="neutral-1"
         className="jobs-page">
+
         <DataTable
-          background={{
-            header: { color: 'accent-1', opacity: 'strong' },
-          }}
-          pin
-          onSort={({property, direction}) => {
-            setProperty(property)
-            setDirection(direction)
+          order={direction}
+          orderBy={property}
+          onSort={(_property) => {
+            if(property == _property){
+              setDirection(direction == 'asc' ? 'desc' : 'asc')
+            }else{
+              setProperty(_property)
+              setDirection('asc')
+            }
           }}
           columns={[
             {
@@ -211,7 +215,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
               align: 'center'
             }
           ]}
-          onClickRow={({datum}) => datum.displayId && selectJob(datum?.displayId)}
+          onClickRow={(datum) => datum.displayId && selectJob(datum?.displayId)}
           data={getJobs()} />
        {/* <SortedList 
           orderBy={"JobID"}

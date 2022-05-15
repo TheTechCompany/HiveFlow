@@ -23,9 +23,10 @@ export default (prisma: PrismaClient) => {
             createScheduleItem(input: ScheduleItemInput): ScheduleItem
             updateScheduleItem(id: ID, input: ScheduleItemInput): ScheduleItem
             deleteScheduleItem(id: ID): ScheduleItem
-
-            manageScheduleItem(id: ID): Boolean
-            handoverScheduleItem(id: ID): Boolean
+            
+            cloneScheduleItem(id: ID, dates: [DateTime]): [ScheduleItem]
+            joinScheduleItem(id: ID): ScheduleItem
+            leaveScheduleItem(id: ID): ScheduleItem
         }
 
         type TimelineItemItems {
@@ -54,6 +55,7 @@ export default (prisma: PrismaClient) => {
             id: ID
             date_GTE: DateTime
             date_LTE: DateTime
+            project: String
         }
 
         input TimelineInput {
@@ -114,15 +116,27 @@ export default (prisma: PrismaClient) => {
             people: [HiveUser]
             equipment: [Equipment]
             notes: [String]
-            managers: [HiveUser] 
 
+            canEdit: Boolean
+
+            managers: [HiveUser] 
             owner: HiveUser 
 
+            createdAt: DateTime
+            
             organisation: HiveOrganisation 
         }
     `
 
     const resolvers = {
+        ScheduleItem: {
+            canEdit: (root: any, args: any, context: any) => {
+                const { managers, owner } = root;
+
+                const list = (managers || []).concat(owner)
+                return list.map((x: {id: string}) => x.id).indexOf(context.jwt.id) > -1
+            }
+        },
         Query: {
             scheduleItems: async (root: any, args: any, context: any) => {
 
@@ -131,7 +145,8 @@ export default (prisma: PrismaClient) => {
                 if(args.where?.date_GTE) query['date'] = {...query['date'], gte: args.where.date_GTE};
                 if(args.where?.date_LTE) query['date'] = {...query['date'], lte: args.where.date_LTE};
                 if(args.where?.id) query['id'] = args.where.id;
-
+                if(args.where?.project) query['project'] = {displayId: args.where?.project}; 
+                
                 const items = await prisma.scheduleItem.findMany({
                     where: {
                         organisation: context.jwt.organisation,
@@ -139,14 +154,19 @@ export default (prisma: PrismaClient) => {
                     },
                     include: {
                         project: true,
-                        
+                        equipment: true,
+                        permissions: true
                     }
                 })
-                return items.map((item) => ({
+
+                const result = items.map((item) => ({
                     ...item,
                     people: item?.people?.map((x) => ({id: x})),
-                    owner: item.owner ? {id: item.owner} : undefined
+                    owner: item.owner ? {id: item.owner} : undefined,
+                    managers: item.permissions ? item.permissions.map((perm) => ({id: perm.owner})) : []
                 }))
+                console.log({result})
+                return result;
             },
             timelines: async (root: any, args: any) => {
                 return await prisma.timeline.findMany({include: {items: true}});
@@ -271,6 +291,9 @@ export default (prisma: PrismaClient) => {
                         people: {
                             set: args.input.people || []
                         },
+                        equipment: {
+                            connect: args.input.equipment?.map((x: any) => ({id: x})) || []
+                        },
                         project: {
                             connect: {id: args.input.project}
                         },
@@ -284,12 +307,70 @@ export default (prisma: PrismaClient) => {
                     where: {id: args.id},
                     data: {
                         date: args.input.date,
-                        notes: args.input.notes || '',
+                        notes: args.input.notes || [],
                         people: {
                             set: args.input.people || []
                         },
+                        equipment: {
+                            set: args.input.equipment?.map((x: any) => ({id: x})) || []
+                        },
                         project: {
                             connect: {id: args.input.project}
+                        }
+                    }
+                })
+            },
+            cloneScheduleItem: async (root: any, args: {id: string, dates: Date[]}, context: any) => {
+                //TODO check ownership
+                const item = await prisma.scheduleItem.findFirst({where: {id: args.id}, include: {equipment: true, project: true}})
+                if(!item) throw new Error("No Schedule Item");
+
+                return await Promise.all(args.dates.map(async (date) => {
+                    return await prisma.scheduleItem.create({
+                        data: {
+                            id: nanoid(),
+                            project: {connect: {id: item.projectId}},
+                            date: date,
+                            people: item.people,
+                            equipment: {connect: item.equipment.map((x) => ({id: x.id}))},
+                            notes: item.notes,
+                            organisation: item.organisation,
+                            owner: item.owner
+                        }
+                    })
+                }))
+               
+            },
+            joinScheduleItem: async (root: any, args: any, context: any) => {
+                return await prisma.scheduleItem.update({
+                    where: {id: args.id},
+                    data: {
+                        permissions: {
+                            upsert: [{
+                                where: {schedulePermitted: {scheduleItemId: args.id, owner: context?.jwt?.id}},
+                                create: {
+                                    id: nanoid(),
+                                    owner: context?.jwt?.id
+                                },
+                                update: {
+                                    owner: context?.jwt?.id
+                                }
+                            }]
+                        }
+                    }
+                })
+            },
+            leaveScheduleItem: async (root: any, args: any, context: any) => {
+                return await prisma.scheduleItem.update({
+                    where: {id: args.id},
+                    data: {
+                        permissions: {
+                            delete: [{
+                                schedulePermitted: {
+                                    scheduleItemId: args.id,
+                                    owner: context?.jwt?.id
+                                }
+                            }]
                         }
                     }
                 })
@@ -298,43 +379,6 @@ export default (prisma: PrismaClient) => {
                 return await prisma.scheduleItem.delete({
                     where: {id: args.id}
                 })
-            },
-            manageScheduleItem: async (root: any, args: any, context: any) => {
-                // console.log({Jwt: context.jwt})
-                const res = await prisma.scheduleItem.update({
-                    where: {id: args.id},
-                    data: {
-                        permissions: {
-                            upsert: [{
-                                where: {schedulePermitted: {scheduleItemId: args.id, owner: context.jwt.id}},
-                                create: {
-                                    id: nanoid(),
-                                    owner: context.jwt.id
-                                },
-                                update: {
-
-                                }  
-                            }]
-                        }
-                    }
-                })
-                return res != null
-            },
-            handoverScheduleItem: async (root: any, args: any, context: any) => {
-                const res = await prisma.scheduleItem.update({
-                    where: {id: args.id},
-                    data: {
-                        permissions: {
-                            delete: {
-                                schedulePermitted: {
-                                    owner: context.jwt.id,
-                                    scheduleItemId: args.id
-                                }
-                            }
-                        }
-                    }
-                });
-                return res != null;
             }
         }
     };

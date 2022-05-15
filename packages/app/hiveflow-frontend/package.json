@@ -58,7 +58,7 @@
     "@apollo/client": "^3.5.6",
     "@hexhive/auth-ui": "0.0.6-alpha.10",
     "@hexhive/styles": "^0.0.6-alpha.0",
-    "@hexhive/ui": "0.0.12-alpha.11",
+    "@hexhive/ui": "0.0.12-alpha.17",
     "@hexhive/utils": "^0.0.6-alpha.0",
     "@hive-flow/api": "^1.0.0",
     "@mui/material": "^5.6.4",

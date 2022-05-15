@@ -770,7 +770,6 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                 flex
                 round="small">
 
-
                 <Timeline
                     dayInfo={(day) => {
                         

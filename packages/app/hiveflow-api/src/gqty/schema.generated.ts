@@ -27,6 +27,8 @@ export interface Scalars {
   /** A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar. */
   DateTime: string;
   Hash: any;
+  /** The `Upload` scalar type represents a file upload. */
+  Upload: any;
 }
 
 export interface EquipmentInput {
@@ -77,6 +79,7 @@ export interface ScheduleWhere {
   date_GTE?: InputMaybe<Scalars["DateTime"]>;
   date_LTE?: InputMaybe<Scalars["DateTime"]>;
   id?: InputMaybe<Scalars["ID"]>;
+  project?: InputMaybe<Scalars["String"]>;
 }
 
 export interface TimelineInput {
@@ -112,6 +115,7 @@ export const scalarsEnumsHash: import("gqty").ScalarsEnumsHash = {
   Hash: true,
   ID: true,
   String: true,
+  Upload: true,
 };
 export const generatedSchema = {
   Equipment: {
@@ -217,7 +221,7 @@ export const generatedSchema = {
     notes: { __type: "[String]" },
     organisation: { __type: "HiveOrganisation" },
     owner: { __type: "HiveUser" },
-    people: { __type: "[People]" },
+    people: { __type: "[HiveUser]" },
     project: { __type: "Project" },
   },
   ScheduleItemInput: {
@@ -232,6 +236,7 @@ export const generatedSchema = {
     date_GTE: { __type: "DateTime" },
     date_LTE: { __type: "DateTime" },
     id: { __type: "ID" },
+    project: { __type: "String" },
   },
   Timeline: {
     __typename: { __type: "String!" },
@@ -289,6 +294,10 @@ export const generatedSchema = {
   },
   mutation: {
     __typename: { __type: "String!" },
+    cloneScheduleItem: {
+      __type: "[ScheduleItem]",
+      __args: { dates: "[DateTime]", id: "ID" },
+    },
     createEquipment: {
       __type: "Equipment",
       __args: { input: "EquipmentInput" },
@@ -319,8 +328,8 @@ export const generatedSchema = {
     deleteTimeline: { __type: "Timeline", __args: { id: "ID" } },
     deleteTimelineItem: { __type: "TimelineItem", __args: { id: "ID" } },
     empty: { __type: "String" },
-    handoverScheduleItem: { __type: "Boolean", __args: { id: "ID" } },
-    manageScheduleItem: { __type: "Boolean", __args: { id: "ID" } },
+    joinScheduleItem: { __type: "ScheduleItem", __args: { id: "ID" } },
+    leaveScheduleItem: { __type: "ScheduleItem", __args: { id: "ID" } },
     updateEquipment: {
       __type: "Equipment",
       __args: { id: "ID", input: "EquipmentInput" },
@@ -351,7 +360,7 @@ export const generatedSchema = {
     },
     uploadProjectFiles: {
       __type: "[File!]!",
-      __args: { path: "String", project: "ID!" },
+      __args: { files: "[Upload]", path: "String", project: "ID!" },
     },
   },
   query: {
@@ -477,7 +486,7 @@ export interface ScheduleItem {
   notes?: Maybe<Array<Maybe<ScalarsEnums["String"]>>>;
   organisation?: Maybe<HiveOrganisation>;
   owner?: Maybe<HiveUser>;
-  people?: Maybe<Array<Maybe<People>>>;
+  people?: Maybe<Array<Maybe<HiveUser>>>;
   project?: Maybe<Project>;
 }
 
@@ -526,6 +535,10 @@ export interface WorkInProgress {
 
 export interface Mutation {
   __typename?: "Mutation";
+  cloneScheduleItem: (args?: {
+    dates?: Maybe<Array<Maybe<Scalars["DateTime"]>>>;
+    id?: Maybe<Scalars["ID"]>;
+  }) => Maybe<Array<Maybe<ScheduleItem>>>;
   createEquipment: (args?: {
     input?: Maybe<EquipmentInput>;
   }) => Maybe<Equipment>;
@@ -557,12 +570,12 @@ export interface Mutation {
     id?: Maybe<Scalars["ID"]>;
   }) => Maybe<TimelineItem>;
   empty?: Maybe<ScalarsEnums["String"]>;
-  handoverScheduleItem: (args?: {
+  joinScheduleItem: (args?: {
     id?: Maybe<Scalars["ID"]>;
-  }) => Maybe<ScalarsEnums["Boolean"]>;
-  manageScheduleItem: (args?: {
+  }) => Maybe<ScheduleItem>;
+  leaveScheduleItem: (args?: {
     id?: Maybe<Scalars["ID"]>;
-  }) => Maybe<ScalarsEnums["Boolean"]>;
+  }) => Maybe<ScheduleItem>;
   updateEquipment: (args?: {
     id?: Maybe<Scalars["ID"]>;
     input?: Maybe<EquipmentInput>;
@@ -592,6 +605,7 @@ export interface Mutation {
     input?: Maybe<TimelineItemInput>;
   }) => Maybe<TimelineItem>;
   uploadProjectFiles: (args: {
+    files?: Maybe<Array<Maybe<Scalars["Upload"]>>>;
     path?: Maybe<Scalars["String"]>;
     project: Scalars["ID"];
   }) => Array<File>;

@@ -2,7 +2,7 @@ import React, { ReducerAction } from 'react';
 
 import { Box, Button, DateInput, Layer, Select, TextInput, Text } from 'grommet'
 import { useState } from 'react';
-import { Capacity, Notes, Add, Close } from 'grommet-icons'
+import { ReduceCapacity, Notes, Add, Close } from '@mui/icons-material'
 import moment from 'moment';
 import { useEffect } from 'react';
 import { ColorDot } from '@hexhive/ui';
@@ -33,7 +33,7 @@ export interface TimelineModalProps {
         }[]}) => void;
 }
 
-const tab_options = [<Capacity />, <Notes />]
+const tab_options = [<ReduceCapacity />, <Notes />]
 
 export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
 

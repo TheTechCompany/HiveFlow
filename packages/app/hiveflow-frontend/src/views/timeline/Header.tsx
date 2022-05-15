@@ -1,6 +1,6 @@
 import { Box, Text, Select, Button, Layer, Drop, List, CheckBox } from 'grommet';
 import React, { useRef, useState } from 'react';
-import { Add, Filter } from 'grommet-icons';
+import { Add, FilterAlt as Filter } from '@mui/icons-material';
 import styled from 'styled-components';
 
 export interface TimelineProps{
@@ -78,7 +78,7 @@ export const BaseTimelineHeader: React.FC<TimelineProps> = (props) => {
             </Box>
             <Box background="#ffffff42" round="xsmall">
                 { true ? (
-                     <Button plain style={{padding: 6}} size="small" onClick={props.onAdd} icon={<Add size="20px" />} />
+                     <Button plain style={{padding: 6}} size="small" onClick={props.onAdd} icon={<Add fontSize="small" />} />
                 ) : (
                     <>
                     <Button 
@@ -89,7 +89,7 @@ export const BaseTimelineHeader: React.FC<TimelineProps> = (props) => {
                         plain 
                         style={{padding: 6}} 
                         size="small" 
-                        icon={<Filter size="20px" />} />
+                        icon={<Filter fontSize="small" />} />
                     {filterOpen && 
                         <Drop
                             onEsc={() => openFilter(false)}

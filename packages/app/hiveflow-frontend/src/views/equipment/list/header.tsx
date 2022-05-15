@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, TextInput, Select, Button } from 'grommet'
-import { Add } from 'grommet-icons';
+import { Add } from '@mui/icons-material';
 
 export interface PlantHeaderProps {
 

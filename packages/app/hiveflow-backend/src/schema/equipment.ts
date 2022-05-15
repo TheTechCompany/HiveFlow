@@ -37,15 +37,19 @@ export default (prisma: PrismaClient) => {
         },
         Mutation: {
             createEquipment: async (root: any, args: any, context: any) => {
-
-                return await prisma.equipment.create({
-                    data: {
-                        id: nanoid(),
-                        name: args.input.name,
-                        registration: args.input.registration,
-                        organisation: context.jwt.organisation
-                    }
+               return await prisma.$transaction(async (prisma) => {
+					const count = await prisma.equipment.count({ where: {organisation: context.jwt.organisation }})
+                    return await prisma.equipment.create({
+                        data: {
+                            id: nanoid(),
+                            displayId: `${count}`,
+                            name: args.input.name,
+                            registration: args.input.registration,
+                            organisation: context.jwt.organisation
+                        }
+                    })
                 })
+              
             },
             updateEquipment: async (root: any, args: any, context: any) => {
                 return await prisma.equipment.update({

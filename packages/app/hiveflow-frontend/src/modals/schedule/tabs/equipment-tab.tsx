@@ -41,7 +41,7 @@ export const EquipmentTab : React.FC<PlantTabProps> = ({
       <Box height="100%">
         <TransferList
           assignedKey={labelKey}
-          assignedList={assigned}
+          assignedList={assigned || []}
           labelKey={labelKey}
           options={options.filter((x: any) => x.name).sort((a: any, b: any) => {
              return a.name.localeCompare(b.name, 'en', { numeric: true }) 

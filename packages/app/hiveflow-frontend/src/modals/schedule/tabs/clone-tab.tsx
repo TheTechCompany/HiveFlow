@@ -6,9 +6,12 @@ import styled from 'styled-components'
 import {Calendar, DateObject} from "react-multi-date-picker";
 
 import moment from 'moment';
+import { gql, useApolloClient, useQuery } from '@apollo/client';
 
 
 export interface CloneTabProps {
+    project?: {displayId: string};
+
     selected?: Date[]; //Already selected
     onSelect?: (dates: Date[]) => void; //Select state is items changed
 
@@ -18,15 +21,44 @@ export interface CloneTabProps {
 const BaseCloneTab : React.FC<CloneTabProps> = ({
     selected = [],
     onSelect,
-    className
+    className,
+    project
 }) => {
     const [ cloneSelected, setCloneSelected ] = useState<Date[]>([]);
+
+    console.log({project});
 
     useEffect(()=> {
         if(selected){
             setCloneSelected(selected)
         }
     }, [selected])
+
+    const { data } = useQuery(gql`
+        query GetScheduledDates ($project: String){
+            scheduleItems(where: {project: $project}){
+                date
+            }
+        }
+    `, {
+        variables: {
+            project: project?.displayId
+        }
+    })
+
+    const client = useApolloClient();
+
+    const refetch = () => {
+        client.refetchQueries({include: ['GetScheduledDates']})
+    }
+    
+    useEffect(() => {
+        refetch();
+    }, [])
+
+    const scheduledDates = data?.scheduleItems?.map((x) => x.date);
+
+    console.log({data})
 
     const onCloneSelect = (select: Date[]) => {
         
@@ -55,17 +87,24 @@ const BaseCloneTab : React.FC<CloneTabProps> = ({
 
     return (
     <Box 
+        flex
         direction="column"
+        pad="xsmall"
         className={className}>
         <Calendar
             currentDate={new DateObject()}
             className="calendar-contained"
             multiple
-            value={selected.concat(cloneSelected)}
+            value={selected.concat(scheduledDates)}
             onChange={(dates) => {
                 if(Array.isArray(dates)){
                     let d = dates.map((x) => x.valueOf())
-                     onCloneSelect(Array.from(new Set(d)).map((x) => new Date(x)))
+                    const existingDates = scheduledDates.map((x) => new Date(x).getTime());
+                    console.log({existingDates, d})
+                    const clone = d.filter((x) => existingDates.indexOf(x) < 0);
+                    console.log({clone})
+
+                     onCloneSelect(Array.from(new Set(d)).map((x) => new Date(x)).filter((a) => existingDates.indexOf(a.getTime()) < 0))
                 }
             }}
         />
@@ -78,6 +117,7 @@ export const CloneTab = styled(BaseCloneTab)`
         height: 100%;
         width: 100%;
         display: flex;
+        flex: 1;
     }
 
     .calendar-contained .rmdp-calendar{
@@ -108,6 +148,10 @@ export const CloneTab = styled(BaseCloneTab)`
 
     .calendar-contained .rmdp-week-day {
         font-size: 18px;
+    }
+
+    .calendar-contained .rmdp-week {
+        margin-bottom: 6px;
     }
 
     .calendar-contained .rmdp-day{

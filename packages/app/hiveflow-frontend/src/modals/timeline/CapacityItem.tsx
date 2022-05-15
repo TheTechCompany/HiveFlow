@@ -1,6 +1,6 @@
 import { Box, Button, Select, TextInput } from 'grommet';
 import React from 'react';
-import { Close } from 'grommet-icons'
+import { Close } from '@mui/icons-material'
 
 export interface CapacityItemProps {
     type: "Projects" | "People" | "Estimates";
@@ -34,7 +34,7 @@ export const CapacityItem : React.FC<CapacityItemProps> = (props) => {
                 onChange={(e) => props.updateCapacityItem('estimate', parseFloat(e.target.value))}
                 placeholder={props.type == "Projects" ? "Estimated hours" : "People"} />
         </Box>
-        <Button onClick={() => props.removeCapacityItem()} icon={<Close size="small" color="red" />} />
+        <Button onClick={() => props.removeCapacityItem()} icon={<Close sx={{color: 'red'}} fontSize="small" />} />
     </Box>
     );
 }

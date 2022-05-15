@@ -45,8 +45,12 @@ model Estimate {
 
 model Equipment {
     id           String @id
+    displayId    String?
     name         String
     registration String?
+
+    schedule ScheduleItem[] @relation(name: "scheduleEquipment")
+
     organisation String
 }
 
@@ -58,11 +62,15 @@ model ScheduleItem {
     projectId String
 
     people String[]
+    equipment Equipment[] @relation(name: "scheduleEquipment")
+
     notes  String[]
 
 	permissions ScheduleItemPermission[] @relation(name: "permissionsFor")
 
     owner String?
+
+    createdAt DateTime @default(now())
 
     organisation String
 }

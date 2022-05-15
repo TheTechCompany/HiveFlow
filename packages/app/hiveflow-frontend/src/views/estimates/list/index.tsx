@@ -1,9 +1,9 @@
-import { Box, ColumnConfig, DataTable } from 'grommet';
+import { Box, ColumnConfig } from 'grommet';
 import React, {
   useEffect, useState
 } from 'react';
 import { useMutation, useQuery } from '@hive-flow/api';
-
+import { DataTable } from '../../../components/DataTable'
 // import utils from '../../utils';
 import { QuoteHeader } from './header';
 import { useTypeConfiguration } from '../../../context';
@@ -32,11 +32,11 @@ export const EstimateList: React.FC<any> = (props) => {
 
   // const [listData, setListData] = useState<any[]>([])
 
-  const listKeys : ColumnConfig<{id: string; name: any; price: any;}>[] = [
-    { property: 'displayId', header: 'Quote ID', sortable: true, size: 'small', primary: true },
+  const listKeys = [
+    { property: 'displayId', header: 'Quote ID', sortable: true, size: 'small'},
     { property: 'name', header: 'Quote Name', sortable: true, size: 'large' },
     { property: 'status', header: 'Status', sortable: true, size: 'small'},
-    { property: 'price', header: 'Total Value',  render: (row) => formatter.format(row.price), sortable: true, size: 'small', align: 'start' }
+    { property: 'price', header: 'Total Value',  render: (row) => formatter.format(row.price), sortable: true, size: 'small', align: 'left' }
   ]
 
   const query = useQuery({
@@ -224,13 +224,18 @@ export const EstimateList: React.FC<any> = (props) => {
         background="neutral-1">
 
         <DataTable
-          pin
-          onSort={({ property, direction }) => {
-            setProperty(property)
-            setDirection(direction)
+          order={direction}
+          orderBy={property}
+          onSort={(_property) => {
+            if(property == _property){
+              setDirection(direction == 'asc' ? 'desc' : 'asc')
+            }else{
+              setProperty(_property)
+              setDirection('asc')
+            }
           }}
-          onClickRow={({datum}) => navigate(datum.displayId)}
-          sort={(property && direction) ? {property, external: true, direction} : undefined}
+          onClickRow={(datum) => navigate(datum.displayId)}
+          // sort={(property && direction) ? {property, external: true, direction} : undefined}
           columns={listKeys}
           data={listData?.filter(filterQuotes).sort(sortQuotes).map(formatQuote)} />
       </Box>

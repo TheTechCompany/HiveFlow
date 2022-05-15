@@ -1,6 +1,6 @@
 import { gql, useQuery } from '@apollo/client';
 import { Box, Button, Text } from 'grommet';
-import { Previous } from 'grommet-icons';
+import { ChevronLeft as Previous } from '@mui/icons-material';
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Spreadsheet, { createEmptyMatrix } from "react-spreadsheet";
@@ -44,7 +44,7 @@ export const EstimateSingle = (props) => {
                     hoverIndicator
                     plain
                     style={{padding: 6, borderRadius: 3}} 
-                    icon={<Previous size='small' />} />
+                    icon={<Previous fontSize='small' />} />
                 <Text>{estimate.displayId} - {estimate.name}</Text>
             </Box>
             <Box 

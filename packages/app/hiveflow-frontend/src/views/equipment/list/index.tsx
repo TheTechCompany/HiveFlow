@@ -5,8 +5,8 @@ import React, {
 
 // import utils from '../../../utils';
 import moment from 'moment';
-
-import { Box, DataTable } from 'grommet';
+import { DataTable } from '../../../components/DataTable'
+import { Box } from 'grommet';
 import { PlantHeader } from './header';
 import { useMutation, useQuery } from '@hive-flow/api';
 import { useTypeConfiguration } from '../../../context';
@@ -220,10 +220,15 @@ export const EquipmentList: React.FC<any> = (props) => {
         background="neutral-1"
       >
         <DataTable
-          pin
-          onSort={({property, direction}) => {
-            setProperty(property)
-            setDirection(direction)
+          orderBy={property}
+          order={direction}
+          onSort={(_property) => {
+            if(property == _property){
+              setDirection(direction == 'asc' ? 'desc' : 'asc')
+            }else{
+              setProperty(_property)
+              setDirection('asc')
+            }
           }}
           onClickRow={selectPlant}
           columns={listKeys}

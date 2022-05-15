@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, TextInput, Select, Button } from 'grommet'
 import { Maybe } from '@hive-flow/api';
-import { Add } from 'grommet-icons';
+import { Add } from '@mui/icons-material';
 
 export interface HeaderProps {
     jobs?: Maybe<{

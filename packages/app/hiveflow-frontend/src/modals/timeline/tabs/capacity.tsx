@@ -1,5 +1,5 @@
 import React from 'react';
-import { Add } from 'grommet-icons';
+import { Add } from '@mui/icons-material';
 import { Box, Button, Text } from 'grommet';
 import { CapacityItem } from '../CapacityItem';
 
@@ -21,7 +21,7 @@ export const CapacityTab = ({
                 <Button
                     onClick={addCapacityItem}
                     hoverIndicator
-                    icon={<Add size="small" />} />
+                    icon={<Add fontSize="small" />} />
             </Box>
             <Box
                 gap="xsmall"

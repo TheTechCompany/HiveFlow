@@ -95,6 +95,11 @@ export const Dashboard = (props: any) => {
                   path: "equipment",
                   alerts: alerts.length,
                   component: <></>
+                },
+                {
+                  label: "Reports",
+                  path: "reports",
+                  component: <></>
                 }
       ]
     
