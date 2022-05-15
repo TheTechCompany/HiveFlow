@@ -35,7 +35,7 @@ export const PeopleList: React.FC<any> = (props) => {
 
    const { data } = useQuery(gql`
       query GetPeople {
-         users {
+         users(active: true) {
             id
             name
          }

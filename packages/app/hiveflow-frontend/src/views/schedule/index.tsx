@@ -46,7 +46,7 @@ export const Schedule : React.FC<any> = (props) =>  {
 
   const slowResult = useApollo(gql`
     query Slow {
-      users {
+      users(active: true){
         id
         name
       }
@@ -68,8 +68,8 @@ export const Schedule : React.FC<any> = (props) =>  {
      timelineItems (where: {timeline: "Projects", startDate_LTE: $endDate, endDate_GTE: $startDate}){
        id
        project{
-            id
-            name
+          id
+          name
        }
 
        estimate {
