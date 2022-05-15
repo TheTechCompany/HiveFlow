@@ -148,7 +148,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = (props) => {
             <Box
                 direction='column'
                 flex
-                style={{ minHeight: '60vh' }}>
+                style={{ minHeight: '60vh', maxHeight: '60vh' }}>
                 {/* onDelete={props.selected && props.onDelete}
             onSubmit={onSubmit} */}
                 <Box     
@@ -199,7 +199,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = (props) => {
                  </Box>
                 <Box flex background={'neutral-2'}>
                     <Box
-                        height={{ min: '200px' }}
+                        height={{ max: '50vh' }}
                         flex>
 
                         {cloneTab ? (
