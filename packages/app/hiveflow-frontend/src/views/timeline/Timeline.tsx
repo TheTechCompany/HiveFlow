@@ -194,7 +194,6 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         startDate?: string, 
         endDate?: string
     }  }) => {
-   //{create: plan.items.map((x) => ({node: x})) } || []
         const item = mutation.createTimelineItem({
             input: {
                 timelineId: args.item.timeline,
