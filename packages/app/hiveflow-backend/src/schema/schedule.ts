@@ -190,13 +190,13 @@ export default (prisma: PrismaClient) => {
                 if(args.where){
                     if(args.where.id) whereArg = {...whereArg, id: args.where.id};
                     if(args.where.timeline) whereArg = {...whereArg, timeline: {id: args.where.timeline}};
+                    if(args.where.startDate_LTE) whereArg.startDate = {lte: args.where.startDate_LTE};
+                    if(args.where.endDate_GTE) whereArg.endDate = {gte: args.where.endDate_GTE};
                 }
                 
                 return await prisma.timelineItem.findMany({
                     where: {
-                        id: args.where.id,
-                        timeline:  args.where.timeline,
-                        organisation: context?.jwt?.organisation
+                        ...whereArg
                     },
                     include: {
                         project: true,
