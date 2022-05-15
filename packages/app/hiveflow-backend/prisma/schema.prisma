@@ -21,8 +21,8 @@ model Project {
 
     organisation String
 
-    startDate DateTime
-    endDate   DateTime
+    startDate DateTime?
+    endDate   DateTime?
     status    String
 
     @@unique([organisation, displayId])
@@ -31,11 +31,15 @@ model Project {
 model Estimate {
     id           String   @id
     displayId    String? 
+    
     name         String
     status       String?
+
     createdAt    DateTime @default(now())
     updatedAt    DateTime @default(now())
+
     price        Float?
+    
     organisation String
 
     timeline TimelineItem[] @relation(name: "estimateTimeline")

@@ -14,14 +14,15 @@ const main = (async () => {
     const suffix = config.require('suffix');
 
     const stackRef = new pulumi.StackReference(`${org}/base-infrastructure/prod`)
+    const dbRef = new pulumi.StackReference(`${org}/hexhive-db/db-${suffix}`);
 
     const gatewayRef = new pulumi.StackReference(`${org}/apps/${suffix}`)
 
     const kubeconfig = stackRef.getOutput('kubeconfig');
     
     const rootServer = gatewayRef.getOutput('gatewayUrl');
-    const dbUrl = gatewayRef.getOutput('postgres_name');
-    const dbPass = gatewayRef.getOutput('postgres_pass');
+    const dbUrl = dbRef.getOutput('postgres_name');
+    const dbPass = dbRef.getOutput('postgres_pass');
 
     const provider = new Provider('eks', { kubeconfig });
 
