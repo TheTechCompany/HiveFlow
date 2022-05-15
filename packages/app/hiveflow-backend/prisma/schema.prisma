@@ -56,6 +56,8 @@ model Equipment {
     schedule ScheduleItem[] @relation(name: "scheduleEquipment")
 
     organisation String
+
+    @@unique([ displayId, organisation ])
 }
 
 model ScheduleItem {

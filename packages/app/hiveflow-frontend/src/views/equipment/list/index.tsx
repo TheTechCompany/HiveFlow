@@ -23,7 +23,7 @@ export const EquipmentList: React.FC<any> = (props) => {
   const [search, setSearch] = useState<string>('');
 
   const listKeys = [
-    { property: 'id', header: 'ID', size: 'small', sortable: true },
+    { property: 'displayId', header: 'ID', size: 'small', sortable: true },
     { property: 'name', header: 'Name', sortable: true },
     { property: 'registration', header: 'Registration', sortable: true },
     { property: 'status', header: 'Status', sortable: true },
