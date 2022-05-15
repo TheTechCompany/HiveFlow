@@ -122,6 +122,8 @@ model TimelineItem {
 	endDate DateTime
 
     timeline String
+
+    organisation String?
 	// timeline Timeline @relation(name: "onTimeline", fields: [timelineId], references: [id], onDelete: Cascade)
 	// timelineId String
 }

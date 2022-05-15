@@ -195,7 +195,8 @@ export default (prisma: PrismaClient) => {
                 return await prisma.timelineItem.findMany({
                     where: {
                         id: args.where.id,
-                        timeline:  args.where.timeline
+                        timeline:  args.where.timeline,
+                        organisation: context?.jwt?.organisation
                     },
                     include: {
                         project: true,
