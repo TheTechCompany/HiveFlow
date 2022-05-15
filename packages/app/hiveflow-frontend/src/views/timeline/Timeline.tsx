@@ -735,7 +735,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         }
     }
 
-    const updateTimelinePlan =as ync (id: string, item: { notes?: string, start: Date, end: Date }) => {
+    const updateTimelinePlan = async (id: string, item: { notes?: string, start: Date, end: Date }) => {
 
         try {
             const result = await updateTimelineItem({
