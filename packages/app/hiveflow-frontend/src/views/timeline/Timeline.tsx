@@ -60,6 +60,8 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     const [date, setDate] = useState<Date>(sampleDate)
     const [horizon, setHorizon] = useState<{ start: Date, end: Date } | undefined>()
 
+    const [timelineItems, setTimelineItems] = useState<any[]>([]);
+
     const query = useQuery({
         suspense: false,
         staleWhileRevalidate: true
@@ -128,6 +130,10 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
             end: horizon?.end.toISOString()
         }
     })
+
+    useEffect(() => {
+        setTimelineItems(data?.timelineItems?.map(mapItems))
+    }, [data?.timelineItems])
 
     // const peopleData = useApollo(gql`
     //     query People {
@@ -711,7 +717,21 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                     }
                 }
             }).then(() => {
-                refetchTimeline()
+
+                // setTimeout(() => {
+                    let items = timelineItems.slice();
+                    let ix = items.map((x) => x.id).indexOf(plan.id);
+                    if(ix > -1){
+                        items[ix] = {
+                            ...items[ix],
+                            ...plan
+                        }
+                        setTimelineItems(items)
+                    }
+                // }, 2000);
+                
+                // setTimelineItems(items)
+                // refetchTimeline()
                 openERP(false)
             })
         } else {
@@ -907,7 +927,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                     resizable
                     mode="month"
                     links={[]}
-                    data={data?.timelineItems?.map(mapItems) || []}
+                    data={timelineItems || []}
                     date={date}
                     itemHeight={30}
                     onUpdateTask={async (task: any, info: any) => {
