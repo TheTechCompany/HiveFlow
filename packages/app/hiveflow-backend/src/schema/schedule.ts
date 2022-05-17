@@ -147,12 +147,12 @@ export default (prisma: PrismaClient) => {
                 const { managers, owner } = root;
 
                 const list = (managers || []).concat([owner])
-                
+
                 const canEdit = list.map((x: any) => x.id).indexOf(context.jwt.id) > -1;
 
                 console.log(root.id, {owner, canEdit, list, managers, context: context.jwt})
                 
-                return list.map((x: {id: string}) => x.id).indexOf(context.jwt.id) > -1
+                return canEdit //list.map((x: {id: string}) => x.id).indexOf(context.jwt.id) > -1
             }
         },
         Query: {
