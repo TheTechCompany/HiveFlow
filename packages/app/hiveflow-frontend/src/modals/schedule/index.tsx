@@ -163,7 +163,9 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = (props) => {
                     <Text>Create schedule for {moment(props.date).format('DD/MM/yy')}</Text>
                     
                     <Box gap="xsmall" direction='row' align='center'>
-                        <AvatarList size={25} users={owners} />
+                        
+                        { props.selected &&
+                        <><AvatarList size={25} users={owners} />
                         <GButton 
                             onClick={() => {
                                 if(canEdit()){
@@ -177,7 +179,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = (props) => {
                             hoverIndicator
                             plain
                             style={{padding: 6, borderRadius: 3}}
-                            label={canEdit() ? "Leave" : "Join"} />
+                            label={canEdit() ? "Leave" : "Join"} /></>}
                     </Box>
                 </Box>
 
