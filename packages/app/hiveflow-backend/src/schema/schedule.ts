@@ -146,6 +146,8 @@ export default (prisma: PrismaClient) => {
             canEdit: (root: any, args: any, context: any) => {
                 const { managers, owner } = root;
 
+                console.log({owner, managers, context: context.jwt})
+
                 const list = (managers || []).concat(owner)
                 return list.map((x: {id: string}) => x.id).indexOf(context.jwt.id) > -1
             }
