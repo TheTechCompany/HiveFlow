@@ -66,6 +66,9 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = (props) => {
 
     const [activeTab, setActiveTab] = useState('people')
 
+    const canEdit = () => {
+        return !props.selected || props.selected.canEdit
+    }
 
     useEffect(() => {
         if(!props.open){
@@ -163,7 +166,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = (props) => {
                         <AvatarList size={25} users={owners} />
                         <GButton 
                             onClick={() => {
-                                if(props.selected?.canEdit){
+                                if(canEdit()){
                                     props.onLeave()
                                 }else{
                                     props.onJoin()
@@ -174,7 +177,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = (props) => {
                             hoverIndicator
                             plain
                             style={{padding: 6, borderRadius: 3}}
-                            label={props.selected?.canEdit ? "Leave" : "Join"} />
+                            label={canEdit() ? "Leave" : "Join"} />
                     </Box>
                 </Box>
 
@@ -214,15 +217,15 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = (props) => {
                     </Box>
                     <Box gap="xsmall" pad="xsmall" direction='row' justify='between'>
                         <Box direction='row' align='center'>
-                            {props.selected && props.selected?.canEdit && <Button variant="outlined" onClick={() => openCloneTab(!cloneTab)}>{cloneTab ? "Edit" : "Clone"}</Button>}
+                            {props.selected && canEdit() && <Button variant="outlined" onClick={() => openCloneTab(!cloneTab)}>{cloneTab ? "Edit" : "Clone"}</Button>}
                         </Box>
                         <Box direction='row' align='center'>
-                            {props.selected && props.selected?.canEdit && !cloneTab && <Button 
-                                disabled={!props.selected?.canEdit}
+                            {props.selected && canEdit() && !cloneTab && <Button 
+                                disabled={!canEdit()}
                                 onClick={props.onDelete} style={{color: 'red'}}>Delete</Button>}
                             <Button onClick={props.onClose}>Close</Button>
                             <Button 
-                                disabled={!props.selected?.canEdit}
+                                disabled={!canEdit()}
                                 onClick={onSubmit} variant="contained" >{cloneTab ? "Clone" : "Save"}</Button>
                         </Box>
                     </Box>
