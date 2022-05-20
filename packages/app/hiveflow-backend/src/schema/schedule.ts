@@ -179,16 +179,13 @@ export default (prisma: PrismaClient) => {
 
                 const result = items.map((item) => ({
                     ...item,
-                    people: item?.people?.map((x) => ({id: x})),
+                    people: (item?.people || []).map((x) => ({id: x})),
                     owner: item.owner ? {id: item.owner} : undefined,
                     managers: item.permissions ? item.permissions.map((perm) => ({id: perm.owner})) : []
                 }))
-                console.log({result})
+                // console.log({result})
                 return result;
             },
-            // timelines: async (root: any, args: any) => {
-            //     return await prisma.timeline.findMany({include: {items: true}});
-            // },
             timelineItems: async (root: any, args: any, context: any) => {
                 // return await pri
                 let whereArg: any = {organisation: context.jwt.organisation}
