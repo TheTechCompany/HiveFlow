@@ -207,7 +207,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                 notes: args.item.notes,
                 startDate: args.item.startDate,
                 endDate: args.item.endDate,
-                data: args.item?.items
+                data: args.item?.items || []
             } 
         })
         return {
@@ -690,7 +690,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
     const createTimelinePlan = (plan: { id?: string, project?: { id?: string, type?: string }, notes?: string, data?: any[], startDate?: Date, endDate?: Date }) => {
         console.log({plan})
-        plan.data = plan.data.map((x) => ({item: x.item, location: x.location, quantity: x.quantity}))
+        plan.data = (plan.data || []).map((x) => ({item: x.item, location: x.location, quantity: x.quantity}))
 
         let attachUpdate : any = {};
 
@@ -731,7 +731,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                 // }, 2000);
                 
                 // setTimelineItems(items)
-                // refetchTimeline()
+                refetchTimeline()
                 openERP(false)
             })
         } else {
