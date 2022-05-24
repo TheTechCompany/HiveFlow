@@ -102,7 +102,10 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
       path: activePath
     }
   })
-  const refetch = useRefetch();
+
+  const refetch = () => {
+    client.refetchQueries({include: ['GetProject']})
+  };
 
   const [createDirectory] = useMutation((mutation, args: any) => {
     const item = mutation.createProjectFolder({ project: job_id, path: `${activePath}/${args.path}` })
@@ -231,7 +234,7 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
                 }
               }).then(() => {
                 openCreateFolder(false)
-
+                refetch()
               })
             }}
           />

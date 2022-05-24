@@ -27,8 +27,8 @@ export const PeopleList: React.FC<any> = (props) => {
 
 
 
-   const [direction, setDirection] = useState<"asc" | "desc" | undefined>()
-   const [property, setProperty] = useState<string>()
+   const [direction, setDirection] = useState<"asc" | "desc" | undefined>('desc')
+   const [property, setProperty] = useState<string>('name')
 
 
    const client = useApolloClient();
