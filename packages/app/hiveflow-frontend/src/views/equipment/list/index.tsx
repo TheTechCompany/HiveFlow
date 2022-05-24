@@ -35,15 +35,15 @@ export const EquipmentList: React.FC<any> = (props) => {
   });
 
 
-  const [ direction, setDirection ] = useState<"asc" | "desc" | undefined>()
-  const [ property, setProperty ] = useState<string>()
+  const [ direction, setDirection ] = useState<"asc" | "desc" | undefined>('desc')
+  const [ property, setProperty ] = useState<string>('displayId')
 
 
   const sortEquipment = (left: any, right: any) => {
     if(property && direction){
-      return (direction == 'asc' ?
-          (left[property] == right[property] ? 0 : (left[property] > right[property] ? 1 : -1))
-          : (left[property] == right[property] ? 0 : (left[property] < right[property] ? 1 : -1)))
+      return direction == 'asc' ?
+        left[property].localeCompare(right[property], undefined, {numeric: true}) :
+        right[property].localeCompare(left[property], undefined, {numeric: true})
     }else{
       return 0;
     }
@@ -54,7 +54,7 @@ export const EquipmentList: React.FC<any> = (props) => {
     if (search.length > 0) {
         let name = item?.name?.toLowerCase() || ''
         let registration = item?.registration?.toLowerCase() || ''
-        let id = `${item?.id}`.toLowerCase() || ''
+        let id = `${item?.displayId}`.toLowerCase() || ''
 
         let _search = search.toLowerCase() || ''
 

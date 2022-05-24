@@ -22,8 +22,8 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
 
   const [ filter, setFiler ] = useState<any>({})
 
-  const [ direction, setDirection ] = useState<"asc" | "desc" | undefined>()
-  const [ property, setProperty ] = useState<string>()
+  const [ direction, setDirection ] = useState<"asc" | "desc" | undefined>('desc')
+  const [ property, setProperty ] = useState<string>('displayId')
 
   const configuration = useTypeConfiguration('Project');
 
@@ -97,8 +97,10 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
         let a : any = first;
         let b: any = last;
         return direction == 'asc' ? 
-          (a[property] == b[property] ? 0 : (a[property] > b[property] ? 1 : -1))
-          : (a[property] == b[property] ? 0 : (a[property] < b[property] ? 1 : -1))
+          a[property].localeCompare(b[property], undefined, {numeric: true}) :
+          b[property].localeCompare(a[property], undefined, {numeric: true})
+          // (a[property] == b[property] ? 0 : (a[property] > b[property] ? 1 : -1))
+          // : (a[property] == b[property] ? 0 : (a[property] < b[property] ? 1 : -1))
       })
     }
 
@@ -109,7 +111,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
     if(filter.search){
       items = items?.filter((a) => {
         let name = a.name?.toLowerCase() || ''
-        let id = a.id?.toLowerCase() || ''
+        let id = a.displayId?.toLowerCase() || ''
 
         let search = filter.search.toLowerCase() || ''
         

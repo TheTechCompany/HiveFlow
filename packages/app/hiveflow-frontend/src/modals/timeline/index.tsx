@@ -9,6 +9,7 @@ import { ColorDot } from '@hexhive/ui';
 import { CapacityItem } from './CapacityItem';
 import {CapacityTab} from './tabs/capacity'
 import {NoteTab} from './tabs/notes'
+import { Autocomplete, TextField } from '@mui/material';
 
 export interface TimelineModalProps {
     open: boolean;
@@ -17,6 +18,7 @@ export interface TimelineModalProps {
     onClose?: () => void;
     onDelete?: () => void;
     projects?: {
+        displayId: string;
         id?: string | null;
         name?: string | null;
         type?: string;
@@ -168,6 +170,33 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
                     {/* Content */}
                     <Box height={{min: 'min-content'}} direction="column">
                         {props.type == "Projects" && <Box direction="column">
+
+                        <Autocomplete
+                            size='small'
+                            value={props.projects?.find((a) => a.id == plan?.project)}
+                        
+                            disablePortal
+                            onChange={(event, value) => {
+                                console.log({ event, value })
+                               setPlan({
+                                   ...plan,
+                                   project: value.id
+                               })
+                            }}
+                            getOptionLabel={(option: any) => {
+                                console.log({option})
+                                return `${option.displayId} - ${option.name}`
+                            }}
+                            renderOption={(props, option) => {
+                                return (
+                                    <li {...props}>
+                                        <ColorDot color={option.type == "Project" ? '#A3B696': '#edc25c'} size={10}/>
+                                        {option.displayId} - {option.name}
+                                     </li>
+                            )}}
+                            options={props.projects || []}
+                            renderInput={(params) => <TextField color='primary' size='small' {...params} label="Project" />} />
+{/*                             
                             <Text alignSelf="start" size="small">Project</Text>
                             <Select
                                 onSearch={(searchString) => { setSearch(searchString) }}
@@ -175,14 +204,14 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
                                 value={plan.project}
                                 labelKey={(item) => item.displayId + ' - ' + item.name}
                                 valueKey={{key: "id", reduce: true}}
-                                options={props.projects?.filter((a) => !search || `${a.id} - ${a.name}`.indexOf(search) > -1) || []}>
+                                options={props.projects?.filter((a) => !search || `${a.displayId} - ${a.name}`.indexOf(search) > -1) || []}>
                                 {(option) => (
                                     <Box pad="small" direction="row" align="center">
                                         <ColorDot color={option.type == "Project" ? '#A3B696': '#edc25c'} size={10}/>
                                         <Text>{option.displayId} - {option.name}</Text>
                                     </Box>
                                 )}
-                            </Select>
+                            </Select> */}
                         </Box>}
                         <Box gap="xsmall" direction="row">
                             <Box flex>

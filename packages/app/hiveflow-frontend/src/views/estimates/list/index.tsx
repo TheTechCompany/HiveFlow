@@ -27,8 +27,8 @@ export const EstimateList: React.FC<any> = (props) => {
 
   const [filter, setFiler] = useState<any>({})
 
-  const [direction, setDirection] = useState<"asc" | "desc">()
-  const [property, setProperty] = useState<string>()
+  const [direction, setDirection] = useState<"asc" | "desc">('desc')
+  const [property, setProperty] = useState<string>('displayId')
 
   // const [listData, setListData] = useState<any[]>([])
 
@@ -104,9 +104,9 @@ export const EstimateList: React.FC<any> = (props) => {
 
   const sortQuotes = (left: any, right: any) => {
     if(property && direction){
-      return (direction == 'asc' ?
-          (left[property] == right[property] ? 0 : (left[property] > right[property] ? 1 : -1))
-          : (left[property] == right[property] ? 0 : (left[property] < right[property] ? 1 : -1)))
+      return direction == 'asc' ?
+        left[property].localeCompare(right[property], undefined, {numeric: true}) :
+        right[property].localeCompare(left[property], undefined, {numeric: true})
     }else{
       return 0;
     }
@@ -144,7 +144,7 @@ export const EstimateList: React.FC<any> = (props) => {
 
     if (filter.search) {
         let name = item?.name?.toLowerCase() || ''
-        let id = `${item?.id}`.toLowerCase() || ''
+        let id = `${item?.displayId}`.toLowerCase() || ''
 
         let search = filter.search.toLowerCase() || ''
 

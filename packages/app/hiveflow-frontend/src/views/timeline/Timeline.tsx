@@ -114,10 +114,19 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         }
     })
 
-    const quoteData = useApollo(gql`
-        query Quotes ($start: DateTime, $end: DateTime) {
-            estimates(where: {date_GTE: $start, date_LTE: $end}) {
+    // ($start: DateTime, $end: DateTime) 
+    //(where: {date_GTE: $start, date_LTE: $end})
+    const { data: projectInfo } = useApollo(gql`
+        query ProjectInfo{
+            projects {
                 id
+                displayId
+                name
+
+            }
+            estimates(where:  {status: ["Customer has quote"] }) {
+                id
+                displayId
                 name
                 status
                 date
@@ -330,20 +339,20 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         suspense: false,
     })
 
-    console.log("QUOTE DATA", quoteData)
+    // console.log("QUOTE DATA", quoteData)
 
-    const quotes = (quoteData.data?.estimates || []).map((quote: { date: moment.MomentInput; status: any; name: any; }) => ({
-        start: new Date(moment(quote?.date).startOf('isoWeek').valueOf()),
-        end: new Date(moment(quote?.date).endOf('isoWeek').valueOf()),
-        ...quote,
-        status: quote.status,
-        showLabel: formatter.format((quote as any).price),
-        color: stringToColor(quote?.name || '')
-    }))
+    // const quotes = (quoteData.data?.estimates || []).map((quote: { date: moment.MomentInput; status: any; name: any; }) => ({
+    //     start: new Date(moment(quote?.date).startOf('isoWeek').valueOf()),
+    //     end: new Date(moment(quote?.date).endOf('isoWeek').valueOf()),
+    //     ...quote,
+    //     status: quote.status,
+    //     showLabel: formatter.format((quote as any).price),
+    //     color: stringToColor(quote?.name || '')
+    // }))
 
 //where: {status: ["Job Open", "Handover"] }
-    const projects = query.projects({ })?.map((x) => ({ ...x }))
-    const estimates = query.estimates({ where: {status: ["Customer has quote"] }})?.map((x) => ({ ...x }))
+    const projects = projectInfo?.projects || [] // query.projects({ })?.map((x) => ({ ...x }))
+    const estimates = projectInfo?.estimates || [] // query.estimates({ where:})?.map((x) => ({ ...x }))
 
     // const capacity = query.timelineItems({ where: {timeline: view}});
 
@@ -382,64 +391,64 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         return generateStripes(gradient, plan.hatched);
     }
 
-    const parseEstimates = () => {
-        let _weeks: any = {};
-        const weeks = quotes?.filter((a: { status: string; }) => {
-            return filter.indexOf(a.status) > -1
-        }).reduce((previous: { [x: string]: { [x: string]: any; }; }, current: { start: { getTime: () => any; }; price: any; status: string | number; }) => {
-            let start = current.start.getTime();
-            console.log(current)
-            if (!previous[start]) previous[start] = {
-                value: 0
-            };
-            previous[start].value += current.price
+    // const parseEstimates = () => {
+    //     let _weeks: any = {};
+    //     const weeks = quotes?.filter((a: { status: string; }) => {
+    //         return filter.indexOf(a.status) > -1
+    //     }).reduce((previous: { [x: string]: { [x: string]: any; }; }, current: { start: { getTime: () => any; }; price: any; status: string | number; }) => {
+    //         let start = current.start.getTime();
+    //         console.log(current)
+    //         if (!previous[start]) previous[start] = {
+    //             value: 0
+    //         };
+    //         previous[start].value += current.price
 
-            if(!previous[start][current.status]) previous[start][current.status] = 0;
-            previous[start][current.status] += current.price
+    //         if(!previous[start][current.status]) previous[start][current.status] = 0;
+    //         previous[start][current.status] += current.price
             
-            return previous
-        }, _weeks)
+    //         return previous
+    //     }, _weeks)
 
-        console.log(weeks)
-        // setTimeline(Object.keys(weeks).sort((a, b) => a == b ? 0 : a > b ? -1 : 1).map((start, ix) => {
-        //     let value = weeks[start].value;
-        //     delete weeks[start].value;
-        //     return {
-        //         id: `${start}`,
-        //         name: `Week ${moment(new Date(parseInt(start))).format("W/yyyy")}`,
-        //         color: getWonLost(value, weeks[start], stringToColor(moment(new Date(parseInt(start))).format("DD/mm/yyyy"))),
-        //         start: new Date(parseInt(start)),
-        //         end: new Date(moment(new Date(parseInt(start))).add(7, 'days').valueOf()),
-        //         showLabel: formatter.format(value),
-        //         hoverInfo: (
-        //             <Box round="xsmall" overflow="hidden"  direction="column">
-        //                 <Box pad="xsmall" background="accent-2" margin={{bottom: 'xsmall'}} direction="row" justify="between">
-        //                     {/* <Text weight="bold">{capacity_plan?.project?.name?.substring(0, 15)}</Text> */}
-        //                     <Text>
-        //                         {formatter.format(value)}
-        //                     </Text>
-        //                 </Box>
-        //                 <Box pad="xsmall">
-        //                     {Object.keys(weeks[start]).map((x) => {
-        //                         let item = weeks[start][x]
-        //                         return (
-        //                         <Box align="center" direction="row" justify="between">
-        //                                 <Box direction="row" align="center">
-        //                                     <ColorDot color={StatusTypes[x || '']} size={10}/>
-        //                                     <Text>{((item / value )* 100).toFixed(2)}% - {x}</Text>
-        //                                 </Box>
-        //                             <Text margin={{left: 'small'}}>{formatter.format(item)}</Text>
-        //                         </Box>
-        //                         )
-        //                     }
-        //                     )}
-        //                 </Box>
+    //     console.log(weeks)
+    //     // setTimeline(Object.keys(weeks).sort((a, b) => a == b ? 0 : a > b ? -1 : 1).map((start, ix) => {
+    //     //     let value = weeks[start].value;
+    //     //     delete weeks[start].value;
+    //     //     return {
+    //     //         id: `${start}`,
+    //     //         name: `Week ${moment(new Date(parseInt(start))).format("W/yyyy")}`,
+    //     //         color: getWonLost(value, weeks[start], stringToColor(moment(new Date(parseInt(start))).format("DD/mm/yyyy"))),
+    //     //         start: new Date(parseInt(start)),
+    //     //         end: new Date(moment(new Date(parseInt(start))).add(7, 'days').valueOf()),
+    //     //         showLabel: formatter.format(value),
+    //     //         hoverInfo: (
+    //     //             <Box round="xsmall" overflow="hidden"  direction="column">
+    //     //                 <Box pad="xsmall" background="accent-2" margin={{bottom: 'xsmall'}} direction="row" justify="between">
+    //     //                     {/* <Text weight="bold">{capacity_plan?.project?.name?.substring(0, 15)}</Text> */}
+    //     //                     <Text>
+    //     //                         {formatter.format(value)}
+    //     //                     </Text>
+    //     //                 </Box>
+    //     //                 <Box pad="xsmall">
+    //     //                     {Object.keys(weeks[start]).map((x) => {
+    //     //                         let item = weeks[start][x]
+    //     //                         return (
+    //     //                         <Box align="center" direction="row" justify="between">
+    //     //                                 <Box direction="row" align="center">
+    //     //                                     <ColorDot color={StatusTypes[x || '']} size={10}/>
+    //     //                                     <Text>{((item / value )* 100).toFixed(2)}% - {x}</Text>
+    //     //                                 </Box>
+    //     //                             <Text margin={{left: 'small'}}>{formatter.format(item)}</Text>
+    //     //                         </Box>
+    //     //                         )
+    //     //                     }
+    //     //                     )}
+    //     //                 </Box>
                  
-        //             </Box>
-        //         ),
-        //     }
-        // }))
-    }
+    //     //             </Box>
+    //     //         ),
+    //     //     }
+    //     // }))
+    // }
 
 
     const generateStripes = (colors: { color: string, percent: number }[], hatched?: boolean) => {
@@ -651,9 +660,9 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     //     }
     // }, [JSON.stringify(quotes), view])
 
-    useEffect(() => {
-        parseEstimates()
-    }, [filter])        
+    // useEffect(() => {
+    //     parseEstimates()
+    // }, [filter])        
 
     useEffect(() => {
         let year = moment(horizon?.start).get('year')
