@@ -91,16 +91,17 @@ const main = async () => {
     //             value: event.value[0][key]
     //         }
         
-
-        await updateRecord({
-            action: 'CREATE',
-            create: new_task.create,
-            update: new_task.update,
-            data: event.value[0],
-            primaryKey: new_task?.family.species,
-            id: event.value[new_task?.family.species],
-            type: new_task?.type
-        });
+        if(new_task.create){
+            await updateRecord({
+                action: 'CREATE',
+                create: new_task.create,
+                update: new_task.update,
+                data: event.value[0],
+                primaryKey: new_task?.family.species,
+                id: event.value[new_task?.family.species],
+                type: new_task?.type
+            });
+        }
 
     });
     //     // console.log("NEW", event)
@@ -118,16 +119,18 @@ const main = async () => {
             updateObject[key] = event.value[key]?.[1]
         })
 
-        await updateRecord({
-            action: 'UPDATE',
-            create: t.create,
-            update: t.update,
-            id: event.valueId,
-            data: updateObject,
-            primaryKey: t?.family.sepcies,
-            type: task.find((a: any) => a.family.cluster == event.id)?.type
-        })
+        if(t.update){
+            await updateRecord({
+                action: 'UPDATE',
+                create: t.create,
+                update: t.update,
+                id: event.valueId,
+                data: updateObject,
+                primaryKey: t?.family.sepcies,
+                type: task.find((a: any) => a.family.cluster == event.id)?.type
+            })
 
+        }
     })
 
     // })
