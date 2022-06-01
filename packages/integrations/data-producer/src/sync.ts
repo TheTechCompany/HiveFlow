@@ -5,11 +5,6 @@ import axios from 'axios'
 import neo4j, { Session } from 'neo4j-driver'
 import request, { gql, RequestDocument } from 'graphql-request';
 
-const driver = neo4j.driver(
-    process.env.NEO4J_URI || 'localhost',
-    neo4j.auth.basic(process.env.NEO4J_USER || 'neo4j', process.env.NEO4J_PASSWORD || 'test')
-);
-
 
 interface HiveEvent {
     id: string;
@@ -63,8 +58,6 @@ const graphqlRequest = async (doc: RequestDocument, variables: any = {}) => {
 }
 
 export const updateRecord = async (json: { update: string, create: string, action: string, id: string, primaryKey: string, type: string, data: any[] | any }) => {
-    const session = driver.session()
-
     // console.log("updateRecord", json)
     switch (json.action) {
         case 'CREATE':
@@ -185,7 +178,5 @@ export const updateRecord = async (json: { update: string, create: string, actio
             // }
             break;
     }
-
-    session.close()
 
 }

@@ -27,9 +27,7 @@
     "graphql": "^16.5.0",
     "graphql-request": "^4.3.0",
     "jsondiffpatch": "^0.4.1",
-    "kafkajs": "^1.15.0",
-    "nanoid": "^3.1.25",
-    "neo4j-driver": "^4.3.3"
+    "nanoid": "^3.1.25"
   },
   "gitHead": "92dbd6f35a180402f000705602518556ca13d7d6"
 }
