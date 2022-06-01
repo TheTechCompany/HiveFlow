@@ -5,4 +5,4 @@
 
 */
 -- AlterTable
-ALTER TABLE "Estimate" ADD COLUMN     "date" TIMESTAMP(3) NOT NULL;
+ALTER TABLE "Estimate" ADD COLUMN     "date" TIMESTAMP(3);
