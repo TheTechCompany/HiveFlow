@@ -26,7 +26,7 @@ const main = async () => {
 
     console.log('=> Data Collector starting...')
 
-    const task = JSON.parse(readFileSync('./task.json', 'utf8'))
+    const task = JSON.parse(readFileSync(process.env.TASK_PATH || './task.json', 'utf8'))
 
     console.log('=> Fetching initial state')
 
