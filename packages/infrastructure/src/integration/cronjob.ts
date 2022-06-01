@@ -56,9 +56,11 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
             namespace: namespace.metadata.name
         },
         spec: {
+            
             schedule: '*/5 * * * *',
             jobTemplate: {
                 spec: {
+                    backoffLimit: 3,
                     ttlSecondsAfterFinished: 100,
                     template: {
                         spec: {

@@ -89,9 +89,13 @@ const main = async () => {
             const type = new_task.collect.find((a: any) => a.to == key)?.type 
             if(type == "Date" || type == "Function"){
                 try{
-                    const parts = createObject[key].match(/(.*)\/(.*)\/(....)/);
+                    if(!(createObject[key] instanceof Date)){
+                        const parts = createObject[key]?.match(/(.*)\/(.*)\/(....)/);
 
-                    createObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString(); //.match(/(..\/..\/....)/)?.[1];
+                        createObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString(); //.match(/(..\/..\/....)/)?.[1];
+                    }else{
+                        createObject[key] = createObject[key].toISOString();
+                    }
                 }catch(e){
                     console.log(createObject[key], e)
                     createObject[key] = undefined;
