@@ -50,6 +50,7 @@ const main = async () => {
 
                     ret[val.to] = x[val.to];
                     switch(val.type){
+                        case 'Function':
                         case 'Date':
                             ret[val.to] = x[val.to]?.toString()
                     }
@@ -132,8 +133,10 @@ const main = async () => {
                 updateObject[key] = event.value[key]?.[1];
 
                 const type = t.collect.find((a: any) => a.to == key)?.type
+
                 if(type == "Number"){
                     if(typeof(updateObject[key]) != "number") updateObject[key] = parseFloat(updateObject[key])
+                    console.log({type:typeof(updateObject[key]), key: key, update: updateObject[key]});
                     updateObject[key] = updateObject[key].toFixed(2)
                 }else if(type == "Date" || type == "Function"){
                     try{
