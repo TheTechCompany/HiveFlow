@@ -25,7 +25,7 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
         data: {
             'task.json': process.env.INTEGRATION_TASK || ''
         }
-    })
+    }, {provider})
 
     const apiData = new k8s.core.v1.Secret(`${appName}-api`, {
         metadata: {
