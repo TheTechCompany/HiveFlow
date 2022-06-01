@@ -22,6 +22,9 @@ export default (prisma: PrismaClient) => {
 
         type Equipment {
             id: ID! 
+            
+            displayId: String
+
             name: String
             registration: String
 

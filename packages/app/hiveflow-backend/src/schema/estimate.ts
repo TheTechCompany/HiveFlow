@@ -66,6 +66,7 @@ export default (prisma: PrismaClient) => {
                         id: nanoid(),
                         displayId: `${count + 1}`,
                         name: args.input.name,
+                        date: args.input.date || new Date(),
                         status: args.input.status,
                         price: args.input.price,
                         organisation: context.jwt.organisation

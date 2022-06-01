@@ -6,3 +6,5 @@ tsconfig.tsbuildinfo
 public.key
 .DS_Store
 migration/
+patch-*
+task*
