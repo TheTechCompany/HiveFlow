@@ -8,3 +8,4 @@ public.key
 migration/
 patch-*
 task*
+last_dump*

@@ -8,10 +8,19 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
     let suffix = config.require('suffix');
     let imageTag = process.env.IMAGE_TAG 
 
+    const namespace = new k8s.core.v1.Namespace(`hivflow-integrations-${suffix}`, {
+        metadata: {
+            name: `hiveflow-integrations-${suffix}`
+        }
+    }, {provider});
+
     const appName = `hiveflow-integration-${suffix}`;
     const appLabels = { appClass: appName };
 
     const sqlData = new k8s.core.v1.Secret(`${appName}-sql`, {
+        metadata: {
+            namespace: namespace.metadata.name
+        },
         stringData: {
             user: process.env.SQL_USER || '',
             password:  process.env.SQL_PASSWORD || ''
@@ -22,7 +31,8 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
    
     const cronjob = new k8s.batch.v1.CronJob(`${appName}-cron`, {
         metadata: {
-            labels: appLabels
+            labels: appLabels,
+            namespace: namespace.metadata.name
         },
         spec: {
             schedule: '*/5 * * * *',
