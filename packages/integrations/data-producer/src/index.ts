@@ -89,7 +89,7 @@ const main = async () => {
 
                 if(type == "Number"){
                     if(typeof(createObject[key]) != "number") createObject[key] = parseFloat(createObject[key])
-                    createObject[key] = createObject[key].toFixed(2)
+                    createObject[key] = parseFloat(createObject[key].toFixed(2))
                 }else if(type == "Date" || type == "Function"){
                     try{
                         if(!(createObject[key] instanceof Date)){
@@ -137,7 +137,7 @@ const main = async () => {
                 if(type == "Number"){
                     if(typeof(updateObject[key]) != "number") updateObject[key] = parseFloat(updateObject[key])
                     console.log({type:typeof(updateObject[key]), key: key, update: updateObject[key]});
-                    updateObject[key] = updateObject[key].toFixed(2)
+                    updateObject[key] = parseFloat(updateObject[key].toFixed(2))
                 }else if(type == "Date" || type == "Function"){
                     try{
                         const parts = updateObject[key].match(/(.*)\/(.*)\/(....)/);
