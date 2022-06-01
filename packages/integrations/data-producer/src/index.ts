@@ -127,7 +127,6 @@ const main = async () => {
     
         if(!process.env.DRYRUN){
             let t = task.find((a: any) => a.family.cluster == event.id)
-
         
             let updateObject : any = {};
             
