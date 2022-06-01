@@ -68,9 +68,9 @@ const main = async () => {
     }).reduce((prev: any, curr: any) => ({...prev, ...curr}), {})
 
 
-    console.log(JSON.stringify({initialState: initialState?.['vwosQuotes']}, null, 2))
-    // console.log("Starting worker...")_
-	const worker = new MSSQLWorker({
+    // console.log(JSON.stringify({initialState: initialState?.['vwosQuotes']}, null, 2))
+
+    const worker = new MSSQLWorker({
 		server: process.env.SQL_SERVER || ``,
 		user: process.env.SQL_USER,
 		password: process.env.SQL_PASSWORD,
