@@ -130,7 +130,7 @@ const main = async () => {
             let updateObject : any = {};
             
             Object.keys(event.value).forEach((key) => {
-                updateObject[key] = event.value[key]?.[1];
+                updateObject[key] = event.value[key]?.[1] || event.value[key]?.[0];
 
                 const type = t.collect.find((a: any) => a.to == key)?.type
 
