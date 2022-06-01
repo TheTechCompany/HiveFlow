@@ -255,7 +255,7 @@ export default (prisma: PrismaClient) => {
 
     type Mutation {
         createProject(input: ProjectInput): Project!
-		updateProject(id: ID!, update: ProjectInput): Project!
+		updateProject(id: ID!, input: ProjectInput): Project!
 		deleteProject(id: ID!): Project!
 
         createProjectFolder(project: ID!, path: String): File
