@@ -83,20 +83,18 @@ const main = async () => {
     
         const new_task = task.find((a: any) => a.family.cluster == event.id)
 
-    //     let createObject : any = {}
+        let createObject : any = {}
 
-    //     Object.keys(event.value[0]).forEach((key) => {
-    //         createObject[key] = {
-    //             type: new_task.collect.find((a: any) => a.to == key).type,
-    //             value: event.value[0][key]
-    //         }
+        Object.keys(event.value[0]).forEach((key) => {
+            createObject[key] = event.value[0][key] || ''
+        })
         
         if(new_task.create){
             await updateRecord({
                 action: 'CREATE',
                 create: new_task.create,
                 update: new_task.update,
-                data: event.value[0],
+                data: createObject,
                 primaryKey: new_task?.family.species,
                 id: event.value[new_task?.family.species],
                 type: new_task?.type
@@ -116,7 +114,7 @@ const main = async () => {
         let updateObject : any = {};
         
         Object.keys(event.value).forEach((key) => {
-            updateObject[key] = event.value[key]?.[1]
+            updateObject[key] = event.value[key]?.[1] || ''
         })
 
         if(t.update){
