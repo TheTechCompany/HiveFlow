@@ -6,7 +6,7 @@ on:
       - staging
       - next
       - master
-    paths: ["packages/app/**", "packages/infrastructure/**"]
+    paths: ["packages/app/**", "packages/infrastructure/**", "packages/integrations/**"]
 
 concurrency: hiveflow-infra-${{ github.ref }}
 
