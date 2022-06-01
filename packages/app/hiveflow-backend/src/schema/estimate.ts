@@ -27,6 +27,7 @@ export default (prisma: PrismaClient) => {
         input EstimateInput {
             id: ID
             name: String
+            companyName: String
             status: String
             date: DateTime
             price: Float
@@ -35,7 +36,7 @@ export default (prisma: PrismaClient) => {
         type Estimate  {
             id: ID! 
             displayId: String
-
+            companyName: String
             name: String
             status: String
             date: DateTime
@@ -67,6 +68,7 @@ export default (prisma: PrismaClient) => {
                         id: nanoid(),
                         displayId: args.input.id || `${count + 1}`,
                         name: args.input.name,
+                        companyName: args.input.companyName,
                         date: args.input.date || new Date(),
                         status: args.input.status,
                         price: args.input.price,
@@ -79,6 +81,7 @@ export default (prisma: PrismaClient) => {
                     where: {displayId_organisation: {displayId: args.id, organisation: context.jwt.organisation}},
                     data: {
                         name: args.input.name,
+                        companyName: args.input.companyName,
                         status: args.input.status,
                         price: args.input.price,
                         organisation: context.jwt.organisation
