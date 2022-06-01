@@ -81,7 +81,7 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
                                     ],
                                     volumeMounts: [
                                         {
-                                            mountPath: '/runner',
+                                            mountPath: '/app',
                                             name: 'taskjson'
                                         }
                                     ]
