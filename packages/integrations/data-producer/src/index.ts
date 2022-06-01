@@ -140,9 +140,17 @@ const main = async () => {
                     updateObject[key] = parseFloat(updateObject[key].toFixed(2))
                 }else if(type == "Date" || type == "Function"){
                     try{
-                        const parts = updateObject[key].match(/(.*)\/(.*)\/(....)/);
 
-                        updateObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString() //.match(/(..\/..\/....)/)?.[1];
+                        if(!(updateObject[key] instanceof Date)){
+                            const parts = updateObject[key]?.match(/(.*)\/(.*)\/(....)/);
+
+                            updateObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString(); //.match(/(..\/..\/....)/)?.[1];
+                        }else{
+                            updateObject[key] = updateObject[key].toISOString();
+                        }
+                        // const parts = updateObject[key].match(/(.*)\/(.*)\/(....)/);
+
+                        // updateObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString() //.match(/(..\/..\/....)/)?.[1];
                     }catch(e){
                         console.log(updateObject[key], e)
                         updateObject[key] = undefined;
