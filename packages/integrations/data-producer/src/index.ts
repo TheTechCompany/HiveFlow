@@ -17,8 +17,6 @@ interface HiveEvent {
     actions: "CREATE" | "UPDATE";
 }
 
-
-
 const main = async () => {
 
     console.log('=> Data Collector starting...')
@@ -129,7 +127,7 @@ const main = async () => {
         
         Object.keys(event.value).forEach((key) => {
             updateObject[key] = event.value[key]?.[1];
-            
+
             const type = t.collect.find((a: any) => a.to == key)?.type
             if(type == "Date" || type == "Function"){
                 try{
