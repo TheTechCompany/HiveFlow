@@ -205,6 +205,7 @@ jobs:
           echo "STACK_NAME=ultraviolet/hiveflow-staging" >> $GITHUB_ENV
           echo "INTEGRATION_KEY=${{ secrets.STAGING_INTEGRATION_KEY }}" >> $GITHUB_ENV
           echo "ROOT_SERVER=${{ secrets.STAGING_API }}" >> $GITHUB_ENV
+          echo "INTEGRATION_TASK=${{secrets.INTEGRATION_TASK}}" >> $GITHUB_ENV
          
           echo "SQL_SERVER=${{secrets.SQL_SERVER}}" >> $GITHUB_ENV
           echo "SQL_USER=${{secrets.SQL_USER}}" >> $GITHUB_ENV
@@ -219,6 +220,7 @@ jobs:
           echo "STACK_NAME=ultraviolet/hiveflow-next" >> $GITHUB_ENV
           echo "INTEGRATION_KEY=${{ secrets.STAGING_INTEGRATION_KEY }}" >> $GITHUB_ENV
           echo "ROOT_SERVER=${{ secrets.STAGING_API }}" >> $GITHUB_ENV
+          echo "INTEGRATION_TASK=${{secrets.INTEGRATION_TASK}}" >> $GITHUB_ENV
             
           echo "SQL_SERVER=${{secrets.SQL_SERVER}}" >> $GITHUB_ENV
           echo "SQL_USER=${{secrets.SQL_USER}}" >> $GITHUB_ENV
@@ -232,6 +234,7 @@ jobs:
           echo "STACK_NAME=ultraviolet/hiveflow-prod" >> $GITHUB_ENV
           echo "INTEGRATION_KEY=${{ secrets.PROD_INTEGRATION_KEY }}" >> $GITHUB_ENV
           echo "ROOT_SERVER=${{ secrets.PROD_API }}" >> $GITHUB_ENV
+          echo "INTEGRATION_TASK=${{secrets.INTEGRATION_TASK}}" >> $GITHUB_ENV
 
           echo "SQL_SERVER=${{secrets.SQL_SERVER}}" >> $GITHUB_ENV
           echo "SQL_USER=${{secrets.SQL_USER}}" >> $GITHUB_ENV

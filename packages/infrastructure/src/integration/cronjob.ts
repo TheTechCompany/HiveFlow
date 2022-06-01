@@ -17,6 +17,16 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
     const appName = `hiveflow-integration-${suffix}`;
     const appLabels = { appClass: appName };
 
+
+    const integration = new k8s.core.v1.ConfigMap(`${appName}-task`, {
+        metadata: {
+            namespace: namespace.metadata.name
+        },
+        data: {
+            'task.json': process.env.INTEGRATION_TASK || ''
+        }
+    })
+
     const apiData = new k8s.core.v1.Secret(`${appName}-api`, {
         metadata: {
             namespace: namespace.metadata.name
@@ -68,7 +78,22 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
                                         { name: "SQL_TRUST_CERT", value: process.env.SQL_TRUST_CERT },
                                         { name: 'SQL_DB', value: process.env.SQL_DB},
                                         { name: 'API_KEY', valueFrom: {secretKeyRef: {key: 'apiKey', name: apiData.metadata.name}} }
+                                    ],
+                                    volumeMounts: [
+                                        {
+                                            mountPath: '/runner',
+                                            name: 'taskPath'
+                                        }
                                     ]
+                                }
+                            ],
+                            volumes: [
+                                {
+                                    name: 'taskPath',
+                                    configMap: {
+                                        name: integration.metadata.name,
+                                        items: [{key: 'task.json', path: '.'}]
+                                    }
                                 }
                             ]
                         }
