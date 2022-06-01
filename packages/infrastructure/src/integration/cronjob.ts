@@ -92,7 +92,7 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
                                     name: 'taskjson',
                                     configMap: {
                                         name: integration.metadata.name,
-                                        items: [{key: 'task.json', path: '.'}]
+                                        // items: [{key: 'task.json', path: '.'}]
                                     }
                                 }
                             ]
