@@ -16,6 +16,8 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
             user: process.env.SQL_USER || '',
             password:  process.env.SQL_PASSWORD || ''
         }
+    }, {
+        provider
     })
    
     const cronjob = new k8s.batch.v1.CronJob(`${appName}-cron`, {
