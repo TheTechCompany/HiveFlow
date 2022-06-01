@@ -17,6 +17,17 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
     const appName = `hiveflow-integration-${suffix}`;
     const appLabels = { appClass: appName };
 
+    const apiData = new k8s.core.v1.Secret(`${appName}-api`, {
+        metadata: {
+            namespace: namespace.metadata.name
+        },
+        stringData: {
+            apiKey: process.env.INTEGRATION_KEY || ''
+        }
+    }, {
+        provider
+    })
+
     const sqlData = new k8s.core.v1.Secret(`${appName}-sql`, {
         metadata: {
             namespace: namespace.metadata.name
@@ -50,13 +61,13 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
                                     name: appName,
                                     image: `thetechcompany/hiveflow-integration:${imageTag}`,
                                     env: [
-                                        { name: "ROOT_URL", value: 'https://api.hexhive.io' },
+                                        { name: "ROOT_SERVER", value: process.env.ROOT_SERVER },
                                         { name: "SQL_SERVER", value: process.env.SQL_SERVER},
                                         { name: "SQL_USER", valueFrom: { secretKeyRef: { key: 'user', name:  sqlData.metadata.name} } },
                                         { name: "SQL_PASSWORD", valueFrom: {secretKeyRef: {key: 'password', name: sqlData.metadata.name} } },
                                         { name: "SQL_TRUST_CERT", value: process.env.SQL_TRUST_CERT },
                                         { name: 'SQL_DB', value: process.env.SQL_DB},
-                                        { name: 'API_KEY', value: process.env.INTEGRATION_KEY}
+                                        { name: 'API_KEY', valueFrom: {secretKeyRef: {key: 'apiKey', name: apiData.metadata.name}} }
                                     ]
                                 }
                             ]
