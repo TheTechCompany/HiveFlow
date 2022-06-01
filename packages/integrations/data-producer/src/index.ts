@@ -78,41 +78,43 @@ const main = async () => {
     worker.on('NEW', async (event: any) => {
         console.log("NEW EVENT", event)
     
-        const new_task = task.find((a: any) => a.family.cluster == event.id)
+        if(!process.env.DRYRUN){
+            const new_task = task.find((a: any) => a.family.cluster == event.id)
 
-        let createObject : any = {}
+            let createObject : any = {}
 
-        Object.keys(event.value[0]).forEach((key) => {
-            createObject[key] = event.value[0][key];
+            Object.keys(event.value[0]).forEach((key) => {
+                createObject[key] = event.value[0][key];
 
-            const type = new_task.collect.find((a: any) => a.to == key)?.type 
+                const type = new_task.collect.find((a: any) => a.to == key)?.type 
 
-            if(type == "Date" || type == "Function"){
-                try{
-                    if(!(createObject[key] instanceof Date)){
-                        const parts = createObject[key]?.match(/(.*)\/(.*)\/(....)/);
+                if(type == "Date" || type == "Function"){
+                    try{
+                        if(!(createObject[key] instanceof Date)){
+                            const parts = createObject[key]?.match(/(.*)\/(.*)\/(....)/);
 
-                        createObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString(); //.match(/(..\/..\/....)/)?.[1];
-                    }else{
-                        createObject[key] = createObject[key].toISOString();
+                            createObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString(); //.match(/(..\/..\/....)/)?.[1];
+                        }else{
+                            createObject[key] = createObject[key].toISOString();
+                        }
+                    }catch(e){
+                        console.log(createObject[key], e)
+                        createObject[key] = undefined;
                     }
-                }catch(e){
-                    console.log(createObject[key], e)
-                    createObject[key] = undefined;
                 }
+            })
+            
+            if(new_task.create){
+                await updateRecord({
+                    action: 'CREATE',
+                    create: new_task.create,
+                    update: new_task.update,
+                    data: createObject,
+                    primaryKey: new_task?.family.species,
+                    id: event.value[new_task?.family.species],
+                    type: new_task?.type
+                });
             }
-        })
-        
-        if(new_task.create){
-            await updateRecord({
-                action: 'CREATE',
-                create: new_task.create,
-                update: new_task.update,
-                data: createObject,
-                primaryKey: new_task?.family.species,
-                id: event.value[new_task?.family.species],
-                type: new_task?.type
-            });
         }
 
     });
@@ -120,38 +122,40 @@ const main = async () => {
     worker.on('UPDATE', async (event: any) => {
         console.log("UPDATE", event)
     
-        let t = task.find((a: any) => a.family.cluster == event.id)
+        if(!process.env.DRYRUN){
+            let t = task.find((a: any) => a.family.cluster == event.id)
 
-    
-        let updateObject : any = {};
         
-        Object.keys(event.value).forEach((key) => {
-            updateObject[key] = event.value[key]?.[1];
+            let updateObject : any = {};
+            
+            Object.keys(event.value).forEach((key) => {
+                updateObject[key] = event.value[key]?.[1];
 
-            const type = t.collect.find((a: any) => a.to == key)?.type
-            if(type == "Date" || type == "Function"){
-                try{
-                    const parts = updateObject[key].match(/(.*)\/(.*)\/(....)/);
+                const type = t.collect.find((a: any) => a.to == key)?.type
+                if(type == "Date" || type == "Function"){
+                    try{
+                        const parts = updateObject[key].match(/(.*)\/(.*)\/(....)/);
 
-                    updateObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString() //.match(/(..\/..\/....)/)?.[1];
-                }catch(e){
-                    console.log(updateObject[key], e)
-                    updateObject[key] = undefined;
+                        updateObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString() //.match(/(..\/..\/....)/)?.[1];
+                    }catch(e){
+                        console.log(updateObject[key], e)
+                        updateObject[key] = undefined;
+                    }
                 }
-            }
-        })
-
-        if(t.update){
-            await updateRecord({
-                action: 'UPDATE',
-                create: t.create,
-                update: t.update,
-                id: event.valueId,
-                data: updateObject,
-                primaryKey: t?.family.sepcies,
-                type: task.find((a: any) => a.family.cluster == event.id)?.type
             })
 
+            if(t.update){
+                await updateRecord({
+                    action: 'UPDATE',
+                    create: t.create,
+                    update: t.update,
+                    id: event.valueId,
+                    data: updateObject,
+                    primaryKey: t?.family.sepcies,
+                    type: task.find((a: any) => a.family.cluster == event.id)?.type
+                })
+
+            }
         }
     })
 }

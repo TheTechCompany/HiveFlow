@@ -61,7 +61,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
     if(!args.id) return;
     const item = mutation.updateProject({
       id: args.id,
-      update: {
+      input: {
         name: args.name,
         status: args.status
       }
