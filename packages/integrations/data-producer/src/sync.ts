@@ -1,8 +1,6 @@
 import { config } from 'dotenv'
 config()
-import { nanoid } from 'nanoid';
-import axios from 'axios'
-import neo4j, { Session } from 'neo4j-driver'
+
 import request, { gql, RequestDocument } from 'graphql-request';
 
 

@@ -3,9 +3,6 @@ config()
 
 import { request, gql } from 'graphql-request'
 
-import { nanoid } from 'nanoid';
-import axios from 'axios'
-import neo4j, {Session} from 'neo4j-driver'
 import {MSSQLWorker, WorkerTask} from '@hexhive/mssql-worker'
 import { readFileSync } from 'fs';
 import { updateRecord } from './sync';

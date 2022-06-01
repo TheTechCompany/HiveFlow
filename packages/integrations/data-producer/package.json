@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "@hexhive/mssql-worker": "^1.0.2-beta.51",
-    "axios": "^0.21.4",
     "dotenv": "^10.0.0",
     "graphql": "^16.5.0",
     "graphql-request": "^4.3.0",
