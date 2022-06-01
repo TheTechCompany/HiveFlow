@@ -12,24 +12,6 @@ interface HiveEvent {
     actions: "CREATE" | "UPDATE";
 }
 
-// const parseEvent = async (event: HiveEvent) => {
-
-//     const result = await session.writeTransaction(async (tx) => {
-//         const pipeline_result = await tx.run(`
-//             MATCH (run:HivePipelineRun {id: $id})-[:ACTIVE_PIPELINE]->(pipeline)
-//             SET run.startedAt = $time
-//             RETURN pipeline
-//         `, {
-//             id: event.id,
-//             time: new Date().toISOString()
-//         })
-//         const pipeline = pipeline_result.records?.[0]?.get(0)?.properties
-
-
-//         return pipeline;
-//     })
-
-// }
 
 const stringToDate = (date: any) => {
     // console.log(date)
@@ -161,6 +143,7 @@ export const updateRecord = async (json: { update: string, create: string, actio
                 id: json.id,
                 input: json.data
             })
+            
             // console.log("Update Set", set)
             // if (set && set.length > 0) {
             //     await session.run(`
