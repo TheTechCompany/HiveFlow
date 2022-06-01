@@ -88,7 +88,9 @@ const main = async () => {
 
                 const type = new_task.collect.find((a: any) => a.to == key)?.type 
 
-                if(type == "Date" || type == "Function"){
+                if(type == "Number" && typeof(createObject[key]) == "number"){
+                    createObject[key] = createObject[key].toFixed(2)
+                }else if(type == "Date" || type == "Function"){
                     try{
                         if(!(createObject[key] instanceof Date)){
                             const parts = createObject[key]?.match(/(.*)\/(.*)\/(....)/);
@@ -132,7 +134,9 @@ const main = async () => {
                 updateObject[key] = event.value[key]?.[1];
 
                 const type = t.collect.find((a: any) => a.to == key)?.type
-                if(type == "Date" || type == "Function"){
+                if(type == "Number" && typeof(updateObject[key]) == "number"){
+                    updateObject[key] = updateObject[key].toFixed(2)
+                }else if(type == "Date" || type == "Function"){
                     try{
                         const parts = updateObject[key].match(/(.*)\/(.*)\/(....)/);
 
