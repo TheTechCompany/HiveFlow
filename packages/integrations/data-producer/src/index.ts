@@ -84,7 +84,7 @@ const main = async () => {
     worker.on('NEW', async (event: any) => {
         console.log("NEW EVENT", event)
     
-        //     const new_task = task.find((a: any) => a.family.cluster == event.id)
+        const new_task = task.find((a: any) => a.family.cluster == event.id)
 
     //     let createObject : any = {}
 
@@ -93,41 +93,45 @@ const main = async () => {
     //             type: new_task.collect.find((a: any) => a.to == key).type,
     //             value: event.value[0][key]
     //         }
-        })
+        
 
-    //     await updateRecord({
-    //         action: 'CREATE',
-    //         data: createObject,
-    //         primaryKey: new_task?.family.species,
-    //         id: event.value[new_task?.family.species],
-    //         type: new_task?.type
-    //     })
+        await updateRecord({
+            action: 'CREATE',
+            create: new_task.create,
+            update: new_task.update,
+            data: event.value[0],
+            primaryKey: new_task?.family.species,
+            id: event.value[new_task?.family.species],
+            type: new_task?.type
+        });
 
-
+    });
     //     // console.log("NEW", event)
     // })
 
     worker.on('UPDATE', async (event: any) => {
         console.log("UPDATE", event)
     
-    //     let t = task.find((a: any) => a.family.cluster == event.id)
+        let t = task.find((a: any) => a.family.cluster == event.id)
 
-    //     let updateObject : any = {}
-
-    //     Object.keys(event.value).forEach((key) => {
-    //         updateObject[key] = {
-    //             type: t.collect.find((a: any) => a.to == key).type,
-    //             value: event.value[key]?.[1]
-    //         }
+    
+        let updateObject : any = {};
+        
+        Object.keys(event.value).forEach((key) => {
+            updateObject[key] = event.value[key]?.[1]
         })
 
-    //     await updateRecord({
-    //         action: 'UPDATE',
-    //         id: event.valueId,
-    //         data: updateObject,
-    //         primaryKey: t?.family.sepcies,
-    //         type: task.find((a: any) => a.family.cluster == event.id)?.type
-    //     })
+        await updateRecord({
+            action: 'UPDATE',
+            create: t.create,
+            update: t.update,
+            id: event.valueId,
+            data: updateObject,
+            primaryKey: t?.family.sepcies,
+            type: task.find((a: any) => a.family.cluster == event.id)?.type
+        })
+
+    })
 
     // })
 }

@@ -25,6 +25,7 @@ export default (prisma: PrismaClient) => {
         }
 
         input EstimateInput {
+            id: ID
             name: String
             status: String
             date: DateTime
@@ -64,7 +65,7 @@ export default (prisma: PrismaClient) => {
                 return await prisma.estimate.create({
                     data: {
                         id: nanoid(),
-                        displayId: `${count + 1}`,
+                        displayId: args.input.id || `${count + 1}`,
                         name: args.input.name,
                         date: args.input.date || new Date(),
                         status: args.input.status,
@@ -75,7 +76,7 @@ export default (prisma: PrismaClient) => {
             },
             updateEstimate: async  (root: any, args: any, context: any) => {
                 return await prisma.estimate.update({
-                    where: {id: args.id},
+                    where: {displayId_organisation: {displayId: args.id, organisation: context.jwt.organisation}},
                     data: {
                         name: args.input.name,
                         status: args.input.status,
@@ -86,7 +87,7 @@ export default (prisma: PrismaClient) => {
             },
             deleteEstimate: async  (root: any, args: any, context: any) => {
                 return await prisma.estimate.delete({
-                    where: {id: args.id}
+                    where: { displayId_organisation: {displayId: args.id, organisation: context.jwt.organisation} }
                 })
             } 
         }
