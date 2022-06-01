@@ -85,8 +85,10 @@ const main = async () => {
         let createObject : any = {}
 
         Object.keys(event.value[0]).forEach((key) => {
-            createObject[key] = event.value[0][key] || ''
+            createObject[key] = event.value[0][key];
+
             const type = new_task.collect.find((a: any) => a.to == key)?.type 
+
             if(type == "Date" || type == "Function"){
                 try{
                     if(!(createObject[key] instanceof Date)){
@@ -126,7 +128,8 @@ const main = async () => {
         let updateObject : any = {};
         
         Object.keys(event.value).forEach((key) => {
-            updateObject[key] = event.value[key]?.[1] || ''
+            updateObject[key] = event.value[key]?.[1];
+            
             const type = t.collect.find((a: any) => a.to == key)?.type
             if(type == "Date" || type == "Function"){
                 try{
