@@ -88,7 +88,8 @@ const main = async () => {
 
                 const type = new_task.collect.find((a: any) => a.to == key)?.type 
 
-                if(type == "Number" && typeof(createObject[key]) == "number"){
+                if(type == "Number"){
+                    if(typeof(createObject[key]) != "number") createObject[key] = parseFloat(createObject[key])
                     createObject[key] = createObject[key].toFixed(2)
                 }else if(type == "Date" || type == "Function"){
                     try{
@@ -134,7 +135,8 @@ const main = async () => {
                 updateObject[key] = event.value[key]?.[1];
 
                 const type = t.collect.find((a: any) => a.to == key)?.type
-                if(type == "Number" && typeof(updateObject[key]) == "number"){
+                if(type == "Number"){
+                    if(typeof(updateObject[key]) != "number") updateObject[key] = parseFloat(updateObject[key])
                     updateObject[key] = updateObject[key].toFixed(2)
                 }else if(type == "Date" || type == "Function"){
                     try{
