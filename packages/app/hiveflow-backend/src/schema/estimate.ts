@@ -10,8 +10,8 @@ export default (prisma: PrismaClient) => {
 
         type Mutation {
             createEstimate(input: EstimateInput): Estimate
-            updateEstimate(id: ID, input: EstimateInput): Estimate
-            deleteEstimate(id: ID): Estimate
+            updateEstimate(id: ID!, input: EstimateInput): Estimate
+            deleteEstimate(id: ID!): Estimate
         }
 
         input EstimateWhere {

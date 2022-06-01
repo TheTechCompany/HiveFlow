@@ -11,8 +11,8 @@ export default (prisma: PrismaClient) => {
 
         type Mutation {
             createEquipment(input: EquipmentInput): Equipment
-            updateEquipment(id: ID, input: EquipmentInput): Equipment
-            deleteEquipment(id: ID): Equipment
+            updateEquipment(id: ID!, input: EquipmentInput): Equipment
+            deleteEquipment(id: ID!): Equipment
         }
 
         input EquipmentInput {
