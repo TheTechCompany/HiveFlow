@@ -82,14 +82,14 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
                                     volumeMounts: [
                                         {
                                             mountPath: '/runner',
-                                            name: 'task-path'
+                                            name: 'taskjson'
                                         }
                                     ]
                                 }
                             ],
                             volumes: [
                                 {
-                                    name: 'task-path',
+                                    name: 'taskjson',
                                     configMap: {
                                         name: integration.metadata.name,
                                         items: [{key: 'task.json', path: '.'}]
