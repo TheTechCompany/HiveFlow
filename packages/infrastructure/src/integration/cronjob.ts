@@ -30,6 +30,7 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
                 spec: {
                     template: {
                         spec: {
+                            restartPolicy: 'OnFailure',
                             nodeSelector: {
                                 'eks.amazonaws.com/nodegroup': 'managed-nodes'                
                             },
