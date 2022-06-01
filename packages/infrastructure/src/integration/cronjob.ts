@@ -59,6 +59,7 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
             schedule: '*/5 * * * *',
             jobTemplate: {
                 spec: {
+                    ttlSecondsAfterFinished: 100,
                     template: {
                         spec: {
                             restartPolicy: 'OnFailure',
