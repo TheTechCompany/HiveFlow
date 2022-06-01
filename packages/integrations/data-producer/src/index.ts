@@ -51,7 +51,6 @@ const main = async () => {
                 let ret: any = {};
 
                 t.collect.forEach((val: any) => {
-                    console.log({val})
 
                     ret[val.to] = x[val.to];
                     switch(val.type){
@@ -87,6 +86,17 @@ const main = async () => {
 
         Object.keys(event.value[0]).forEach((key) => {
             createObject[key] = event.value[0][key] || ''
+
+            if(new_task.collect.find((a: any) => a.to == key)?.type == "Date"){
+                try{
+                    const parts = createObject[key].match(/(.*)\/(.*)\/(....)/);
+
+                    createObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString(); //.match(/(..\/..\/....)/)?.[1];
+                }catch(e){
+                    console.log(createObject[key], e)
+                    createObject[key] = undefined;
+                }
+            }
         })
         
         if(new_task.create){
@@ -115,6 +125,17 @@ const main = async () => {
         
         Object.keys(event.value).forEach((key) => {
             updateObject[key] = event.value[key]?.[1] || ''
+
+            if(t.collect.find((a: any) => a.to == key)?.type == "Date"){
+                try{
+                    const parts = updateObject[key].match(/(.*)\/(.*)\/(....)/);
+
+                    updateObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString() //.match(/(..\/..\/....)/)?.[1];
+                }catch(e){
+                    console.log(updateObject[key], e)
+                    updateObject[key] = undefined;
+                }
+            }
         })
 
         if(t.update){

@@ -138,7 +138,7 @@ export const updateRecord = async (json: { update: string, create: string, actio
             // }).join('\n')
 
             await graphqlRequest(gql`
-                ${json.create}
+                ${json.update}
             `, {
                 id: json.id,
                 input: json.data
