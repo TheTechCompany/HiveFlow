@@ -136,7 +136,7 @@ const main = async () => {
 
                 if(type == "Number"){
                     if(typeof(updateObject[key]) != "number") updateObject[key] = parseFloat(updateObject[key])
-                    console.log({type:typeof(updateObject[key]), key: key, update: updateObject[key]});
+                    // console.log({type:typeof(updateObject[key]), key: key, update: updateObject[key]});
                     updateObject[key] = parseFloat(updateObject[key].toFixed(2))
                 }else if(type == "Date" || type == "Function"){
                     try{
