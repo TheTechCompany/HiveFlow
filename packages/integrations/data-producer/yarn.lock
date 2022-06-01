@@ -196,10 +196,10 @@
   dependencies:
     "@cspotcode/source-map-consumer" "0.8.0"
 
-"@hexhive/mssql-worker@^1.0.2-beta.50":
-  version "1.0.2-beta.50"
-  resolved "https://registry.yarnpkg.com/@hexhive/mssql-worker/-/mssql-worker-1.0.2-beta.50.tgz#a8a2b3e9c6a8c7bfaf1ed45bd8c0dbb594e83f19"
-  integrity sha512-IQTRIw+kLcicvvrSNmwocamJ2DP0ytwpYzRPfxzjV1De17BgVSneUWIisQw5BPKbJHhyiXEBoSbHP8RsYhSMXA==
+"@hexhive/mssql-worker@^1.0.2-beta.51":
+  version "1.0.2-beta.51"
+  resolved "https://registry.yarnpkg.com/@hexhive/mssql-worker/-/mssql-worker-1.0.2-beta.51.tgz#39658b8b321ef5a84c135e4364b1dc39566580e2"
+  integrity sha512-MkqBaymsLk/cu7NVfCssQzPtkxcLBXhxwbSGRMZfAVYbFc5aK/HmhYRcGBckcg8xvu5Uahqu/zZYm2gVEMr/Jg==
   dependencies:
     "@hexhive/patch" "^1.0.2-beta.50"
     dotenv "^10.0.0"

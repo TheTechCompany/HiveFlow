@@ -81,7 +81,7 @@ const main = async () => {
 		}
 	}, task, initialState)
 
-	await worker.start()
+	await worker.runOnce()
 
     worker.on('NEW', async (event: any) => {
         console.log("NEW EVENT", event)
