@@ -35,7 +35,7 @@ model Estimate {
     name         String
     status       String?
 
-    date        DateTime
+    date        DateTime?
 
     createdAt    DateTime @default(now())
     updatedAt    DateTime @default(now())
