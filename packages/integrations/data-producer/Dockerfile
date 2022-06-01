@@ -6,6 +6,6 @@ COPY . .
 
 RUN yarn
 
-WORKDIR /runner/packages/integrations/data-producer
+WORKDIR /runner
 
 CMD [ "yarn", "start" ]

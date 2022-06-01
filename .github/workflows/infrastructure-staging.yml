@@ -179,7 +179,7 @@ jobs:
   push_infra:
     name: Update Pulumi Infra
     runs-on: ubuntu-latest
-    needs: [build_coreapps, build_server]
+    needs: [build_coreapps, build_server, build_integration]
     steps:
       - name: checkout
         uses: actions/checkout@v2
