@@ -11,17 +11,21 @@ export default (prisma: PrismaClient) => {
 
         type Mutation {
             createEquipment(input: EquipmentInput): Equipment
-            updateEquipment(id: ID, input: EquipmentInput): Equipment
-            deleteEquipment(id: ID): Equipment
+            updateEquipment(id: ID!, input: EquipmentInput): Equipment
+            deleteEquipment(id: ID!): Equipment
         }
 
         input EquipmentInput {
+            id: ID
             name: String
             registration: String
         }
 
         type Equipment {
             id: ID! 
+
+            displayId: String
+
             name: String
             registration: String
 
@@ -42,7 +46,7 @@ export default (prisma: PrismaClient) => {
                     return await prisma.equipment.create({
                         data: {
                             id: nanoid(),
-                            displayId: `${count}`,
+                            displayId: args.input.id || `${count}`,
                             name: args.input.name,
                             registration: args.input.registration,
                             organisation: context.jwt.organisation
@@ -53,7 +57,7 @@ export default (prisma: PrismaClient) => {
             },
             updateEquipment: async (root: any, args: any, context: any) => {
                 return await prisma.equipment.update({
-                    where: {id: args.id},
+                    where: { displayId_organisation: {displayId: args.id, organisation: context?.jwt?.organisation} },
                     data: {
                         name: args.input.name,
                         registration: args.input.registration,
@@ -63,7 +67,7 @@ export default (prisma: PrismaClient) => {
             },
             deleteEquipment: async (root: any, args: any, context: any) => {
                 return await prisma.equipment.delete({
-                    where: {id: args.id}
+                    where: { displayId_organisation: {displayId: args.id, organisation: context.jwt.organisation } }
                 })
             }
         }

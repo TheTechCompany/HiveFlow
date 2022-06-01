@@ -32,12 +32,15 @@ export interface Scalars {
 }
 
 export interface EquipmentInput {
+  id?: InputMaybe<Scalars["ID"]>;
   name?: InputMaybe<Scalars["String"]>;
   registration?: InputMaybe<Scalars["String"]>;
 }
 
 export interface EstimateInput {
+  companyName?: InputMaybe<Scalars["String"]>;
   date?: InputMaybe<Scalars["DateTime"]>;
+  id?: InputMaybe<Scalars["ID"]>;
   name?: InputMaybe<Scalars["String"]>;
   price?: InputMaybe<Scalars["Float"]>;
   status?: InputMaybe<Scalars["String"]>;
@@ -54,6 +57,7 @@ export interface EstimateWhere {
 
 export interface ProjectInput {
   endDate?: InputMaybe<Scalars["DateTime"]>;
+  id?: InputMaybe<Scalars["ID"]>;
   name?: InputMaybe<Scalars["String"]>;
   startDate?: InputMaybe<Scalars["DateTime"]>;
   status?: InputMaybe<Scalars["String"]>;
@@ -127,17 +131,20 @@ export const scalarsEnumsHash: import("gqty").ScalarsEnumsHash = {
 export const generatedSchema = {
   Equipment: {
     __typename: { __type: "String!" },
+    displayId: { __type: "String" },
     id: { __type: "ID!" },
     name: { __type: "String" },
     organisation: { __type: "HiveOrganisation" },
     registration: { __type: "String" },
   },
   EquipmentInput: {
+    id: { __type: "ID" },
     name: { __type: "String" },
     registration: { __type: "String" },
   },
   Estimate: {
     __typename: { __type: "String!" },
+    companyName: { __type: "String" },
     date: { __type: "DateTime" },
     displayId: { __type: "String" },
     id: { __type: "ID!" },
@@ -147,7 +154,9 @@ export const generatedSchema = {
     status: { __type: "String" },
   },
   EstimateInput: {
+    companyName: { __type: "String" },
     date: { __type: "DateTime" },
+    id: { __type: "ID" },
     name: { __type: "String" },
     price: { __type: "Float" },
     status: { __type: "String" },
@@ -194,6 +203,7 @@ export const generatedSchema = {
   },
   ProjectInput: {
     endDate: { __type: "DateTime" },
+    id: { __type: "ID" },
     name: { __type: "String" },
     startDate: { __type: "DateTime" },
     status: { __type: "String" },
@@ -339,8 +349,8 @@ export const generatedSchema = {
       __type: "TimelineItem",
       __args: { input: "TimelineItemInput" },
     },
-    deleteEquipment: { __type: "Equipment", __args: { id: "ID" } },
-    deleteEstimate: { __type: "Estimate", __args: { id: "ID" } },
+    deleteEquipment: { __type: "Equipment", __args: { id: "ID!" } },
+    deleteEstimate: { __type: "Estimate", __args: { id: "ID!" } },
     deleteProject: { __type: "Project!", __args: { id: "ID!" } },
     deleteProjectFile: {
       __type: "Boolean",
@@ -354,15 +364,15 @@ export const generatedSchema = {
     leaveScheduleItem: { __type: "ScheduleItem", __args: { id: "ID" } },
     updateEquipment: {
       __type: "Equipment",
-      __args: { id: "ID", input: "EquipmentInput" },
+      __args: { id: "ID!", input: "EquipmentInput" },
     },
     updateEstimate: {
       __type: "Estimate",
-      __args: { id: "ID", input: "EstimateInput" },
+      __args: { id: "ID!", input: "EstimateInput" },
     },
     updateProject: {
       __type: "Project!",
-      __args: { id: "ID!", update: "ProjectInput" },
+      __args: { id: "ID!", input: "ProjectInput" },
     },
     updateProjectFolder: {
       __type: "File",
@@ -415,6 +425,7 @@ export const generatedSchema = {
 
 export interface Equipment {
   __typename?: "Equipment";
+  displayId?: Maybe<ScalarsEnums["String"]>;
   id: ScalarsEnums["ID"];
   name?: Maybe<ScalarsEnums["String"]>;
   organisation?: Maybe<HiveOrganisation>;
@@ -423,6 +434,7 @@ export interface Equipment {
 
 export interface Estimate {
   __typename?: "Estimate";
+  companyName?: Maybe<ScalarsEnums["String"]>;
   date?: Maybe<ScalarsEnums["DateTime"]>;
   displayId?: Maybe<ScalarsEnums["String"]>;
   id: ScalarsEnums["ID"];
@@ -586,8 +598,8 @@ export interface Mutation {
   createTimelineItem: (args?: {
     input?: Maybe<TimelineItemInput>;
   }) => Maybe<TimelineItem>;
-  deleteEquipment: (args?: { id?: Maybe<Scalars["ID"]> }) => Maybe<Equipment>;
-  deleteEstimate: (args?: { id?: Maybe<Scalars["ID"]> }) => Maybe<Estimate>;
+  deleteEquipment: (args: { id: Scalars["ID"] }) => Maybe<Equipment>;
+  deleteEstimate: (args: { id: Scalars["ID"] }) => Maybe<Estimate>;
   deleteProject: (args: { id: Scalars["ID"] }) => Project;
   deleteProjectFile: (args: {
     path?: Maybe<Scalars["String"]>;
@@ -607,17 +619,17 @@ export interface Mutation {
   leaveScheduleItem: (args?: {
     id?: Maybe<Scalars["ID"]>;
   }) => Maybe<ScheduleItem>;
-  updateEquipment: (args?: {
-    id?: Maybe<Scalars["ID"]>;
+  updateEquipment: (args: {
+    id: Scalars["ID"];
     input?: Maybe<EquipmentInput>;
   }) => Maybe<Equipment>;
-  updateEstimate: (args?: {
-    id?: Maybe<Scalars["ID"]>;
+  updateEstimate: (args: {
+    id: Scalars["ID"];
     input?: Maybe<EstimateInput>;
   }) => Maybe<Estimate>;
   updateProject: (args: {
     id: Scalars["ID"];
-    update?: Maybe<ProjectInput>;
+    input?: Maybe<ProjectInput>;
   }) => Project;
   updateProjectFolder: (args: {
     path?: Maybe<Scalars["String"]>;

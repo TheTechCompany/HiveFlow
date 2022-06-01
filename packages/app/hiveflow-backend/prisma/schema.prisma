@@ -14,7 +14,7 @@ datasource db {
 model Project {
     id   String @id
     displayId String?
-    name String
+    name String?
 
     schedule ScheduleItem[]
     timeline TimelineItem[] @relation(name: "projectTimeline")
@@ -32,8 +32,12 @@ model Estimate {
     id           String   @id
     displayId    String? 
     
-    name         String
+    name         String?
     status       String?
+
+    date        DateTime?
+
+    companyName  String?
 
     createdAt    DateTime @default(now())
     updatedAt    DateTime @default(now())
@@ -50,7 +54,7 @@ model Estimate {
 model Equipment {
     id           String @id
     displayId    String?
-    name         String
+    name         String?
     registration String?
 
     schedule ScheduleItem[] @relation(name: "scheduleEquipment")

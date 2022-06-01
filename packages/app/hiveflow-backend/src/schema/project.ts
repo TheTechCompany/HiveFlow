@@ -79,11 +79,11 @@ export default (prisma: PrismaClient) => {
 						const project = prisma.project.create({
 							data: {
                                 id: nanoid(),
-								displayId: `${count + 1}`,
+								displayId: args.input.id || `${count + 1}`,
 								name: args.input.name,
 								organisation: context.jwt.organisation,
-								startDate: new Date(),
-								endDate: new Date(),
+								startDate: args.input.startDate || new Date(),
+								endDate: args.input.endDate || new Date(),
 								status: args.input.status || 'draft'
 							}
 						})
@@ -92,11 +92,24 @@ export default (prisma: PrismaClient) => {
 				)
 
             },
-            updateProject: async () => {
-                
+            updateProject: async (root: any, args: any, context: any) => {
+                return await prisma.project.update({
+                    where: {
+                        organisation_displayId: {
+                            displayId: args.id,
+                            organisation: context.jwt.organisation
+                        }
+                    },
+                    data: {
+                        name: args.input.name,
+                        startDate: args.input.startDate,
+                        endDate: args.input.endDate,
+                        status: args.input.status
+                    }
+                })
             },
-            deleteProject: async () => {
-
+            deleteProject: async (root: any, args: any, context: any) => {
+                return await prisma.project.delete({where: {organisation_displayId: {organisation: context.jwt.organisation, displayId: args.id}}})
             },
             createProjectFolder: async (root: any, args: any, context: any) => {
                 const appPath = `/Application Data/Flow/${args.project}`
@@ -242,7 +255,7 @@ export default (prisma: PrismaClient) => {
 
     type Mutation {
         createProject(input: ProjectInput): Project!
-		updateProject(id: ID!, update: ProjectInput): Project!
+		updateProject(id: ID!, input: ProjectInput): Project!
 		deleteProject(id: ID!): Project!
 
         createProjectFolder(project: ID!, path: String): File
@@ -253,6 +266,7 @@ export default (prisma: PrismaClient) => {
     }
 
     input ProjectInput {
+        id: ID
         name: String
         startDate: DateTime
         endDate: DateTime

@@ -232,7 +232,7 @@ export const EquipmentList: React.FC<any> = (props) => {
           }}
           onClickRow={selectPlant}
           columns={listKeys}
-          data={listData.filter(filterEquipment).sort(sortEquipment)} />
+          data={listData?.filter(filterEquipment).sort(sortEquipment) || []} />
       </Box>
 
       {/* <SortedList 

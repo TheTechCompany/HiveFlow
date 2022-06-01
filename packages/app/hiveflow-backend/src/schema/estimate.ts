@@ -10,8 +10,8 @@ export default (prisma: PrismaClient) => {
 
         type Mutation {
             createEstimate(input: EstimateInput): Estimate
-            updateEstimate(id: ID, input: EstimateInput): Estimate
-            deleteEstimate(id: ID): Estimate
+            updateEstimate(id: ID!, input: EstimateInput): Estimate
+            deleteEstimate(id: ID!): Estimate
         }
 
         input EstimateWhere {
@@ -25,7 +25,9 @@ export default (prisma: PrismaClient) => {
         }
 
         input EstimateInput {
+            id: ID
             name: String
+            companyName: String
             status: String
             date: DateTime
             price: Float
@@ -34,7 +36,7 @@ export default (prisma: PrismaClient) => {
         type Estimate  {
             id: ID! 
             displayId: String
-
+            companyName: String
             name: String
             status: String
             date: DateTime
@@ -64,8 +66,10 @@ export default (prisma: PrismaClient) => {
                 return await prisma.estimate.create({
                     data: {
                         id: nanoid(),
-                        displayId: `${count + 1}`,
+                        displayId: args.input.id || `${count + 1}`,
                         name: args.input.name,
+                        companyName: args.input.companyName,
+                        date: args.input.date || new Date(),
                         status: args.input.status,
                         price: args.input.price,
                         organisation: context.jwt.organisation
@@ -74,9 +78,10 @@ export default (prisma: PrismaClient) => {
             },
             updateEstimate: async  (root: any, args: any, context: any) => {
                 return await prisma.estimate.update({
-                    where: {id: args.id},
+                    where: {displayId_organisation: {displayId: args.id, organisation: context.jwt.organisation}},
                     data: {
                         name: args.input.name,
+                        companyName: args.input.companyName,
                         status: args.input.status,
                         price: args.input.price,
                         organisation: context.jwt.organisation
@@ -85,7 +90,7 @@ export default (prisma: PrismaClient) => {
             },
             deleteEstimate: async  (root: any, args: any, context: any) => {
                 return await prisma.estimate.delete({
-                    where: {id: args.id}
+                    where: { displayId_organisation: {displayId: args.id, organisation: context.jwt.organisation} }
                 })
             } 
         }

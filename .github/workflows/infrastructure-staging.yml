@@ -6,7 +6,7 @@ on:
       - staging
       - next
       - master
-    paths: ["packages/app/**", "packages/infrastructure/**"]
+    paths: ["packages/app/**", "packages/infrastructure/**", "packages/integrations/**"]
 
 concurrency: hiveflow-infra-${{ github.ref }}
 
@@ -51,6 +51,55 @@ jobs:
         with: 
           context: ./packages/app/hiveflow-backend
           file: ./packages/app/hiveflow-backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BUILD_ENV=github
+  
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
+  
+  build_integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            thetechcompany/hiveflow-integration
+          # generate Docker tags based on the following events/attributes
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+      
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v1
+      
+      - name: Setup docker buildx
+        uses: docker/setup-buildx-action@v1
+      
+      - name: Login to dockerhub
+        uses: docker/login-action@v1
+        with: 
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and push 
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with: 
+          context: ./packages/integrations/data-producer
+          file: ./packages/integrations/data-producer/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -130,7 +179,7 @@ jobs:
   push_infra:
     name: Update Pulumi Infra
     runs-on: ubuntu-latest
-    needs: [build_coreapps, build_server]
+    needs: [build_coreapps, build_server, build_integration]
     steps:
       - name: checkout
         uses: actions/checkout@v2
@@ -154,16 +203,41 @@ jobs:
       - name: Setup stack
         run: |
           echo "STACK_NAME=ultraviolet/hiveflow-staging" >> $GITHUB_ENV
+          echo "INTEGRATION_KEY=${{ secrets.STAGING_INTEGRATION_KEY }}" >> $GITHUB_ENV
+          echo "ROOT_SERVER=${{ secrets.STAGING_API }}" >> $GITHUB_ENV
+         
+          echo "SQL_SERVER=${{secrets.SQL_SERVER}}" >> $GITHUB_ENV
+          echo "SQL_USER=${{secrets.SQL_USER}}" >> $GITHUB_ENV
+          echo "SQL_PASSWORD=${{secrets.SQL_PASSWORD}}" >> $GITHUB_ENV
+          echo "SQL_DB=${{secrets.SQL_DB}}" >> $GITHUB_ENV
+          echo "SQL_TRUST_CERT=${{secrets.SQL_TRUST_CERT}}" >> $GITHUB_ENV
+
         if: ${{ github.ref == 'refs/heads/staging' }}
 
       - name: Setup stack
         run: |
           echo "STACK_NAME=ultraviolet/hiveflow-next" >> $GITHUB_ENV
+          echo "INTEGRATION_KEY=${{ secrets.STAGING_INTEGRATION_KEY }}" >> $GITHUB_ENV
+          echo "ROOT_SERVER=${{ secrets.STAGING_API }}" >> $GITHUB_ENV
+            
+          echo "SQL_SERVER=${{secrets.SQL_SERVER}}" >> $GITHUB_ENV
+          echo "SQL_USER=${{secrets.SQL_USER}}" >> $GITHUB_ENV
+          echo "SQL_PASSWORD=${{secrets.SQL_PASSWORD}}" >> $GITHUB_ENV
+          echo "SQL_DB=${{secrets.SQL_DB}}" >> $GITHUB_ENV
+          echo "SQL_TRUST_CERT=${{secrets.SQL_TRUST_CERT}}" >> $GITHUB_ENV
         if: ${{ github.ref == 'refs/heads/next' }}
 
       - name: Setup stack
         run: |
           echo "STACK_NAME=ultraviolet/hiveflow-prod" >> $GITHUB_ENV
+          echo "INTEGRATION_KEY=${{ secrets.PROD_INTEGRATION_KEY }}" >> $GITHUB_ENV
+          echo "ROOT_SERVER=${{ secrets.PROD_API }}" >> $GITHUB_ENV
+
+          echo "SQL_SERVER=${{secrets.SQL_SERVER}}" >> $GITHUB_ENV
+          echo "SQL_USER=${{secrets.SQL_USER}}" >> $GITHUB_ENV
+          echo "SQL_PASSWORD=${{secrets.SQL_PASSWORD}}" >> $GITHUB_ENV
+          echo "SQL_DB=${{secrets.SQL_DB}}" >> $GITHUB_ENV
+          echo "SQL_TRUST_CERT=${{secrets.SQL_TRUST_CERT}}" >> $GITHUB_ENV
         if: ${{ github.ref == 'refs/heads/master' }}
         
       - name: Update infrastructure
@@ -173,6 +247,7 @@ jobs:
           stack-name: ${{ env.STACK_NAME }}
           work-dir: ./packages/infrastructure
         env:
+          INTEGRATION_TASK: ${{ secrets.INTEGRATION_TASK }}
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
 
   deploy-db:
