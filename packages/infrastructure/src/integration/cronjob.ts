@@ -77,7 +77,7 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
                                         { name: "SQL_PASSWORD", valueFrom: {secretKeyRef: {key: 'password', name: sqlData.metadata.name} } },
                                         { name: "SQL_TRUST_CERT", value: process.env.SQL_TRUST_CERT },
                                         { name: 'SQL_DB', value: process.env.SQL_DB},
-                                        { name: 'API_KEY', valueFrom: {secretKeyRef: {key: 'apiKey', name: apiData.metadata.name}} },
+                                        { name: 'INTEGRATION_KEY', valueFrom: {secretKeyRef: {key: 'apiKey', name: apiData.metadata.name}} },
                                         { name: 'TASK_PATH', value: '/app/task/task.json' }
                                     ],
                                     volumeMounts: [
