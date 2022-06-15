@@ -764,10 +764,10 @@
   resolved "https://registry.yarnpkg.com/@graphql-typed-document-node/core/-/core-3.1.1.tgz#076d78ce99822258cf813ecc1e7fa460fa74d052"
   integrity sha512-NQ17ii0rK1b34VZonlmT2QMJFI70m0TRwbknO/ihlbatXyaktDhN/98vBiUU6kNBPljqGqyIrl2T4nY2RpFANg==
 
-"@hexhive/graphql-server@1.0.2-beta.4":
-  version "1.0.2-beta.4"
-  resolved "https://registry.yarnpkg.com/@hexhive/graphql-server/-/graphql-server-1.0.2-beta.4.tgz#dae08ebef735da9680deb198fe4dfdebe4291ac3"
-  integrity sha512-71El7PAYA9G/T06DMuvWuMl1Iu+0NoTa/ubkXVVkmqswFwaK+V27lHEN2bmT8W0KYKr26IQErXOlhd8pYJf9LQ==
+"@hexhive/graphql-server@1.0.2-beta.53":
+  version "1.0.2-beta.53"
+  resolved "https://registry.yarnpkg.com/@hexhive/graphql-server/-/graphql-server-1.0.2-beta.53.tgz#639078cd957f8f553a62183842cfc8a1df274b91"
+  integrity sha512-RDAgK3FEjy52YUSUbpCykBimurM4iGewVQUcjvibibmiK2Z0/fyaYWcF4a/a/bGezWSxHdkR1u0xApXK5HUQdg==
   dependencies:
     "@graphql-tools/merge" "^8.2.6"
     "@graphql-tools/schema" "^8.3.5"

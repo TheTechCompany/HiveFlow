@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@apollo/client": "^3.6.2",
-    "@hexhive/graphql-server": "1.0.2-beta.4",
+    "@hexhive/graphql-server": "1.0.2-beta.53",
     "@neo4j/graphql": "^2.5.4",
     "@prisma/client": "3.12.0",
     "apollo-upload-client": "^17.0.0",
