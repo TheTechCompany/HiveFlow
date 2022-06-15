@@ -1,7 +1,8 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material';
 import { FileViewer } from '@hexhive/ui'
 import React from 'react';
 import { gql, useQuery } from '@apollo/client';
+import { BaseStyle } from '@hexhive/styles';
 
 export interface FilePreviewDialogProps {
     files: string[];
@@ -17,6 +18,12 @@ export const FilePreviewDialog : React.FC<FilePreviewDialogProps> = (props) => {
                 id
                 url
                 mimeType
+
+                uploadedBy {
+                    name
+                }
+
+                createdAt
             }
         }
     `, {
@@ -30,11 +37,19 @@ export const FilePreviewDialog : React.FC<FilePreviewDialogProps> = (props) => {
             open={props.open}
             onClose={props.onClose}
             >
-            <DialogTitle>File Preview</DialogTitle>
-            <DialogContent>
-                <FileViewer 
-                    files={data?.filesById || []}
-                    />
+            <DialogTitle
+                bgcolor={BaseStyle.global.colors['accent-2']}
+                padding={'small'}>File Preview</DialogTitle>
+            <DialogContent sx={{display: 'flex', flexDirection: 'row'}} >
+                <Box sx={{flex: 1}}>
+                    <FileViewer 
+                        files={data?.filesById || []}
+                        />
+                </Box>
+                <Box sx={{flex: 1}}>
+                    <Typography>Uploaded By: {data?.filesById?.[0]?.uploadedBy?.name}</Typography>  
+                    <Typography>Uploaded at: {data?.filesById?.[0]?.createdAt}</Typography>
+                </Box>
             </DialogContent>
             <DialogActions>
                 <Button onClick={props.onClose}>Close</Button>
