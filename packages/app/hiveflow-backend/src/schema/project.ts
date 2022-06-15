@@ -224,6 +224,7 @@ export default (prisma: PrismaClient) => {
 
                     const data = resp.data;
 
+                    console.log({data})
                     // const data = await client.mutate({
                     //     mutation: fileQuery,
                     //     variables: {
