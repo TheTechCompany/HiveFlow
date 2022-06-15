@@ -3,6 +3,7 @@ import { FileViewer } from '@hexhive/ui'
 import React from 'react';
 import { gql, useQuery } from '@apollo/client';
 import { BaseStyle } from '@hexhive/styles';
+import moment from 'moment';
 
 export interface FilePreviewDialogProps {
     files: string[];
@@ -52,7 +53,7 @@ export const FilePreviewDialog : React.FC<FilePreviewDialogProps> = (props) => {
                 </Box>
                 <Box sx={{flex: 1}}>
                     <Typography>Uploaded By: {data?.filesById?.[0]?.uploadedBy?.name}</Typography>  
-                    <Typography>Uploaded at: {data?.filesById?.[0]?.createdAt}</Typography>
+                    <Typography>Uploaded at: {moment(data?.filesById?.[0]?.createdAt).format('HH:mma DD/MM/YY')}</Typography>
                 </Box>
             </DialogContent>
             <DialogActions>
