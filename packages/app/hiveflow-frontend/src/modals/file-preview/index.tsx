@@ -38,6 +38,10 @@ export const FilePreviewDialog : React.FC<FilePreviewDialogProps> = (props) => {
             onClose={props.onClose}
             >
             <DialogTitle
+                sx={{
+                    padding: '8px',
+                    fontSize: '1rem'
+                }}
                 bgcolor={BaseStyle.global.colors['accent-2']}
                 color={'white'}>File Preview</DialogTitle>
             <DialogContent sx={{display: 'flex', flexDirection: 'row'}} >
