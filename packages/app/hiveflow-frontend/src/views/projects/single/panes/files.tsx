@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import { useMutation } from "@hive-flow/api";
 import { useMutation as useApolloMutation, useQuery, gql, useApolloClient } from "@apollo/client";
 import { useProjectInfo } from "../context";
+import { FilePreviewDialog } from "../../../../modals/file-preview";
 
 export const FilePane = () => {
 
@@ -87,10 +88,10 @@ export const FilePane = () => {
                 })
               }}
             />
-            <FileDialog
+            <FilePreviewDialog
                 open={Boolean(filePreviewOpen)}
                 onClose={() => openFilePreview(null)}
-                files={filePreviewOpen ? [filePreviewOpen] : []}
+                files={filePreviewOpen ? [filePreviewOpen.id] : []}
                 />
             
             <Menu
