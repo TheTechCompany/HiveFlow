@@ -39,7 +39,7 @@ export const FilePreviewDialog : React.FC<FilePreviewDialogProps> = (props) => {
             >
             <DialogTitle
                 bgcolor={BaseStyle.global.colors['accent-2']}
-                padding={'small'}>File Preview</DialogTitle>
+                color={'white'}>File Preview</DialogTitle>
             <DialogContent sx={{display: 'flex', flexDirection: 'row'}} >
                 <Box sx={{flex: 1}}>
                     <FileViewer 
