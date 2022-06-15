@@ -20,7 +20,8 @@ import { useMutation, useRefetch } from '@hive-flow/api';
 import { KanbanModal } from './KanbanModal';
 import { gql, useApolloClient, useMutation as useApolloMutation, useQuery } from '@apollo/client'
 import { useParams } from 'react-router-dom';
-import { FolderModal } from 'app/hiveflow-frontend/src/modals/folder-modal';
+import { TimelinePane, FilePane, KanbanPane } from './panes';
+import { ProjectSingleProvider } from './context';
 
 // const FileExplorer = lazy(() => {
 //   //@ts-ignore
@@ -37,7 +38,6 @@ export interface ProjectSingleProps {
   }
 }
 
-const STATUS = ["Backlog", "In Progress", "Reviewing", "Finished"];
 
 
 export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
@@ -61,16 +61,12 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
 
   const [comment, setComment] = useState<string>('')
   const [uploadFile, setUploadFile] = useState<string>('')
-  const [files, setFiles] = useState<any[]>([])
 
   const [description, setDescription] = useState<string>('')
 
   const { id: job_id, jobParam } = useParams()
 
-  const [anchorPos, setAnchorPos] = useState<{ top: number, left: number }>()
-  const [createFolderOpen, openCreateFolder] = useState<boolean>(false)
 
-  const [activePath, setActivePath] = useState('/');
 
 
   // const query = useQuery({
@@ -79,51 +75,23 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
   // })
 
   const { data } = useQuery(gql`
-    query GetProject($id: String, $path: String) {
+    query GetProject($id: String) {
       projects(where: {displayId: $id}){
         id
         displayId
         name
         startDate
         endDate
-
-        files(path: $path) {
-          id
-          name
-          directory
-          size
-        }
     
       }
     }
   `, {
     variables: {
       id: job_id,
-      path: activePath
     }
   })
 
-  const refetch = () => {
-    client.refetchQueries({include: ['GetProject']})
-  };
-
-  const [createDirectory] = useMutation((mutation, args: any) => {
-    const item = mutation.createProjectFolder({ project: job_id, path: `${activePath}/${args.path}` })
-    return {
-      item: {
-        ...item
-      }
-    }
-  })
-
-  const [uploadFiles] = useApolloMutation(gql`
-    mutation UploadFile($project: ID!, $path: String, $files: [Upload]){
-      uploadProjectFiles(project: $project, path: $path, files: $files){
-        id
-        name
-      }
-    }
-  `)
+  
 
 
 
@@ -138,147 +106,20 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
   }, [JSON.stringify(job)])
 
 
-  const [ links, setLinks ] = useState([]);
 
   const _tabs = [
    
     {
       title: "Tickets",
-      component: <Kanban
-        onDrag={(result) => {
-          console.log(result.destination?.droppableId)
-          if (result.destination?.droppableId != undefined) {
-            let f = files.slice()
-            let f_ix = f.map((x) => x.id).indexOf(result.draggableId)
-            f[f_ix].status = STATUS[parseInt(result.destination?.droppableId || '')]
-            setFiles(f)
-
-            const loaded = UseLoading(result.draggableId)
-
-            // updateFile({args: {id: result.draggableId, status: STATUS[parseInt(result.destination?.droppableId)]}}).then(() => {
-
-            //   loaded()
-            //   setLoadingFiles(f)
-            // })
-
-
-            /*  utils.job.updateFile(job_id, result.draggableId, {status: STATUS[parseInt(result.destination?.droppableId)]}).then(() => {
-                //TODO reset if error  
-              })*/
-
-          }
-        }}
-        renderCard={(item) => {
-          return (
-            <Box
-              onClick={() => {
-                setShowFiles([item])
-                openDialog(true)
-              }}
-              direction="column"
-              background="light-2"
-              round="xsmall"
-              pad="small">
-              <Text>{item.name}</Text>
-            </Box>
-          )
-        }}
-        columns={STATUS.map((x) => ({
-          id: x,
-          title: x,
-          ttl: x == "Finished" ? 14 * 24 * 60 * 60 * 1000 : undefined,
-          menu: [
-            { label: "Archive all cards", onClick: () => { } },
-            {
-              label: "Column Settings", onClick: () => {
-                showKanbanMenu(true)
-                setSelectedColumn(x)
-              }
-            }
-          ],
-          rows: files.filter((a: any) => a.status == x).map((x) => ({ ...x }))
-        }))} />
+      component: <KanbanPane />
     },
     {
       title: "Timeline",
-      component: (
-        <Timeline
-            data={[
-              {id: '1', start: new Date(), end: new Date(2022, 4, 10), name: "Item 1", color: 'red', showLabel: true},
-              {id: '2', start: new Date(), end: new Date(2022, 10, 12), name: "Item 1", color: 'red', showLabel: true},
-            ]}
-            links={links}
-            onCreateLink={(link) => {
-              setLinks([...links, link])
-            }}
-             
-          />
-      )
+      component: <TimelinePane />
     },
     {
       title: "Files",
-      component: (
-        <Box flex onContextMenu={(evt) => {
-          evt.preventDefault()
-          setAnchorPos({ top: evt.clientY, left: evt.clientX })
-        }}>
-          <FolderModal
-            open={createFolderOpen}
-            onClose={() => {
-              openCreateFolder(false)
-            }}
-            onSubmit={(folder) => {
-              createDirectory({
-                args: {
-                  path: folder.name
-                }
-              }).then(() => {
-                openCreateFolder(false)
-                refetch()
-              })
-            }}
-          />
-          <Menu
-            anchorReference={'anchorPosition'}
-            anchorPosition={anchorPos}
-            open={Boolean(anchorPos)}
-            onClose={() => setAnchorPos(undefined)}
-          >
-            <MenuItem onClick={() => {
-              openCreateFolder(true)
-              setAnchorPos(undefined)
-            }}>New Folder</MenuItem>
-            <Divider />
-            <MenuItem onClick={() => {
-              setAnchorPos(undefined)
-            }} style={{ color: 'red' }}>Delete</MenuItem>
-          </Menu>
-          <FileExplorer
-            path={activePath}
-            previewEngines={[
-              {
-                filetype: '.png',
-                component: ({ file }) => <Box>file</Box>
-              }
-            ]}
-            onNavigate={(path) => {
-              setActivePath(path)
-            }}
-            files={job?.files?.map((x: any) => ({ ...x, isFolder: x.directory })) || []}
-            onDrop={(files) => {
-              uploadFiles({
-                variables: {
-                  project: job_id,
-                  path: activePath,
-                  files
-                }
-              }).then(() => {
-                refetch()
-              })
-            }}
-          />
-        </Box>
-      )
+      component: <FilePane />
       // (
       // <SharedFiles
       //   loading={loadingFiles}
@@ -382,6 +223,7 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
   }
 
   return (
+    <ProjectSingleProvider value={{projectId: job_id}}>
     <Box
       direction="column"
       round="xsmall"
@@ -497,6 +339,7 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
         onClose={() => showKanbanMenu(false)} />
 
     </Box>
+    </ProjectSingleProvider>
   );
 
 }
