@@ -2,11 +2,12 @@ import { FileExplorer, FileDialog } from "@hexhive/ui";
 import { Divider, Menu, MenuItem } from "@mui/material";
 import { FolderModal } from "../../../../modals/folder-modal";
 import { Box } from "grommet";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useMutation } from "@hive-flow/api";
 import { useMutation as useApolloMutation, useQuery, gql, useApolloClient } from "@apollo/client";
 import { useProjectInfo } from "../context";
 import { FilePreviewDialog } from "../../../../modals/file-preview";
+import {nanoid} from 'nanoid'
 
 export const FilePane = () => {
 
@@ -20,6 +21,8 @@ export const FilePane = () => {
     const [filePreviewOpen, openFilePreview] = useState<any>(null)
 
     const [anchorPos, setAnchorPos] = useState<{ top: number, left: number }>()
+
+    const uploading = useRef<{loading?: {id?: string, name?: string, percent?: number}[]}>({loading: []})
 
     const [createDirectory] = useMutation((mutation, args: any) => {
         const item = mutation.createProjectFolder({ project: projectId, path: `${activePath}/${args.path}` })
@@ -37,7 +40,18 @@ export const FilePane = () => {
                 name
             }
         }
-    `)
+    `, {
+      context: {
+        onUploadProgress: (event) => {
+          const progress = (event.loaded / event.total) * 100
+
+          uploading.current.loading.forEach((item, ix) => {
+            (uploading.current.loading || [])[ix].percent = progress;
+          })
+
+        }
+      }
+    })
 
     const { data } = useQuery(gql`
         query GetProjectFiles($id: String, $path: String) {
@@ -117,6 +131,7 @@ export const FilePane = () => {
                   component: ({ file }) => <Box>file</Box>
                 }
               ]}
+              uploading={uploading.current.loading || []}
               onClick={(file) => {
                 openFilePreview(file)
               }}
@@ -125,6 +140,9 @@ export const FilePane = () => {
               }}
               files={files?.map((x: any) => ({ ...x, isFolder: x.directory })) || []}
               onDrop={(files) => {
+
+                uploading.current.loading = (files || []).map((x) => ({id: nanoid(), name: x.name, percent: 0}));
+
                 uploadFiles({
                   variables: {
                     project: projectId,
