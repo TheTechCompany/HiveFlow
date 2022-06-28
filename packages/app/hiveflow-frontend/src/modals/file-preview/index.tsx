@@ -17,6 +17,7 @@ export const FilePreviewDialog : React.FC<FilePreviewDialogProps> = (props) => {
         query FileInfo ($ids: [ID]) {
             filesById(ids: $ids) {
                 id
+                name
                 url
                 mimeType
 
@@ -52,7 +53,7 @@ export const FilePreviewDialog : React.FC<FilePreviewDialogProps> = (props) => {
                         />
                 </Box>
                 <Box sx={{flex: 1}}>
-                    <TextField label="Filename" value={data?.filesById?.[0]?.name} />
+                    <TextField size="small" label="Filename" value={data?.filesById?.[0]?.name} />
                     <Typography>Uploaded By: {data?.filesById?.[0]?.uploadedBy?.name}</Typography>  
                     <Typography>Uploaded at: {moment(data?.filesById?.[0]?.createdAt).format('HH:mma DD/MM/YY')}</Typography>
                 </Box>
