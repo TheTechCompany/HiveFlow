@@ -72,7 +72,9 @@ export const FilePane = () => {
     const [ deleteFile ] = useMutation((mutation, args: any) => {
       const item = mutation.deleteProjectFile({ project: projectId, path: `${activePath}/${args.path}` })
       return {
-        item: item
+        item: {
+          ...item
+        }
       }
     })
 
