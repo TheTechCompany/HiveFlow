@@ -251,7 +251,7 @@ export default (prisma: PrismaClient) => {
 
                 const renameQuery = gql`
                     mutation RenameFile {
-                        renameFile(path: ${dataPath}, newName: ${args.newPath}){
+                        renameFile(path: "${dataPath}", newName: "${args.newPath}"){
                             id
                         }
                     }
@@ -270,7 +270,7 @@ export default (prisma: PrismaClient) => {
 
                 const deleteQuery = gql`
                     mutation DeleteFile {
-                        deleteFile(path: ${dataPath}){
+                        deleteFile(path: "${dataPath}"){
                             id
                         }
                     }
