@@ -353,7 +353,7 @@ export const generatedSchema = {
     deleteEstimate: { __type: "Estimate", __args: { id: "ID!" } },
     deleteProject: { __type: "Project!", __args: { id: "ID!" } },
     deleteProjectFile: {
-      __type: "Boolean",
+      __type: "File",
       __args: { path: "String", project: "ID!" },
     },
     deleteScheduleItem: { __type: "ScheduleItem", __args: { id: "ID" } },
@@ -362,6 +362,10 @@ export const generatedSchema = {
     empty: { __type: "String" },
     joinScheduleItem: { __type: "ScheduleItem", __args: { id: "ID" } },
     leaveScheduleItem: { __type: "ScheduleItem", __args: { id: "ID" } },
+    renameProjectFile: {
+      __type: "File",
+      __args: { newPath: "String", path: "String", project: "ID!" },
+    },
     updateEquipment: {
       __type: "Equipment",
       __args: { id: "ID!", input: "EquipmentInput" },
@@ -604,7 +608,7 @@ export interface Mutation {
   deleteProjectFile: (args: {
     path?: Maybe<Scalars["String"]>;
     project: Scalars["ID"];
-  }) => Maybe<ScalarsEnums["Boolean"]>;
+  }) => Maybe<File>;
   deleteScheduleItem: (args?: {
     id?: Maybe<Scalars["ID"]>;
   }) => Maybe<ScheduleItem>;
@@ -619,6 +623,11 @@ export interface Mutation {
   leaveScheduleItem: (args?: {
     id?: Maybe<Scalars["ID"]>;
   }) => Maybe<ScheduleItem>;
+  renameProjectFile: (args: {
+    newPath?: Maybe<Scalars["String"]>;
+    path?: Maybe<Scalars["String"]>;
+    project: Scalars["ID"];
+  }) => Maybe<File>;
   updateEquipment: (args: {
     id: Scalars["ID"];
     input?: Maybe<EquipmentInput>;
