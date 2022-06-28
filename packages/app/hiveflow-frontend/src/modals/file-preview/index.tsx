@@ -52,7 +52,7 @@ export const FilePreviewDialog : React.FC<FilePreviewDialogProps> = (props) => {
                         files={data?.filesById || []}
                         />
                 </Box>
-                <Box sx={{flex: 1}}>
+                <Box sx={{flex: 1, padding: '6px'}}>
                     <TextField size="small" label="Filename" value={data?.filesById?.[0]?.name} />
                     <Typography>Uploaded By: {data?.filesById?.[0]?.uploadedBy?.name}</Typography>  
                     <Typography>Uploaded at: {moment(data?.filesById?.[0]?.createdAt).format('HH:mma DD/MM/YY')}</Typography>
