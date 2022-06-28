@@ -1,13 +1,50 @@
 import { FileExplorer, FileDialog } from "@hexhive/ui";
-import { Divider, Menu, MenuItem } from "@mui/material";
+import { createTheme, Divider, Menu, MenuItem, ThemeProvider } from "@mui/material";
 import { FolderModal } from "../../../../modals/folder-modal";
 import { Box } from "grommet";
-import React, { useState } from "react";
-import { useMutation } from "@hive-flow/api";
+import React, { useRef, useState } from "react";
+import { mutate, useMutation } from "@hive-flow/api";
 import { useMutation as useApolloMutation, useQuery, gql, useApolloClient } from "@apollo/client";
 import { useProjectInfo } from "../context";
 import { FilePreviewDialog } from "../../../../modals/file-preview";
+import {nanoid} from 'nanoid'
 
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#72738b'
+    },
+    secondary: {
+      // light: '#a3b579',
+      main: "#87927e"
+    }
+  },
+  components: {
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: '6px',
+          overflow: "hidden"
+        }
+      }
+    },
+    MuiTableHead: {
+      styleOverrides: {
+        root: {
+          background: 'green'
+        }
+      }
+    }
+  }
+  // palette: {
+  //   // primary: {
+  //   //   main: '',
+  //   // },
+  //   // secondary: {
+  //   //   main: ''
+  //   // }
+  // }
+});
 export const FilePane = () => {
 
     const { projectId } = useProjectInfo();
@@ -21,6 +58,8 @@ export const FilePane = () => {
 
     const [anchorPos, setAnchorPos] = useState<{ top: number, left: number }>()
 
+    const uploading = useRef<{loading?: {id?: string, name?: string, percent?: number}[]}>({loading: []})
+
     const [createDirectory] = useMutation((mutation, args: any) => {
         const item = mutation.createProjectFolder({ project: projectId, path: `${activePath}/${args.path}` })
         return {
@@ -30,6 +69,22 @@ export const FilePane = () => {
         }
     })
 
+    const [ deleteFile ] = useMutation((mutation, args: any) => {
+      const item = mutation.deleteProjectFile({ project: projectId, path: `${activePath}/${args.path}` })
+      return {
+        item: item
+      }
+    })
+
+    const [ renameFile ] = useMutation((mutation, args: { path: string, newPath: string }) => {
+      const item = mutation.renameProjectFile({project: projectId, path: `${activePath}/${args.path}`, newPath: args.newPath})
+      return {
+        item: {
+          ...item
+        }
+      }
+    })
+
     const [uploadFiles] = useApolloMutation(gql`
         mutation UploadFile($project: ID!, $path: String, $files: [Upload]){
             uploadProjectFiles(project: $project, path: $path, files: $files){
@@ -37,7 +92,18 @@ export const FilePane = () => {
                 name
             }
         }
-    `)
+    `, {
+      context: {
+        onUploadProgress: (event) => {
+          const progress = (event.loaded / event.total) * 100
+
+          uploading.current.loading.forEach((item, ix) => {
+            (uploading.current.loading || [])[ix].percent = progress;
+          })
+
+        }
+      }
+    })
 
     const { data } = useQuery(gql`
         query GetProjectFiles($id: String, $path: String) {
@@ -67,48 +133,17 @@ export const FilePane = () => {
     const files = data?.projects?.[0]?.files || [];
 
     return (
+      <ThemeProvider theme={theme}>
 
-        <Box flex onContextMenu={(evt) => {
-            evt.preventDefault()
-            setAnchorPos({ top: evt.clientY, left: evt.clientX })
-          }}>
-            <FolderModal
-              open={createFolderOpen}
-              onClose={() => {
-                openCreateFolder(false)
-              }}
-              onSubmit={(folder) => {
-                createDirectory({
-                  args: {
-                    path: folder.name
-                  }
-                }).then(() => {
-                  openCreateFolder(false)
-                  refetch()
-                })
-              }}
-            />
+        <Box flex>
+        
             <FilePreviewDialog
                 open={Boolean(filePreviewOpen)}
                 onClose={() => openFilePreview(null)}
                 files={filePreviewOpen ? [filePreviewOpen.id] : []}
                 />
             
-            <Menu
-              anchorReference={'anchorPosition'}
-              anchorPosition={anchorPos}
-              open={Boolean(anchorPos)}
-              onClose={() => setAnchorPos(undefined)}
-            >
-              <MenuItem onClick={() => {
-                openCreateFolder(true)
-                setAnchorPos(undefined)
-              }}>New Folder</MenuItem>
-              <Divider />
-              <MenuItem onClick={() => {
-                setAnchorPos(undefined)
-              }} style={{ color: 'red' }}>Delete</MenuItem>
-            </Menu>
+           
             <FileExplorer
               path={activePath}
               previewEngines={[
@@ -117,6 +152,31 @@ export const FilePane = () => {
                   component: ({ file }) => <Box>file</Box>
                 }
               ]}
+              onCreateFolder={(folder) => {
+                createDirectory({
+                  args: {
+                    path: folder
+                  }
+                }).then(() => {
+                  refetch()
+                })
+              }}
+              onDelete={(file) => {
+                deleteFile({args: {path: file.name}}).then(() => {
+                  refetch()
+                })
+              }}
+              onRename={(file, newName) => {
+                renameFile({
+                  args: {
+                    path: file.name,
+                    newPath: newName
+                  }
+                }).then(() => {
+                  refetch()
+                })
+              }}
+              uploading={uploading.current.loading || []}
               onClick={(file) => {
                 openFilePreview(file)
               }}
@@ -125,6 +185,9 @@ export const FilePane = () => {
               }}
               files={files?.map((x: any) => ({ ...x, isFolder: x.directory })) || []}
               onDrop={(files) => {
+
+                uploading.current.loading = (files || []).map((x) => ({id: nanoid(), name: x.name, percent: 0}));
+
                 uploadFiles({
                   variables: {
                     project: projectId,
@@ -137,6 +200,6 @@ export const FilePane = () => {
               }}
             />
           </Box>
-        
+     </ThemeProvider>   
     )
 }

@@ -10,7 +10,9 @@ import { AuthProvider } from "@hexhive/auth-ui";
 import { getConfig } from "./actions/gateway";
 import { HiveFlowConfiguration, HiveFlowProvider } from "./context";
 import { createUploadLink } from 'apollo-upload-client'
-
+import { buildAxiosFetch } from "@lifeomic/axios-fetch";
+import axios from "axios";
+import { createTheme } from "@mui/material";
 
 const API_URL = localStorage.getItem('HEXHIVE_API');
 
@@ -23,8 +25,12 @@ const uploadLink = createUploadLink({
   headers: {
     "keep-alive": "true"
   },
-  credentials: 'include'
-  
+  credentials: 'include',
+  fetch: buildAxiosFetch(axios, (config, input, init) => ({
+    ...config,
+    withCredentials: true,
+    onUploadProgress: (init as any)?.onUploadProgress
+  }))
 })
 
 
@@ -37,6 +43,8 @@ const client = new ApolloClient({
   cache: new InMemoryCache(),
   credentials: "include",
 });
+
+
 
 function App(props: any) {
   console.log("FLOW", window.location, process.env);
@@ -66,6 +74,7 @@ function App(props: any) {
               <Routes>
                 <Route path="*" element={<Dashboard />} />
               </Routes>
+
             </ApolloProvider>
           </ThemeProvider>
         </Grommet>

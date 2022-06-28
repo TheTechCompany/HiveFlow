@@ -243,8 +243,44 @@ export default (prisma: PrismaClient) => {
 				// })
                
             },
-            deleteProjectFile: async () => {
+            renameProjectFile: async (root: any, args: any, context: any) => {
+                const appPath = `/Application Data/Flow/${args.project}`
+                const dataPath = path.join(appPath, args.path)
 
+                const newPath = path.join(appPath, args.newPath)
+
+                const renameQuery = gql`
+                    mutation RenameFile {
+                        renameFile(path: ${dataPath}, newName: ${args.newPath}){
+                            id
+                        }
+                    }
+                `
+                
+                const response = await request(context.gatewayUrl, renameQuery, {}, {
+					'X-Hive-JWT': `${context.token}`,
+				
+                    'Authorization': `Bearer ${context.token}`
+				})
+                return response.renameFile
+            },
+            deleteProjectFile: async (root: any, args: any, context: any) => {
+                const appPath = `/Application Data/Flow/${args.project}`
+                const dataPath = path.join(appPath, args.path)
+
+                const deleteQuery = gql`
+                    mutation DeleteFile {
+                        deleteFile(path: ${dataPath}){
+                            id
+                        }
+                    }
+                `
+                const response = await request(context.gatewayUrl, deleteQuery, {}, {
+					'X-Hive-JWT': `${context.token}`,
+				
+                    'Authorization': `Bearer ${context.token}`
+				})
+                return response.deleteFile
             }
         }
     }
@@ -263,7 +299,8 @@ export default (prisma: PrismaClient) => {
         updateProjectFolder(project: ID!, path: String): File
 
 		uploadProjectFiles(project: ID!, path: String, files: [Upload]): [File!]!
-		deleteProjectFile(project: ID!, path: String): Boolean
+        renameProjectFile(project: ID!, path: String, newPath: String): File
+		deleteProjectFile(project: ID!, path: String): File
     }
 
     input ProjectInput {
