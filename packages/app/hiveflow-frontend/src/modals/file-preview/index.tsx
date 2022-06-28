@@ -1,4 +1,4 @@
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material';
 import { FileViewer } from '@hexhive/ui'
 import React from 'react';
 import { gql, useQuery } from '@apollo/client';
@@ -52,6 +52,7 @@ export const FilePreviewDialog : React.FC<FilePreviewDialogProps> = (props) => {
                         />
                 </Box>
                 <Box sx={{flex: 1}}>
+                    <TextField label="Filename" value={data?.filesById?.[0]?.name} />
                     <Typography>Uploaded By: {data?.filesById?.[0]?.uploadedBy?.name}</Typography>  
                     <Typography>Uploaded at: {moment(data?.filesById?.[0]?.createdAt).format('HH:mma DD/MM/YY')}</Typography>
                 </Box>
