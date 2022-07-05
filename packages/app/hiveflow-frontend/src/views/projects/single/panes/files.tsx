@@ -96,13 +96,16 @@ export const FilePane = () => {
         }
     `, {
       context: {
-        onUploadProgress: (event) => {
-          const progress = (event.loaded / event.total) * 100
+        fetchOptions: {
+          onUploadProgress: (event) => {
+            console.log("Upload progress", {event})
+            const progress = (event.loaded / event.total) * 100
 
-          uploading.current.loading.forEach((item, ix) => {
-            (uploading.current.loading || [])[ix].percent = progress;
-          })
+            uploading.current.loading.forEach((item, ix) => {
+              (uploading.current.loading || [])[ix].percent = progress;
+            })
 
+          }
         }
       }
     })
