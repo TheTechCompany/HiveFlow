@@ -32,8 +32,9 @@ export const ExplorerModal = (props: any) => {
     return (
         <ThemeProvider theme={theme}>
             <FileExplorerModal  
-                files={data?.projects?.[0]?.files || []}
+                files={data?.projects?.[0]?.files?.map((x: any) => ({ ...x, isFolder: x.directory })) || []}
                 path={path}
+                onClose={props.onClose}
                 onPathChange={(path) => setPath(path)}
                 onSubmit={props.onSubmit}
                 open={props.open} />

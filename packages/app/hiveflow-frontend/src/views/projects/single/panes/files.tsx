@@ -222,7 +222,7 @@ export const FilePane = () => {
               onNavigate={(path) => {
                 setActivePath(path)
               }}
-              files={ [{id: '101', name: 'File'}] || files?.map((x: any) => ({ ...x, isFolder: x.directory })) || []}
+              files={files?.map((x: any) => ({ ...x, isFolder: x.directory })) || []}
               onDrop={(files) => {
 
                 uploading.current.loading = (files || []).map((x) => ({id: nanoid(), name: x.name, percent: 0}));
