@@ -8,6 +8,7 @@ import { useMutation as useApolloMutation, useQuery, gql, useApolloClient } from
 import { useProjectInfo } from "../context";
 import { FilePreviewDialog } from "../../../../modals/file-preview";
 import {nanoid} from 'nanoid'
+import { ExplorerModal } from "../../../../modals/file-explorer";
 
 const theme = createTheme({
   palette: {
@@ -51,6 +52,8 @@ export const FilePane = () => {
 
     const client = useApolloClient()
 
+    const [ moveOpen, openMove ] = useState<any>();
+
     const [activePath, setActivePath] = useState('/');
 
     const [createFolderOpen, openCreateFolder] = useState<boolean>(false)
@@ -67,6 +70,15 @@ export const FilePane = () => {
                 ...item
             }
         }
+    })
+
+    const [ moveFile ] = useMutation((mutation, args: any) => {
+      const item = mutation.moveProjectFile({project: projectId, path: `${activePath}/${args.path}`, newPath: args.newPath})
+      return {
+        item: {
+          ...item
+        }
+      }
     })
 
     const [ deleteFile ] = useMutation((mutation, args: any) => {
@@ -141,7 +153,23 @@ export const FilePane = () => {
       <ThemeProvider theme={theme}>
 
         <Box flex>
-        
+          <ExplorerModal
+              open={Boolean(moveOpen)}
+              onClose={() => {
+                openMove(null)
+              }}
+              onSubmit={(path) => {
+                moveFile({
+                  args: {
+                    path: moveOpen.name,
+                    newPath: path
+                  }
+                }).then(() => {
+                  openMove(null);
+                })
+              }}
+              projectId={projectId}
+              />
             <FilePreviewDialog
                 open={Boolean(filePreviewOpen)}
                 onClose={() => openFilePreview(null)}
@@ -156,6 +184,12 @@ export const FilePane = () => {
                   filetype: '.png',
                   component: ({ file }) => <Box>file</Box>
                 }
+              ]}
+              actions={[
+                {key: 'move', label: 'Move', onClick: (file) => {
+                  console.log({file})
+                  openMove(file)
+                }}
               ]}
               onCreateFolder={(folder) => {
                 createDirectory({
@@ -188,7 +222,7 @@ export const FilePane = () => {
               onNavigate={(path) => {
                 setActivePath(path)
               }}
-              files={files?.map((x: any) => ({ ...x, isFolder: x.directory })) || []}
+              files={ [{id: '101', name: 'File'}] || files?.map((x: any) => ({ ...x, isFolder: x.directory })) || []}
               onDrop={(files) => {
 
                 uploading.current.loading = (files || []).map((x) => ({id: nanoid(), name: x.name, percent: 0}));

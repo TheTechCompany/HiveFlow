@@ -362,6 +362,10 @@ export const generatedSchema = {
     empty: { __type: "String" },
     joinScheduleItem: { __type: "ScheduleItem", __args: { id: "ID" } },
     leaveScheduleItem: { __type: "ScheduleItem", __args: { id: "ID" } },
+    moveProjectFile: {
+      __type: "File",
+      __args: { newPath: "String", path: "String", project: "ID!" },
+    },
     renameProjectFile: {
       __type: "File",
       __args: { newPath: "String", path: "String", project: "ID!" },
@@ -623,6 +627,11 @@ export interface Mutation {
   leaveScheduleItem: (args?: {
     id?: Maybe<Scalars["ID"]>;
   }) => Maybe<ScheduleItem>;
+  moveProjectFile: (args: {
+    newPath?: Maybe<Scalars["String"]>;
+    path?: Maybe<Scalars["String"]>;
+    project: Scalars["ID"];
+  }) => Maybe<File>;
   renameProjectFile: (args: {
     newPath?: Maybe<Scalars["String"]>;
     path?: Maybe<Scalars["String"]>;

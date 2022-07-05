@@ -1192,10 +1192,10 @@
   resolved "https://registry.yarnpkg.com/@hexhive/styles/-/styles-0.0.6-alpha.13.tgz#4c316bdbb8a6c1489faf4912b26400cdff43be8b"
   integrity sha512-bZcFH+VpAV7MpxTRdK+o+HQyEpWoCCXxA6j21g7JiTr+skzxb+yoMIGUESxJ6FgpTh6HjxYE4gHWIx/YRWxrgQ==
 
-"@hexhive/ui@0.0.12-alpha.36":
-  version "0.0.12-alpha.36"
-  resolved "https://registry.yarnpkg.com/@hexhive/ui/-/ui-0.0.12-alpha.36.tgz#0d05c5315317b64b2f0c51e5a8842a2fb1c60c8c"
-  integrity sha512-N0S8H1uiv07thbP2QXZjqNGDXq/1/zVoz4Wo0+MeFxdG/vHMtW3X6OF/cf3eaQV9hrcaR7GzO05dUz5/b+O6uQ==
+"@hexhive/ui@0.0.12-alpha.37":
+  version "0.0.12-alpha.37"
+  resolved "https://registry.yarnpkg.com/@hexhive/ui/-/ui-0.0.12-alpha.37.tgz#a95ba61a626e0694b19cafc2688f997358ee2c1f"
+  integrity sha512-ytBbQVVag4gh+d036ZGruYbyfFKyHS2zugVXbv2X7WpXyUd5lB+skIIHexAhDjE7XJxg0S2W1P9PtyL7ud5DxA==
   dependencies:
     "@emotion/react" "^11.9.0"
     "@emotion/styled" "^11.8.1"

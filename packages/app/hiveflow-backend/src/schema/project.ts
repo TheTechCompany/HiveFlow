@@ -243,6 +243,27 @@ export default (prisma: PrismaClient) => {
 				// })
                
             },
+            moveProjectFile: async (root: any, args: any, context: any) => {
+                const appPath = `/Application Data/Flow/${args.project}`
+                const dataPath = path.join(appPath, args.path)
+
+                const newPath = path.join(appPath, args.newPath)
+
+                const moveQuery = gql`
+                    mutation MoveFile {
+                        moveFile(path: "${dataPath}", newPath: "${newPath}"){
+                            id
+                        }
+                    }
+                `
+
+                const response = await request(context.gatewayUrl, moveQuery, {}, {
+                    'X-Hive-JWT': `${context.token}`,
+                    'Authorization': `Bearer ${context.token}`
+                })
+
+                return response.moveFile
+            },
             renameProjectFile: async (root: any, args: any, context: any) => {
                 const appPath = `/Application Data/Flow/${args.project}`
                 const dataPath = path.join(appPath, args.path)
@@ -298,6 +319,7 @@ export default (prisma: PrismaClient) => {
         createProjectFolder(project: ID!, path: String): File
         updateProjectFolder(project: ID!, path: String): File
 
+        moveProjectFile(project: ID!, path: String, newPath: String): File
 		uploadProjectFiles(project: ID!, path: String, files: [Upload]): [File!]!
         renameProjectFile(project: ID!, path: String, newPath: String): File
 		deleteProjectFile(project: ID!, path: String): File
