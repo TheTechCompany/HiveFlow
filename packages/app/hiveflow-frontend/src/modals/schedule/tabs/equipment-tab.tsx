@@ -1,4 +1,4 @@
-import { Box } from 'grommet';
+import { Box } from '@mui/material';
 import React, {
   Component
 } from 'react';
@@ -38,7 +38,7 @@ export const EquipmentTab : React.FC<PlantTabProps> = ({
   }
 
     return (
-      <Box height="100%">
+      <Box sx={{flex: 1, display: 'flex'}}>
         <TransferList
           assignedKey={labelKey}
           assignedList={assigned || []}
