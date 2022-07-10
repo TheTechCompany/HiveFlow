@@ -183,7 +183,7 @@ export default (prisma: PrismaClient) => {
                     owner: item.owner ? {id: item.owner} : undefined,
                     managers: item.permissions ? item.permissions.map((perm) => ({id: perm.owner})) : []
                 }))
-                // console.log({result})
+
                 return result;
             },
             timelineItems: async (root: any, args: any, context: any) => {
