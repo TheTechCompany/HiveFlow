@@ -6,12 +6,11 @@ import React, {
 // import utils from '../../../utils';
 import moment from 'moment';
 import { DataTable } from '../../../components/DataTable'
-import { Box } from 'grommet';
 import { PlantHeader } from './header';
 import { useMutation, useQuery } from '@hive-flow/api';
 import { useTypeConfiguration } from '../../../context';
 import { Equipment, EquipmentModal } from '../../../modals/equipment';
-
+import { Box, Paper } from '@mui/material'
 
 export const EquipmentList: React.FC<any> = (props) => {
 
@@ -170,7 +169,7 @@ export const EquipmentList: React.FC<any> = (props) => {
   }
   return (
     <Box
-      flex
+      sx={{flex: 1, display: 'flex', flexDirection: 'column'}}
       className="plants-page">
       <EquipmentModal 
         open={modalOpen} 
@@ -213,12 +212,7 @@ export const EquipmentList: React.FC<any> = (props) => {
           openModal(true);
         })}
         filter={search} onFilterChange={(search) => setSearch(search)} />
-      <Box
-        round="xsmall"
-        overflow="scroll"
-        flex
-        background="neutral-1"
-      >
+      <Paper sx={{flex: 1, display: 'flex', marginTop: '3px'}}>
         <DataTable
           orderBy={property}
           order={direction}
@@ -233,7 +227,7 @@ export const EquipmentList: React.FC<any> = (props) => {
           onClickRow={selectPlant}
           columns={listKeys}
           data={listData?.filter(filterEquipment).sort(sortEquipment) || []} />
-      </Box>
+      </Paper>
 
       {/* <SortedList 
           orderBy={"ID"}

@@ -1,15 +1,14 @@
 import React, { ReducerAction } from 'react';
 
-import { Box, Button, DateInput, Layer, Select, TextInput, Text } from 'grommet'
 import { useState } from 'react';
 import { ReduceCapacity, Notes, Add, Close } from '@mui/icons-material'
 import moment from 'moment';
 import { useEffect } from 'react';
-import { ColorDot } from '@hexhive/ui';
+import { ColorDot, DateInput } from '@hexhive/ui';
 import { CapacityItem } from './CapacityItem';
-import {CapacityTab} from './tabs/capacity'
-import {NoteTab} from './tabs/notes'
-import { Autocomplete, TextField } from '@mui/material';
+import { CapacityTab } from './tabs/capacity'
+import { NoteTab } from './tabs/notes'
+import { Autocomplete, Box, Dialog, Button, TextField, Typography, DialogContent, DialogActions, DialogTitle, IconButton, Divider, Paper } from '@mui/material';
 
 export interface TimelineModalProps {
     open: boolean;
@@ -23,8 +22,8 @@ export interface TimelineModalProps {
         name?: string | null;
         type?: string;
     }[]
-    onSubmit?: (plan: { 
-        project?: {id?: string, type?: string},
+    onSubmit?: (plan: {
+        project?: { id?: string, type?: string },
         startDate?: Date,
         endDate?: Date,
         notes?: string,
@@ -32,14 +31,15 @@ export interface TimelineModalProps {
             location?: string;
             item?: string;
             quantity?: number;
-        }[]}) => void;
+        }[]
+    }) => void;
 }
 
 const tab_options = [<ReduceCapacity />, <Notes />]
 
 export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
 
-    const [ tab, setTab ] = useState<number>(0);
+    const [tab, setTab] = useState<number>(0);
 
     const [plan, setPlan] = useState<{
         project?: string,
@@ -53,16 +53,16 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
             quantity?: number;
         }[]
 
-    }>({data: [], startDate: '', endDate: ''})
+    }>({ data: [], startDate: '', endDate: '' })
 
     useEffect(() => {
-        console.log({selected: props.selected})
+        console.log({ selected: props.selected })
         setPlan(props.selected ? {
             ...Object.assign({}, props.selected),
             project: props.selected?.project?.id,
             startDate: new Date(props.selected?.startDate)?.toISOString(),
             endDate: new Date(props.selected?.endDate)?.toISOString(),
-        } : {items: []})
+        } : { items: [] })
     }, [props.selected])
 
     const [search, setSearch] = useState<string>('')
@@ -70,7 +70,7 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
     const onClose = () => {
         props.onClose?.();
         setSearch('');
-        setPlan({data: []})
+        setPlan({ data: [] })
     }
 
     const onDelete = () => {
@@ -90,46 +90,46 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
         }
 
         props.onSubmit?.(submit_plan);
-        setPlan({data: []})
+        setPlan({ data: [] })
         setSearch('');
     }
 
     const addCapacityItem = () => {
         let items = plan.data?.slice() || [];
 
-        items.push({item: '', location: '', quantity: 0})
-        setPlan({...plan, data: items})
+        items.push({ item: '', location: '', quantity: 0 })
+        setPlan({ ...plan, data: items })
     }
 
-    const removeCapacityItem = (ix : number) => {
+    const removeCapacityItem = (ix: number) => {
         let items = plan.data?.slice() || [];
 
         items.splice(ix, 1);
-        setPlan({...plan, data: items})
+        setPlan({ ...plan, data: items })
     }
 
     const updateCapacityItem = (ix: number, field: string, value: any) => {
         let items = plan.data?.slice() || []
-        items[ix] = Object.assign(items[ix], {[field]: value});
-        setPlan({...plan, data: items})
+        items[ix] = Object.assign(items[ix], { [field]: value });
+        setPlan({ ...plan, data: items })
     }
 
     const updateNotes = (e: any) => {
-        setPlan({...plan, notes: e.target.value})
+        setPlan({ ...plan, notes: e.target.value })
     }
 
 
     const renderTab = () => {
-        switch(tab){
+        switch (tab) {
             case 0:
                 return (
                     <CapacityTab
-                    addCapacityItem={addCapacityItem}
-                    plan={plan}
-                    removeCapacityItem={removeCapacityItem}
-                    updateCapacityItem={updateCapacityItem}
-                    type={props.type}/>
-                    );
+                        addCapacityItem={addCapacityItem}
+                        plan={plan}
+                        removeCapacityItem={removeCapacityItem}
+                        updateCapacityItem={updateCapacityItem}
+                        type={props.type} />
+                );
             case 1:
                 return (
                     <NoteTab
@@ -139,64 +139,50 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
         }
     }
 
-    return !props.open ? null : (
-        <Layer
-            onClickOutside={onClose}
-            onEsc={onClose}>
-            <Box
-                height={{ min: '50vh', max: '80vh' }}
-                round="xxsmall"
-                overflow={"hidden"}
-                background="neutral-1"
-                width="large"
-                flex>
+    return (
+        <Dialog
+            maxWidth="md"
+            fullWidth
+            open={props.open}
+            onClose={onClose}>
+            <DialogTitle>
+                Capacity Plan
+            </DialogTitle>
+            <DialogContent>
 
-                <Box
-                    height={{min: 'min-content'}}
-                    background="accent-2"
-                    pad={"xsmall"}
-                    direction="row">
-                    {/* Header */}
-                    <Text weight="bold">Capacity Plan</Text>
-                </Box>
-                <Box
-                    round="xsmall"
-                    pad="xsmall"
-                    gap="xsmall"
-                    flex
-                    height={{ max: '75vh' }}
-                    direction="column">
-                        
-                    {/* Content */}
-                    <Box height={{min: 'min-content'}} direction="column">
-                        {props.type == "Projects" && <Box direction="column">
+
+
+                {/* Content */}
+                <Box sx={{marginTop: '6px'}}>
+                    {props.type == "Projects" && <Box >
 
                         <Autocomplete
                             size='small'
                             value={props.projects?.find((a) => a.id == plan?.project)}
-                        
+
                             disablePortal
                             onChange={(event, value) => {
                                 console.log({ event, value })
-                               setPlan({
-                                   ...plan,
-                                   project: value.id
-                               })
+                                setPlan({
+                                    ...plan,
+                                    project: value.id
+                                })
                             }}
                             getOptionLabel={(option: any) => {
-                                console.log({option})
+                                console.log({ option })
                                 return `${option.displayId} - ${option.name}`
                             }}
                             renderOption={(props, option) => {
                                 return (
                                     <li {...props}>
-                                        <ColorDot color={option.type == "Project" ? '#A3B696': '#edc25c'} size={10}/>
+                                        <ColorDot color={option.type == "Project" ? '#A3B696' : '#edc25c'} size={10} />
                                         {option.displayId} - {option.name}
-                                     </li>
-                            )}}
+                                    </li>
+                                )
+                            }}
                             options={props.projects || []}
                             renderInput={(params) => <TextField color='primary' size='small' {...params} label="Project" />} />
-{/*                             
+                        {/*                             
                             <Text alignSelf="start" size="small">Project</Text>
                             <Select
                                 onSearch={(searchString) => { setSearch(searchString) }}
@@ -212,31 +198,24 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
                                     </Box>
                                 )}
                             </Select> */}
-                        </Box>}
-                        <Box gap="xsmall" direction="row">
-                            <Box flex>
-                                <Text alignSelf="start" size="small">Start Date</Text>
-                                <DateInput
-                                    
-                                    inline={false}
-                                    calendarProps={{
-                                        daysOfWeek: true
-                                    }}
-                                    value={plan.startDate} 
-                             
-                                    onChange={({ value }) => {
-                                        // let startDate = new Date(value.toLocaleString());
-                                        // let v = moment(value).format('dd/mm/yyyy').toString()
-                                        try{    
-                                            setPlan({ ...plan, startDate: value.toLocaleString() })
-                                        }catch(e){
-                                            
-                                        }
-                                    }}
-                                    format="dd/mm/yyyy" />
-                            </Box>
+                    </Box>}
+                    <Box sx={{display: 'flex', marginTop: '6px', marginBottom: '6px', '&>*': {flex: 1}}}>
+                            <DateInput
+                                label="Start Date"
+                                value={plan.startDate}
 
-                            {/*
+                                onChange={(value) => {
+                                    // let startDate = new Date(value.toLocaleString());
+                                    // let v = moment(value).format('dd/mm/yyyy').toString()
+                                    try {
+                                        setPlan({ ...plan, startDate: value.toLocaleString() })
+                                    } catch (e) {
+
+                                    }
+                                }}
+                                format="dd/MM/yyyy" />
+
+                        {/*
                                    // (plan.startDate && !isNaN(+plan.startDate))? 
                                     //     (plan.startDate instanceof Date) ? plan.startDate?.toISOString() : plan.startDate || '' 
                                     //     : new Date().toISOString()
@@ -244,56 +223,50 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
 
                                      value instanceof Date ? value : new Date(value as string)
                             */}
-                            <Box flex>
-                                <Text alignSelf="start" size="small">End Date</Text>
-                                <DateInput
-                                    inline={false}
-                                    calendarProps={{
-                                        daysOfWeek: true
-                                    }}
-                                    value={plan.endDate}
-                                     
-                                    onChange={({ value }) => {
-                                        // let v = moment(value).format('dd/mm/yyyy')
-                                        // console.log({value: value.toString(), d: new Date(value.toLocaleString()).toUTCString(), valueLocale: value.toLocaleString()})
-                                        try{    
-                                            setPlan({ ...plan, endDate: value.toLocaleString() })
-                                        }catch(e){
-                                            
-                                        }
-                                    }}
-                                    format="dd/mm/yyyy" />
-                            </Box>
-                        </Box>
-                    </Box>
-                    <Box 
-                        height="100%"
-                        direction="row" >
-                        <Box background="accent-1" direction="column">
-                            {tab_options.map((x, ix) => <Button icon={x} active={ix == tab} onClick={() => setTab(ix)} />)}
-                            
-                        </Box>
-                    <Box
-                        margin={{left: 'xsmall'}}
-                        flex
-                        overflow={"scroll"}
-                        height={{min: '30vh', max: "100%"}}
-                        gap="xsmall" 
-                        direction="column">
-                       
-                       {renderTab()}
-      
+                            <DateInput
+                                label='End Date'
+                                value={plan.endDate}
 
+                                onChange={( value ) => {
+                                    // let v = moment(value).format('dd/mm/yyyy')
+                                    // console.log({value: value.toString(), d: new Date(value.toLocaleString()).toUTCString(), valueLocale: value.toLocaleString()})
+                                    try {
+                                        setPlan({ ...plan, endDate: value.toLocaleString() })
+                                    } catch (e) {
+
+                                    }
+                                }}
+                                format="dd/MM/yyyy" />
                     </Box>
+                    <Divider />
+
+                    <Box sx={{marginTop: '4px', display: 'flex'}}>
+                        <Paper sx={{ bgcolor: 'secondary.main', display: 'flex', flexDirection: 'column'}}>
+                            {tab_options.map((x, ix) => <IconButton onClick={() => setTab(ix)} sx={{background: ix==tab ? '#dfdfdf': undefined}}>{x}</IconButton>)}
+
+                        </Paper>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                flex: 1,
+                                minHeight: '30vh',
+                                maxHeight: '40vh'
+                            }}>
+
+                            {renderTab()}
+
+
+                        </Box>
                     </Box>
                 </Box>
-                <Box height={{min: 'min-content'}} pad="xsmall" gap="xsmall" direction="row" justify="end">
-                    {/* Actions */}
-                    {props.selected ? (<Button color="red" label="Delete" onClick={onDelete}></Button>) : null}
-                    <Button onClick={onClose} label="Close"></Button>
-                    <Button primary onClick={onSubmit} label="Save" ></Button>
-                </Box>
-            </Box>
-        </Layer>
+
+            </DialogContent>
+            <DialogActions>
+                {/* Actions */}
+                {props.selected?.id ? (<Button color="error" onClick={onDelete}>Delete</Button>) : null}
+                <Button onClick={onClose}>Close</Button>
+                <Button color="primary" variant="contained" onClick={onSubmit}>Save</Button>
+            </DialogActions>
+        </Dialog>
     );
 }

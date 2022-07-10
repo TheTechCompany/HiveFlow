@@ -8,7 +8,7 @@ export const ProjectView = () => {
         <Routes>
             <Route path={''} element={<Outlet />} >
                 <Route path={''} element={<ProjectList />} />
-                <Route path={'/:id'} element={<ProjectSingle />} />
+                <Route path={'/:id/*'} element={<ProjectSingle />} />
             </Route>
         </Routes>
     )

@@ -13,6 +13,7 @@ import { gql, useApolloClient, useQuery } from '@apollo/client';
 import { idText } from 'typescript';
 import { useTypeConfiguration } from '../../../context';
 import { PeopleModal, Person } from '../../../modals/people';
+import { Paper } from '@mui/material';
 
 
 export const PeopleList: React.FC<any> = (props) => {
@@ -167,11 +168,8 @@ export const PeopleList: React.FC<any> = (props) => {
             filter={search}
             onFilterChange={(filter) => setSearch(filter)} />
 
-         <Box
-            flex
-            round="xsmall"
-            overflow="scroll"
-            background="neutral-1">
+         <Paper
+               sx={{flex: 1, marginTop: '3px', display: 'flex'}}>
 
             <DataTable
                order={direction}
@@ -193,7 +191,7 @@ export const PeopleList: React.FC<any> = (props) => {
                   }
                ]}
                data={people.filter(filterPeople).sort(sortPeople)} />
-         </Box>
+         </Paper>
       </Box>
 
    );

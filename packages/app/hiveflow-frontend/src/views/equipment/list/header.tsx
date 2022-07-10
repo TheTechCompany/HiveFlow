@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, TextInput, Select, Button } from 'grommet'
 import { Add } from '@mui/icons-material';
+import { Paper,Box, TextField, IconButton } from '@mui/material';
 
 export interface PlantHeaderProps {
 
@@ -12,34 +12,32 @@ export interface PlantHeaderProps {
 
 export const PlantHeader : React.FC<PlantHeaderProps> = (props) => {
     return (
-        <Box
-        focusIndicator={false}
-        align="center"
-        pad={{horizontal: 'xsmall'}}
-        margin={{bottom: 'xsmall'}}
-        round="xsmall"
-        height="50px"
-        direction="row"
-        background="accent-1"
-        gap="xsmall"
+        <Paper
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          height: '50px',
+          padding: '3px'
+        }}
+      
         >
         <Box
-            flex
-            round="xsmall"
-            background={'#ffffff42'}>
-        <TextInput
-        
-            plain
+            sx={{flex: 1, display: 'flex'}}>
+        <TextField
+          fullWidth
+          variant='filled'
+          size='small'
             value={props.filter}
             onChange={(e: any) => props.onFilterChange?.(e.target.value)}
-          focusIndicator={false}
           
-          placeholder="Search Equipment..." />
+          label="Search Equipment..." />
         </Box>
         {props.onCreate && (
-          <Button onClick={props.onCreate} hoverIndicator plain style={{padding: 6, borderRadius: 3}} icon={<Add />} />
+          <IconButton onClick={props.onCreate}>
+            <Add />
+          </IconButton>
         )}
        
-      </Box>
+      </Paper>
     )
 }

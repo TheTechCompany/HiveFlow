@@ -3,7 +3,7 @@ import logo from "./logo.svg";
 import { Box, Button, Grommet } from "grommet";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { Dashboard } from "./views/dashboard";
-import { BaseStyle } from "@hexhive/styles";
+import { HexHiveTheme } from "@hexhive/styles";
 import { ApolloClient, ApolloProvider, InMemoryCache } from "@apollo/client";
 // import { ThemeProvider } from "styled-components";
 import { AuthProvider } from "@hexhive/auth-ui";
@@ -13,6 +13,8 @@ import { createUploadLink } from 'apollo-upload-client'
 import { buildAxiosFetch } from "@lifeomic/axios-fetch";
 import axios from "axios";
 import { createTheme, ThemeProvider } from "@mui/material";
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 const API_URL = localStorage.getItem('HEXHIVE_API');
 
@@ -144,7 +146,6 @@ export const theme = createTheme({
 function App(props: any) {
   console.log("FLOW", window.location, process.env);
 
-  console.log(BaseStyle);
   const { REACT_APP_API, PUBLIC_URL, REACT_APP_URL, NODE_ENV } = process.env;
 
   const [ config, setConfig ] = React.useState<HiveFlowConfiguration[]>([]);
@@ -156,27 +157,25 @@ function App(props: any) {
   }, [])
 
   return (
-    <ThemeProvider theme={theme}>
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+<ThemeProvider theme={HexHiveTheme}>
 
     <HiveFlowProvider value={{config}}>
     <AuthProvider authorizationServer={authServer}>
       <Router basename={process.env.PUBLIC_URL || "/dashboard/flow"}>
-        <Grommet
-          theme={BaseStyle}
-          style={{ display: "flex", width: "100vw", height: '100%' }}
-          plain
-        >
+      
             <ApolloProvider client={client}>
               <Routes>
                 <Route path="*" element={<Dashboard />} />
               </Routes>
 
             </ApolloProvider>
-        </Grommet>
+
       </Router>
     </AuthProvider>
     </HiveFlowProvider>
     </ThemeProvider>
+    </LocalizationProvider>
 
   );
 }

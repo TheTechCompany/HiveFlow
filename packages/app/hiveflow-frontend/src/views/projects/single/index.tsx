@@ -3,9 +3,9 @@ import React, {
   Component, useEffect, useState
 } from 'react';
 
-import { Tabs, Text, Tab, Box, Heading, Spinner, Button } from 'grommet';
+import {Button } from 'grommet';
 
-import { Divider, Menu, MenuItem, MenuList } from '@mui/material'
+import { Divider, Menu, Typography, Tabs, Tab, MenuItem ,Box,  MenuList, Paper } from '@mui/material'
 // import SharedFiles from '@hexhive/auth-ui';
 
 import { files as fileActions } from '../../../actions'
@@ -19,9 +19,10 @@ import { Kanban, FileDialog, FileExplorer, Timeline } from '@hexhive/ui';
 import { useMutation, useRefetch } from '@hive-flow/api';
 import { KanbanModal } from './KanbanModal';
 import { gql, useApolloClient, useMutation as useApolloMutation, useQuery } from '@apollo/client'
-import { useParams } from 'react-router-dom';
+import { Outlet, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { TimelinePane, FilePane, KanbanPane } from './panes';
 import { ProjectSingleProvider } from './context';
+import { TaskModal } from '../../../modals/new-task';
 
 // const FileExplorer = lazy(() => {
 //   //@ts-ignore
@@ -42,7 +43,12 @@ export interface ProjectSingleProps {
 
 export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
 
+  const navigate = useNavigate();
+
   const client = useApolloClient()
+
+  const [taskModalOpen, openTaskModal] = useState(false);
+  const [ selectedTask, setSelectedTask ] = useState();
 
   const [kanbanMenuVisible, showKanbanMenu] = useState<boolean>(false);
 
@@ -66,7 +72,8 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
 
   const { id: job_id, jobParam } = useParams()
 
-
+  const { pathname } = useLocation()
+console.log({pathname})
 
 
   // const query = useQuery({
@@ -83,6 +90,18 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
         startDate
         endDate
     
+        tasks {
+          id
+
+          title
+          startDate
+          endDate
+          status
+
+          dependencyOf {
+            id
+          }
+        }
       }
     }
   `, {
@@ -92,6 +111,9 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
   })
 
   
+  const refetch = () => {
+    client.refetchQueries({include: ['GetProject']})
+  }
 
 
 
@@ -111,15 +133,18 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
    
     {
       title: "Tickets",
-      component: <KanbanPane />
+      path: "tickets",
+      element: <KanbanPane />
     },
     {
       title: "Timeline",
-      component: <TimelinePane />
+      path: "timeline",
+      element: <TimelinePane />
     },
     {
       title: "Files",
-      component: <FilePane />
+      path: "files",
+      element: <FilePane />
       // (
       // <SharedFiles
       //   loading={loadingFiles}
@@ -163,6 +188,8 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
     },
   ]
 
+  const view = _tabs.find((a) => pathname.indexOf(a.path) > -1)?.path
+
   const UseLoading = (id: string) => {
     setLoadingFiles(Array.from(new Set([...loadingFiles, id])))
 
@@ -196,7 +223,7 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
       let startDate = moment(job?.startDate, 'DD/MM/YYYY');
       let endDate = moment(job?.endDate, 'DD/MM/YYYY') //.add(job.Duration, job.DurationType);
       return (
-        <Text style={{ fontSize: 14 }}>{startDate.format('DD/MM/YYYY')} - {endDate.format('DD/MM/YYYY')}</Text>
+        <Typography >{startDate.format('DD/MM/YYYY')} - {endDate.format('DD/MM/YYYY')}</Typography>
       );
     } else {
       return null;
@@ -207,7 +234,7 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
     return (
       <Box style={{ flex: 0.5 }}>
         <Box className="job-description">
-          <Text style={{ textAlign: 'left' }}>{job?.name}</Text>
+          <Typography>{job?.name}</Typography>
           {renderJobDuration()}
         </Box>
       </Box>
@@ -222,22 +249,146 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
     );
   }
 
+  const [ createTask ] = useMutation((mutation, args: any) => {
+    const item = mutation.createProjectTask({input: args.input})
+    return {
+      item: {
+        ...item
+      }
+    }
+  })
+
+  const [ updateTask ] = useMutation((mutation, args: any) => {
+    const item = mutation.updateProjectTask({id: args.id, input: args.input})
+    return {
+      item: {
+        ...item
+      }
+    }
+  })
+
+  const [ deleteTask ] = useMutation((mutation, args: any) => {
+    const item = mutation.deleteProjectTask({id: args.id})
+    return {
+      item: {
+        ...item
+      }
+    }
+  })
+
+  const [ createTaskDependency ] = useMutation((mutation, args: any) => {
+    const item = mutation.createProjectTaskDependency({source: args.source, target: args.target});
+    return {
+      item: {
+        ...item
+      }
+    }
+  })
   return (
-    <ProjectSingleProvider value={{projectId: job_id}}>
+    <ProjectSingleProvider value={{
+      projectId: job_id, 
+      tasks: job?.tasks || [],
+      updateTaskStatus: (taskId, status) => {
+          updateTask({
+            args: {
+              id: taskId,
+              input: {
+                status,
+                projectId: job_id
+              }
+            }
+          }).then(() => {
+            refetch()
+
+          })
+      },
+      createTask: (task: any) => {
+        console.log({task})
+
+        setSelectedTask({...task, id: undefined, startDate: task.start, endDate: task.end})
+        openTaskModal(true);
+      },
+      updateTask: (task: any) => {
+        setSelectedTask({...task, startDate: task.start, endDate: task.end})
+        openTaskModal(true)
+      },
+      deleteTask: () => {
+
+      },
+      createDependency: (source: string, target: string) => {
+        createTaskDependency({
+          args: {
+            source,
+            target
+          }
+        }).then(() => {
+          refetch();
+        })
+      }
+    }}>
     <Box
-      direction="column"
-      round="xsmall"
+      sx={{flex: 1, display: 'flex', flexDirection: 'column'}}
+  
       className="job-one-container" style={{ flex: 1, display: 'flex' }}>
-      <Box
-        round="xsmall"
-        background="accent-1"
-        pad={{ left: 'small' }}
-        direction="row"
-        margin={{ bottom: 'xsmall' }}
-        justify="between">
-        <Heading level='4' margin="small">{job?.displayId} - {job?.name || "Job Title"}</Heading>
-        <Box gap="xsmall" direction="row">
-        <Button
+      
+      <TaskModal 
+        onClose={() => {
+          openTaskModal(false)
+          setSelectedTask(null)
+        }}
+        selected={selectedTask}
+        onSubmit={async (task) => {
+          if(task.id){
+            //Update
+            await updateTask({
+              args: { 
+                id: task.id, 
+                input: {
+                   title: task.title,
+                   description: task.description, 
+                   startDate: task.startDate,
+                   endDate: task.endDate,
+                    status: task.status,
+                   id: undefined, 
+                   projectId: job_id 
+                }
+             }
+            })
+          }else{
+            //Create
+            await createTask({
+              args: {
+                 input: {
+                  title: task.title,
+                  description: task.description, 
+                  startDate: task.startDate,
+                  endDate: task.endDate,
+                  status: task.status,
+                  id: undefined, 
+                  projectId: job_id 
+                } 
+              }
+            })
+          }
+          refetch();
+
+          setSelectedTask(null)
+          openTaskModal(false)
+        }}
+        open={taskModalOpen} />
+
+      <Paper sx={{display: 'flex', bgcolor: 'secondary.main', justifyContent: 'space-between', alignItems: 'center'}}>
+        <Typography sx={{marginLeft: '6px', padding: '6px', color: 'navigation.main'}} fontWeight="bold">{job?.displayId} - {job?.name || "Job Title"}</Typography>
+        <Box sx={{display: 'flex'}}>
+        <Tabs 
+          onChange={(e, value) => navigate(value)}
+          value={view}>
+          {_tabs.map((tab) => (
+            <Tab value={tab.path} label={tab.title} />
+          ))}
+         
+        </Tabs>
+        {/* <Button
             onClick={() => setSelectedTab(0)}
             style={{ borderBottom: selectedTab == 0 ? '3px solid #E75D3D' : undefined, padding: 8 }}
             plain
@@ -254,10 +405,10 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
             style={{ borderBottom: selectedTab == 2 ? '3px solid #E75D3D' : undefined, padding: 8 }}
             plain
             hoverIndicator
-            label="Files" />
+            label="Files" /> */}
 
         </Box>
-      </Box>
+      </Paper>
       <FileDialog
         open={dialogOpen}
         onSubmit={async (_files: any[]) => {
@@ -324,14 +475,21 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
         job={job?.id} />
 
 
-      <Box round="xsmall" flex background="neutral-1">
-        <Box
-          height="100%"
-          flex>
-          {_tabs[selectedTab].component}
-        </Box>
+      <Paper sx={{marginTop: '4px', flex: 1, display: 'flex'}}>
+        <Routes>
+          <Route path="" element={<Outlet />}>
+            {_tabs?.map((tab) => (
+              <Route path={tab.path} element={tab.element} />
+            ))}
+          </Route>
+        </Routes>
+        {/* <Box
+          sx={{flex: 1, display: 'flex'}}>
 
-      </Box>
+          {_tabs[selectedTab].component}
+        </Box> */}
+
+      </Paper>
 
       <KanbanModal
         column={selectedColumn}

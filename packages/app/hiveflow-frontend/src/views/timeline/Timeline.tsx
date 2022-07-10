@@ -3,15 +3,15 @@ import { ColorDot, Timeline } from '@hexhive/ui'
 //import utils from '../../utils';
 import moment from 'moment';
 import { stringToColor } from '@hexhive/utils';
-import { Box, Button, Select, Spinner, Text } from 'grommet';
+import { Box, Typography } from '@mui/material';
 import { Add } from 'grommet-icons';
 import {TimelineItem, TimelineItemItems, useMutation, useQuery } from '@hive-flow/api';
 import { TimelineHeader, TimelineView } from './Header';
 import _, { filter, toUpper } from 'lodash';
-import { BaseStyle } from '@hexhive/styles';
 import { useQuery as useApollo, useApolloClient, gql } from '@apollo/client';
 import { TimelineModal } from '../../modals/timeline';
 import { CreateTimelineModal } from '../../modals/create-timeline';
+import { Paper } from '@mui/material';
 
 interface TimelineProps {
 
@@ -55,7 +55,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     const [ createModalOpen, openCreateModal ] = useState(false)
     const [erpModal, openERP] = useState<boolean>(false);
 
-    const [view, setView] = useState<TimelineView>();
+    const [view, setView] = useState<string>();
 
     const [date, setDate] = useState<Date>(sampleDate)
     const [horizon, setHorizon] = useState<{ start: Date, end: Date } | undefined>()
@@ -512,30 +512,30 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                                 return previous += (current?.quantity || 0)
             }, 0)}hrs`,
             hoverInfo: (
-                <Box round="xsmall" overflow="hidden"  direction="column">
-                                     <Box pad="xsmall" background="accent-2" margin={{bottom: 'xsmall'}} direction="row" justify="between">
+                <Box sx={{display: 'flex', flexDirection: 'column'}}>
+                                     <Box sx={{bgcolor: 'secondary.main', display: 'flex', justifyContent: 'space-between'}}>
                                          {/* <Text weight="bold">{capacity_plan?.project?.name?.substring(0, 15)}</Text> */}
-                                         <Text weight="bold">Total Hours: </Text>
-                                         <Text>{
+                                         <Typography fontWeight="bold">Total Hours: </Typography>
+                                         <Typography>{
                                             item?.data?.reduce((previous: any, current: any) => {
                                                 return previous += (current?.quantity || 0)
                                             }, 0)}hrs
-                                        </Text>
+                                        </Typography>
                                     </Box>
-                                    <Box pad="xsmall">
+                                    <Box>
                                         {item?.data?.slice().sort((a: { location: any; }, b: { location: any; }) => (a?.location || '') > (b?.location || '') ? -1 : 1).map((x: {item: string, location: string, quantity: number}) => (
-                                            <Box align="center" direction="row" justify="between">
-                                                    <Box direction="row" align="center">
+                                            <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}} >
+                                                    <Box sx={{display: 'flex', alignItems: 'center'}}>
                                                         { <ColorDot color={HourTypes[x?.item  as any || '']} size={10}/> }
-                                                        <Text>{x?.item}{x?.location ? ` - ${x?.location}` : ''} :</Text>
+                                                        <Typography>{x?.item}{x?.location ? ` - ${x?.location}` : ''} :</Typography>
                                                     </Box>
-                                                <Text margin={{left: 'small'}}>{x?.quantity}hrs</Text>
+                                                <Typography sx={{marginLeft: '4px'}}>{x?.quantity}hrs</Typography>
                                             </Box>
                                         ))}
                                     </Box>
-                                    <Text size="small">
+                                    <Typography>
                                         { item?.notes || ''}
-                                    </Text>
+                                    </Typography>
                                 </Box>
             )
         }
@@ -786,9 +786,12 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     }
 
     return (
-        <Box
-            flex
-            direction="column">
+        <Box    
+            sx={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column'
+            }}>
             <CreateTimelineModal 
                 open={createModalOpen} 
                 onClose={() => openCreateModal(false)}
@@ -815,14 +818,14 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                     if (!selected) return;
                     deleteTimelineItem({ args: { id: selected.id } }).then(() => {
                         refetchTimeline()
+                        setSelected(undefined)
                     })
-                    setSelected(undefined)
                 }}
                 onSubmit={createTimelinePlan}
                 projects={projects?.map((x) => ({ id: x.id, displayId: x.displayId, name: x.name, type: "Project" })).concat(estimates?.map((x) => ({ id: x.id, displayId: x.displayId, name: x.name, type: "Estimate" })) || []) || []}
                 open={erpModal} />
             <TimelineHeader
-                timelines={[{name: "Projects"}, {name: "People"}, {name: "Estimates"}]}
+                timelines={[{id: 'projects', name: "Projects"}, {id: 'people', name: "People"}, {id: 'estimates', name: "Estimates"}]}
                 filter={filter}
                 filters={filters}
                 onCreateTimeline={() => {
@@ -832,16 +835,17 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                     setFilter(filter)
                 }}
                 onAdd={() => openERP(true)}
-                view={view || timelines?.[0]}
+                view={view || timelines?.[0]?.id || 'projects'}
                 onViewChange={(view) => setView(view)} />
 
-            <Box
-                margin={{top: 'xsmall'}}
-                overflow="hidden"
-                flex
-                round="small">
+            <Paper
+                sx={{flex: 1, marginTop: '3px', display: 'flex'}}>
 
                 <Timeline
+                    onCreateTask={async (task) => {
+                        setSelected({startDate: task.start, endDate: task.end})
+                        openERP(true);
+                    }}
                     dayInfo={(day) => {
                         
                         let horizonStart = (day || moment()).clone().startOf('isoWeek').valueOf()
@@ -886,9 +890,9 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                         let alarm_level = (job_week || 0) > (week_power || 0) ? ((job_week || 0) / (week_power || 0)) : 0;
                        
                         return (alarm_level > 0) && (
-                            <Text 
-                                color={alarm_level == Infinity ? 'red' : undefined}
-                                size="small">{alarm_level != Infinity ? `${(alarm_level * 100).toFixed(2)}%` : "No people available"}</Text>
+                            <Typography 
+                                color={alarm_level == Infinity ? 'error' : undefined}
+                                >{alarm_level != Infinity ? `${(alarm_level * 100).toFixed(2)}%` : "No people available"}</Typography>
                         )
                     }}
                     dayStatus={(day) => {
@@ -923,7 +927,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
                         let alarm_level = (job_week || 0) > (week_power || 0) ? ((job_week || 0) / (week_power || 0)) : 0;
                         let alarm_color = alarm_level < 2 ? `rgba(231, 93, 61, ${alarm_level - 1})` : 'rgb(231, 93, 61)'
-                        return ((job_week || 0) > (week_power || 0) && (day.isoWeekday() != 6 && day.isoWeekday() != 7)) ? alarm_color : 'initial' // ? 'red' : 'initial';
+                        return ((job_week || 0) > (week_power || 0) && (day.isoWeekday() != 6 && day.isoWeekday() != 7)) ? alarm_color : 'rgb(163, 182, 150)' // ? 'red' : 'initial';
                     }}
                     onSelectItem={(item: any) => {
                         console.log(item, capacity)
@@ -958,7 +962,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                         updateTimelinePlan(task.id.toString(), info)
                     }}
                 />
-            </Box>
+            </Paper>
         </Box>
     )
 }

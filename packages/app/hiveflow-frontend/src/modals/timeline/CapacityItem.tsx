@@ -1,6 +1,7 @@
-import { Box, Button, Select, TextInput } from 'grommet';
+import { Box, Button, IconButton, TextField } from '@mui/material';
 import React from 'react';
 import { Close } from '@mui/icons-material'
+import { FormControl } from '@hexhive/ui';
 
 export interface CapacityItemProps {
     type: "Projects" | "People" | "Estimates";
@@ -12,29 +13,37 @@ export interface CapacityItemProps {
 
 export const CapacityItem : React.FC<CapacityItemProps> = (props) => {
     return (
-        <Box height={{min: '45px'}} align="center" direction="row">
-        <Box flex>
-             <Select
-                onChange={({option}) => props.updateCapacityItem('item', option)}
+        <Box sx={{minHeight: '45px', display: 'flex', alignItems: 'center', padding: '3px'}}>
+        <Box sx={{flex: 1}}>
+             <FormControl
+                fullWidth
+                onChange={(option) => props.updateCapacityItem('item', option)}
                 value={props.item.item}
                 placeholder="Type"
-                options={["Welder", "Fabricator", "Skilled Labourer", "Civil Subcontractor", "TA"]} />
+                valueKey='id'
+                labelKey='label'
+                options={["Welder", "Fabricator", "Skilled Labourer", "Civil Subcontractor", "TA"].map((x) => ({id: x, label: x}))} />
         </Box>
-        <Box flex>
-            <Select 
+        <Box sx={{flex: 1}}>
+            <FormControl 
+                fullWidth
                 value={props.item.location}
-                onChange={({option}) => props.updateCapacityItem('location', option)}
+                onChange={(option) => props.updateCapacityItem('location', option)}
                 placeholder="Location"
-                options={["Site", "Workshop"]} />
+                valueKey='id'
+                labelKey='label'
+                options={["Site", "Workshop"].map((x) => ({id: x, label: x}))} />
         </Box>
-        <Box flex>
-            <TextInput  
+        <Box sx={{flex: 1}}>
+            <TextField  
+                size="small"
                 type="number"
+                fullWidth
                 value={props.item.quantity}
                 onChange={(e) => props.updateCapacityItem('quantity', parseFloat(e.target.value))}
-                placeholder={props.type == "Projects" ? "Estimated hours" : "People"} />
+                label={props.type == "Projects" ? "Estimated hours" : "People"} />
         </Box>
-        <Button onClick={() => props.removeCapacityItem()} icon={<Close sx={{color: 'red'}} fontSize="small" />} />
+        <IconButton onClick={() => props.removeCapacityItem()}><Close color="error" /></IconButton>
     </Box>
     );
 }

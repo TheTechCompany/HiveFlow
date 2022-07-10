@@ -1,6 +1,6 @@
 import React from 'react';
 import { Add } from '@mui/icons-material';
-import { Box, Button, Text } from 'grommet';
+import { Box, Button, IconButton, Typography } from '@mui/material';
 import { CapacityItem } from '../CapacityItem';
 
 export const CapacityTab = ({
@@ -11,22 +11,19 @@ export const CapacityTab = ({
     type
 }: any) => {
     return (
-        <>
+        <Box sx={{flex: 1, display: 'flex', flexDirection: 'column', padding: '6px'}}>
             <Box
-                height={{ min: 'min-content' }}
-                direction="row"
-                align="center"
-                justify="between">
-                <Text margin="none" weight="bold">Capacity</Text>
-                <Button
+                sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}
+                >
+                <Typography>Capacity</Typography>
+                <IconButton
                     onClick={addCapacityItem}
-                    hoverIndicator
-                    icon={<Add fontSize="small" />} />
+                >
+                    <Add fontSize="small" />
+                    </IconButton>
             </Box>
             <Box
-                gap="xsmall"
-                height={'min-content'}
-                overflow={'scroll'}>
+                sx={{flex: 1, overflow: 'auto'}}>
                 {plan.data?.map((x: any, ix: number) => (
                     <CapacityItem
                         item={x}
@@ -36,6 +33,6 @@ export const CapacityTab = ({
                 ))}
             </Box>
 
-        </>
+        </Box>
     );
 }

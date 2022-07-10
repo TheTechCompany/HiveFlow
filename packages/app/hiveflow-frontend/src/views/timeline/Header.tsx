@@ -2,13 +2,15 @@ import { Box, Text, Select, Button, Layer, Drop, List, CheckBox } from 'grommet'
 import React, { useRef, useState } from 'react';
 import { Add, FilterAlt as Filter } from '@mui/icons-material';
 import styled from 'styled-components';
+import { IconButton, Paper } from '@mui/material';
+import { FormControl } from '@hexhive/ui';
 
 export interface TimelineProps{
     timelines?: any[];
     
     onAdd?: () => void; 
     view?: TimelineView;
-    onViewChange?: (view: TimelineView) => void;
+    onViewChange?: (view: string) => void;
     className?: string;
 
     filter?: string[]
@@ -40,45 +42,32 @@ export const BaseTimelineHeader: React.FC<TimelineProps> = (props) => {
     }
 
     return (
-        <Box
-            className={props.className}
-            height="42px"
-            round="xsmall"
-            background="accent-1"
-            pad={'xsmall'}
-            direction="row"
-            align="center"
-            justify="between">
-            <Box background="#ffffff42" round="xsmall">
+        <Paper
+            sx={{display: 'flex', bgcolor: 'secondary.main', alignItems: 'center', justifyContent: 'space-between'}}>
+            <Box pad="xsmall" width={{min: '200px'}} round="xsmall">
 
-                <Select
+                <FormControl    
+                    
                     size="small"
                     placeholder="Timeline"
-                    plain
-                    labelKey={"name"}
-                    valueKey={{key: 'id', reduce: true}}
-                    value={props.view?.id}
-                    onChange={({ option }) => {
-                        if(option.id == 'create'){
+                    valueKey={'id'}
+                    value={props.view}
+                    onChange={(option) => {
+                        console.log({option})
+                        if(option == 'create'){
                             props.onCreateTimeline?.();
                         }else{
                             props.onViewChange?.(option)
                         }
                     }}
-                    options={props.timelines}>
-                    {(datum) => (
-                        <Box
-                            background={datum.id == 'create' ? '#dfdfdf' : undefined}
-                            pad="xsmall"
-                            direction='row'>
-                            <Text>{datum.name}</Text>
-                        </Box>
-                    )}
-                </Select>
+                    labelKey={'name'}
+                    options={props.timelines}/>
             </Box>
-            <Box background="#ffffff42" round="xsmall">
+            <Box  round="xsmall">
                 { true ? (
-                     <Button plain style={{padding: 6}} size="small" onClick={props.onAdd} icon={<Add fontSize="small" />} />
+                     <IconButton onClick={props.onAdd}>
+                        <Add />
+                     </IconButton>
                 ) : (
                     <>
                     <Button 
@@ -123,7 +112,7 @@ export const BaseTimelineHeader: React.FC<TimelineProps> = (props) => {
                     
                 )}
             </Box>
-        </Box>
+        </Paper>
     );
 }
 

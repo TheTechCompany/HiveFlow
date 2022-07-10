@@ -63,6 +63,15 @@ export interface ProjectInput {
   status?: InputMaybe<Scalars["String"]>;
 }
 
+export interface ProjectTaskInput {
+  description?: InputMaybe<Scalars["String"]>;
+  endDate?: InputMaybe<Scalars["DateTime"]>;
+  projectId: Scalars["String"];
+  startDate?: InputMaybe<Scalars["DateTime"]>;
+  status?: InputMaybe<Scalars["String"]>;
+  title?: InputMaybe<Scalars["String"]>;
+}
+
 export interface ProjectWhere {
   displayId?: InputMaybe<Scalars["String"]>;
   end?: InputMaybe<Scalars["DateTime"]>;
@@ -200,6 +209,7 @@ export const generatedSchema = {
     schedule: { __type: "[ScheduleItem!]!" },
     startDate: { __type: "DateTime" },
     status: { __type: "String" },
+    tasks: { __type: "[ProjectTask]" },
   },
   ProjectInput: {
     endDate: { __type: "DateTime" },
@@ -214,6 +224,24 @@ export const generatedSchema = {
     invoiced: { __type: "Float" },
     organisation: { __type: "HiveOrganisation" },
     quoted: { __type: "Float" },
+  },
+  ProjectTask: {
+    __typename: { __type: "String!" },
+    description: { __type: "String" },
+    endDate: { __type: "DateTime" },
+    id: { __type: "ID!" },
+    project: { __type: "Project" },
+    startDate: { __type: "DateTime" },
+    status: { __type: "String" },
+    title: { __type: "String" },
+  },
+  ProjectTaskInput: {
+    description: { __type: "String" },
+    endDate: { __type: "DateTime" },
+    projectId: { __type: "String!" },
+    startDate: { __type: "DateTime" },
+    status: { __type: "String" },
+    title: { __type: "String" },
   },
   ProjectWhere: {
     displayId: { __type: "String" },
@@ -340,6 +368,14 @@ export const generatedSchema = {
       __type: "File",
       __args: { path: "String", project: "ID!" },
     },
+    createProjectTask: {
+      __type: "ProjectTask!",
+      __args: { input: "ProjectTaskInput" },
+    },
+    createProjectTaskDependency: {
+      __type: "ProjectTask!",
+      __args: { source: "ID", target: "ID" },
+    },
     createScheduleItem: {
       __type: "ScheduleItem",
       __args: { input: "ScheduleItemInput" },
@@ -355,6 +391,11 @@ export const generatedSchema = {
     deleteProjectFile: {
       __type: "File",
       __args: { path: "String", project: "ID!" },
+    },
+    deleteProjectTask: { __type: "ProjectTask!", __args: { id: "ID" } },
+    deleteProjectTaskDependency: {
+      __type: "ProjectTask!",
+      __args: { source: "ID", target: "ID" },
     },
     deleteScheduleItem: { __type: "ScheduleItem", __args: { id: "ID" } },
     deleteTimeline: { __type: "Timeline", __args: { id: "ID" } },
@@ -385,6 +426,10 @@ export const generatedSchema = {
     updateProjectFolder: {
       __type: "File",
       __args: { path: "String", project: "ID!" },
+    },
+    updateProjectTask: {
+      __type: "ProjectTask!",
+      __args: { id: "ID", input: "ProjectTaskInput" },
     },
     updateScheduleItem: {
       __type: "ScheduleItem",
@@ -495,6 +540,7 @@ export interface Project {
   schedule: Array<ScheduleItem>;
   startDate?: Maybe<ScalarsEnums["DateTime"]>;
   status?: Maybe<ScalarsEnums["String"]>;
+  tasks?: Maybe<Array<Maybe<ProjectTask>>>;
 }
 
 export interface ProjectResult {
@@ -503,6 +549,17 @@ export interface ProjectResult {
   invoiced?: Maybe<ScalarsEnums["Float"]>;
   organisation?: Maybe<HiveOrganisation>;
   quoted?: Maybe<ScalarsEnums["Float"]>;
+}
+
+export interface ProjectTask {
+  __typename?: "ProjectTask";
+  description?: Maybe<ScalarsEnums["String"]>;
+  endDate?: Maybe<ScalarsEnums["DateTime"]>;
+  id: ScalarsEnums["ID"];
+  project?: Maybe<Project>;
+  startDate?: Maybe<ScalarsEnums["DateTime"]>;
+  status?: Maybe<ScalarsEnums["String"]>;
+  title?: Maybe<ScalarsEnums["String"]>;
 }
 
 export interface Report {
@@ -599,6 +656,13 @@ export interface Mutation {
     path?: Maybe<Scalars["String"]>;
     project: Scalars["ID"];
   }) => Maybe<File>;
+  createProjectTask: (args?: {
+    input?: Maybe<ProjectTaskInput>;
+  }) => ProjectTask;
+  createProjectTaskDependency: (args?: {
+    source?: Maybe<Scalars["ID"]>;
+    target?: Maybe<Scalars["ID"]>;
+  }) => ProjectTask;
   createScheduleItem: (args?: {
     input?: Maybe<ScheduleItemInput>;
   }) => Maybe<ScheduleItem>;
@@ -613,6 +677,11 @@ export interface Mutation {
     path?: Maybe<Scalars["String"]>;
     project: Scalars["ID"];
   }) => Maybe<File>;
+  deleteProjectTask: (args?: { id?: Maybe<Scalars["ID"]> }) => ProjectTask;
+  deleteProjectTaskDependency: (args?: {
+    source?: Maybe<Scalars["ID"]>;
+    target?: Maybe<Scalars["ID"]>;
+  }) => ProjectTask;
   deleteScheduleItem: (args?: {
     id?: Maybe<Scalars["ID"]>;
   }) => Maybe<ScheduleItem>;
@@ -653,6 +722,10 @@ export interface Mutation {
     path?: Maybe<Scalars["String"]>;
     project: Scalars["ID"];
   }) => Maybe<File>;
+  updateProjectTask: (args?: {
+    id?: Maybe<Scalars["ID"]>;
+    input?: Maybe<ProjectTaskInput>;
+  }) => ProjectTask;
   updateScheduleItem: (args?: {
     id?: Maybe<Scalars["ID"]>;
     input?: Maybe<ScheduleItemInput>;
@@ -709,6 +782,7 @@ export interface SchemaObjectTypes {
   People: People;
   Project: Project;
   ProjectResult: ProjectResult;
+  ProjectTask: ProjectTask;
   Query: Query;
   Report: Report;
   Schedule: Schedule;
@@ -730,6 +804,7 @@ export type SchemaObjectTypesNames =
   | "People"
   | "Project"
   | "ProjectResult"
+  | "ProjectTask"
   | "Query"
   | "Report"
   | "Schedule"

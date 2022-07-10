@@ -19,7 +19,8 @@ import {
   Hiveflow
 } from '../../assets'
 
-import { Box, Grommet, Spinner, Text } from 'grommet';
+import { Box } from '@mui/material'
+
 import { ProjectList } from '../projects/list';
 import { ProjectSingle } from '../projects/single';
 import { PeopleList } from '../people/list';
@@ -27,7 +28,6 @@ import {Schedule as ScheduleView } from '../schedule';
 import {PeopleSingle} from '../people/single';
 import { EquipmentList } from '../equipment/list';
 import {EstimateView} from '../estimates';
-import { BaseStyle } from '@hexhive/styles';
 
 import Timeline from '../timeline/Timeline'
 import { ProjectView } from '../projects';
@@ -190,16 +190,9 @@ export const Dashboard = (props: any) => {
     }
   ]
       return (
-        <Grommet  
-          
-          style={{display: 'flex', width: '100%', height: '100%'}}
-          plain 
-          theme={BaseStyle}>  
 
          <Box 
-          background={'neutral-4'}
-          direction="row"
-          flex 
+          sx={{flex: 1, display: 'flex', color: 'white', bgcolor: 'primary.dark', height: '100%'}}
           className="dashboard">
             <SidebarView
               views={menu}
@@ -249,7 +242,6 @@ export const Dashboard = (props: any) => {
 
  
          </Box>
-        </Grommet>
       );
   
 }

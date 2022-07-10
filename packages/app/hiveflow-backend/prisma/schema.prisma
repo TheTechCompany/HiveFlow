@@ -19,6 +19,8 @@ model Project {
     schedule ScheduleItem[]
     timeline TimelineItem[] @relation(name: "projectTimeline")
 
+    tasks ProjectTask[] @relation(name: "projectTasks")
+
     organisation String
 
     startDate DateTime?
@@ -26,6 +28,26 @@ model Project {
     status    String
 
     @@unique([organisation, displayId])
+}
+
+model ProjectTask {
+    id String @id
+
+    title String
+    description String?
+
+    status String?
+
+    project Project @relation(name: "projectTasks", fields: [projectId], references: [id])
+    projectId String
+
+    startDate DateTime?
+    endDate   DateTime?
+
+    dependencyOf ProjectTask[] @relation(name: "dependencyOf")
+    dependencyOn ProjectTask[] @relation(name: "dependencyOf")
+
+    @@unique([projectId, id])
 }
 
 model Estimate {

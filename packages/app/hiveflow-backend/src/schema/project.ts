@@ -61,7 +61,14 @@ export default (prisma: PrismaClient) => {
 						organisation: context.jwt.organisation,
 						...where,
                         
-					}
+					},
+                    include: {
+                        tasks: {
+                            include: {
+                                dependencyOf: true
+                            }
+                        }
+                    }
 				})
 
 				return result.map((x) => ({
@@ -110,6 +117,82 @@ export default (prisma: PrismaClient) => {
             },
             deleteProject: async (root: any, args: any, context: any) => {
                 return await prisma.project.delete({where: {organisation_displayId: {organisation: context.jwt.organisation, displayId: args.id}}})
+            },
+            createProjectTask: async (root: any, args: any, context: any) => {
+                return await prisma.project.update({
+                    where: {
+                        organisation_displayId: {
+                            organisation: context?.jwt?.organisation,
+                            displayId: args.input.projectId
+                        }
+                    },
+                    data: {
+                        tasks: {
+                            create: {
+                                id: nanoid(),
+                                title: args.input.title,
+                                description: args.input.description,
+                                startDate: args.input.startDate,
+                                endDate: args.input.endDate,
+                                status: args.input.status
+                            }
+                        }
+                    }
+                })
+            },
+            updateProjectTask: async (root: any, args: any) => {
+                let projectId;
+                if(args.input.projectId) {
+                    const p = await prisma.project.findFirst({
+                        where: {
+                            displayId: args.input.projectId
+                        }
+                    })
+                    projectId = p?.id
+                }
+
+                return await prisma.projectTask.update({
+                    where: {
+                        id: args.id
+                    },
+                    data: {
+                        title: args.input.title,
+                        description: args.input.description,
+                        startDate: args.input.startDate,
+                        endDate: args.input.endDate,
+                        status: args.input.status,
+                        projectId: projectId
+                    }
+                })
+            },
+            deleteProjectTask: async (root: any, args: any) => {
+                return await prisma.projectTask.delete({where: {id: args.id}})
+            },
+            createProjectTaskDependency: async (root: any, args: any) => {
+                return await prisma.projectTask.update({
+                    where: {id: args.source},
+                    data: {
+                        dependencyOf: {
+                            connect: {
+                                id: args.target
+                            }
+                        }
+                    }
+                })
+            },
+            deleteProjectTaskDependency: async (root: any, args: any) => {
+                return await prisma.projectTask.update({
+                    where: {
+                        id: args.source
+                    },
+                    data: {
+                        dependencyOf: {
+                            disconnect: {
+                                id: args.target
+                            }
+                        }
+                    }
+                })
             },
             createProjectFolder: async (root: any, args: any, context: any) => {
                 const appPath = `/Application Data/Flow/${args.project}`
@@ -316,6 +399,13 @@ export default (prisma: PrismaClient) => {
 		updateProject(id: ID!, input: ProjectInput): Project!
 		deleteProject(id: ID!): Project!
 
+        createProjectTask(input: ProjectTaskInput): ProjectTask!
+        updateProjectTask(id: ID, input: ProjectTaskInput): ProjectTask!
+        deleteProjectTask(id: ID): ProjectTask!
+
+        createProjectTaskDependency(source: ID, target: ID): ProjectTask!
+        deleteProjectTaskDependency(source: ID, target: ID): ProjectTask!
+
         createProjectFolder(project: ID!, path: String): File
         updateProjectFolder(project: ID!, path: String): File
 
@@ -351,11 +441,41 @@ export default (prisma: PrismaClient) => {
         schedule: [ScheduleItem!]! 
         plan: [TimelineItem!]!
 
+        tasks: [ProjectTask]
+
         files(path: String): [File]
 
         startDate: DateTime
         endDate: DateTime
         status: String
+    }
+
+    input ProjectTaskInput {
+        title: String
+        description: String
+        startDate: DateTime
+        endDate: DateTime
+
+        status: String
+        
+        projectId: String!
+    }
+
+    type ProjectTask {
+        id: ID!
+
+        title: String
+        description: String
+
+        startDate: DateTime
+        endDate: DateTime
+
+        status: String
+
+        project: Project
+
+        dependencyOf: [ProjectTask]
+        dependencyOn: [ProjectTask]
     }
 `
     return {

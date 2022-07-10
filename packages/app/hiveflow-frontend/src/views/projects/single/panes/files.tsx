@@ -122,7 +122,7 @@ export const FilePane = () => {
       }
     })
 
-    const { data } = useQuery(gql`
+    const { data, loading } = useQuery(gql`
         query GetProjectFiles($id: String, $path: String) {
             projects(where: {displayId: $id}){
             
@@ -150,7 +150,6 @@ export const FilePane = () => {
     const files = data?.projects?.[0]?.files || [];
 
     return (
-      <ThemeProvider theme={theme}>
 
         <Box flex>
           <ExplorerModal
@@ -179,6 +178,7 @@ export const FilePane = () => {
            
             <FileExplorer
               path={activePath}
+              loading={loading}
               previewEngines={[
                 {
                   filetype: '.png',
@@ -191,29 +191,29 @@ export const FilePane = () => {
                   openMove(file)
                 }}
               ]}
-              onCreateFolder={(folder) => {
-                createDirectory({
+              onCreateFolder={async (folder) => {
+                await createDirectory({
                   args: {
                     path: folder
                   }
-                }).then(() => {
-                  refetch()
                 })
-              }}
-              onDelete={(file) => {
-                deleteFile({args: {path: file.name}}).then(() => {
                   refetch()
-                })
+                
               }}
-              onRename={(file, newName) => {
-                renameFile({
+              onDelete={async (file) => {
+                await deleteFile({args: {path: file.name}})
+                
+                await refetch()
+              }}
+              onRename={async (file, newName) => {
+                await renameFile({
                   args: {
                     path: file.name,
                     newPath: newName
                   }
-                }).then(() => {
-                  refetch()
                 })
+                
+                await refetch()
               }}
               uploading={uploading.current.loading || []}
               onClick={(file) => {
@@ -239,6 +239,5 @@ export const FilePane = () => {
               }}
             />
           </Box>
-     </ThemeProvider>   
     )
 }

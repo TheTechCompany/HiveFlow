@@ -1,4 +1,4 @@
-import { Box, Button } from 'grommet'
+import { Box, Button, Paper, Tab, Tabs } from '@mui/material'
 import React from 'react'
 
 export const TabHeader = (props) => {
@@ -8,26 +8,19 @@ export const TabHeader = (props) => {
         'Notes'
     ]
     return (
-        <Box
-            pad={{ horizontal: 'xsmall', bottom: 'xsmall' }}
-            flex
-        >
-            <Box
-                gap="xsmall"
-                background={'accent-1'}
-                direction='row'>
+        <Paper sx={{bgcolor: 'secondary.main', marginTop: '4px'}}>
+            <Tabs
+                onChange={(ev, value) => props.setActiveTab(value)}
+                value={props.activeTab}
+                >
                 {menu.map((item) => (
-                    <Button
-                        plain
-                        active={props.activeTab === item.toLowerCase()}
-                        style={{ padding: 6, borderRadius: 3, color: '#2b2b2b' }}
-                        hoverIndicator
+                    <Tab
+                        value={item.toLowerCase()}
                         label={item}
-                        onClick={() => props.setActiveTab(item.toLowerCase())} />
+                         />
                 ))}
 
-            </Box>
-
-        </Box>
+            </Tabs>
+        </Paper>
     )
 }

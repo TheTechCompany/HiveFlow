@@ -1,7 +1,7 @@
 import React, {
   Component
 } from 'react';
-import { Box } from 'grommet'
+import { Box } from '@mui/material'
 import {TransferList} from '@hexhive/ui';
 
 export interface PeopleTabProps {
@@ -37,7 +37,7 @@ export const PeopleTab : React.FC<PeopleTabProps> = ({
 
 
     return (
-      <Box height="100%">
+      <Box sx={{flex: 1, display: 'flex'}}>
         <TransferList
           assignedKey={labelKey}
           assignedList={assigned || []}

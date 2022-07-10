@@ -7,7 +7,7 @@ export const PeopleView = (props: any) => (
    <Routes>
       <Route path={''} element={<Outlet />}>
          <Route path={``} element={<PeopleList/>} />      
-         <Route path={`/:id`} element={<PeopleSingle/>}/>
+         <Route path={`/:id/*`} element={<PeopleSingle/>}/>
       </Route>
     </Routes>
 );

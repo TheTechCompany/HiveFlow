@@ -9,6 +9,7 @@ import { QuoteHeader } from './header';
 import { useTypeConfiguration } from '../../../context';
 import { Estimate, EstimateModal } from '../../../modals/estimate';
 import { useNavigate } from 'react-router-dom';
+import { Paper } from '@mui/material';
 
 var formatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -217,11 +218,12 @@ export const EstimateList: React.FC<any> = (props) => {
         filter={filter}
         onFilterChange={(filter) => setFiler(filter)}
       />
-      <Box
-        flex
-        overflow={{ vertical: 'auto' }}
-        round="xsmall"
-        background="neutral-1">
+      <Paper
+        sx={{
+          flex: 1,
+          display: 'flex',
+          marginTop: '3px'
+        }}>
 
         <DataTable
           order={direction}
@@ -238,7 +240,7 @@ export const EstimateList: React.FC<any> = (props) => {
           // sort={(property && direction) ? {property, external: true, direction} : undefined}
           columns={listKeys}
           data={listData?.filter(filterQuotes).sort(sortQuotes).map(formatQuote)} />
-      </Box>
+      </Paper>
     </Box>
   );
 

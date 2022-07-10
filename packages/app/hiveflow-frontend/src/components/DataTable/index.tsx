@@ -1,4 +1,3 @@
-import { BaseStyle } from '@hexhive/styles';
 import { TableContainer,Table, TableHead, TableRow, TableCell, TableSortLabel } from '@mui/material';
 import { TableBody } from 'grommet';
 import React from 'react';
@@ -30,9 +29,9 @@ export const DataTable : React.FC<DataTableProps> = (props) => {
     }
 
     return (
-        <TableContainer>
+        <TableContainer sx={{flex: 1}}>
             <Table>
-                <TableHead sx={{background: BaseStyle.global.colors['accent-2']}}>
+                <TableHead >
                     <TableRow>
                         {props.columns?.map((column) => (
                             <TableCell 

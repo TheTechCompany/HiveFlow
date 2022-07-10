@@ -1,7 +1,9 @@
 import React from 'react';
-import { Box, TextInput, Select, Button } from 'grommet'
+import { Box, TextInput, Button } from 'grommet'
+import { FormControl } from '@hexhive/ui';
 import { Maybe } from '@hive-flow/api';
 import { Add } from '@mui/icons-material';
+import { Paper, TextField } from '@mui/material';
 
 export interface HeaderProps {
     jobs?: Maybe<{
@@ -14,43 +16,43 @@ export interface HeaderProps {
 
 export const Header : React.FC<HeaderProps> = (props) => {
     return (
-        <Box
-            pad={{horizontal: 'xsmall'}}
-        align="center"
-        margin={{bottom: 'xsmall'}}
-        round="xsmall"
-        height="50px"
-        direction="row"
-        background="accent-1"
-        gap="xsmall"
+        <Paper
+            sx={{
+                padding: '3px',
+                display: 'flex',
+                height: '50px',
+                alignItems: 'center',
+            }}
         >
         <Box 
-            overflow="hidden"
             flex
+            margin={{right: 'xsmall'}}
             background={'#ffffff42'}
             round="xsmall">
-        <TextInput
+        <TextField
+            variant='filled'
+            size="small"
             value={props.filter?.search}
             onChange={(e) => props.onFilterChange?.({search: e.target.value, status: props.filter?.status})}
-          focusIndicator={false}
-          plain
-          placeholder="Search Projects..." />
+            label="Search Projects..." />
         </Box>
         <Box 
-            overflow="hidden"
+            width={{min: '200px'}}
             background={"#ffffff42"}
             round="xsmall">
-        <Select  
+        <FormControl  
+            labelKey='label'
+            valueKey='id'
+            fullWidth
             value={props.filter?.status}
             onChange={({option}) => props.onFilterChange?.({search: props.filter?.search, status: option })}
-          plain
-          placeholder="Status"
-          options={["All"].concat(Array.from(new Set(props.jobs?.map((x: any) => x.status || ''))))} 
-          />
+            placeholder="Status"
+            options={["All"].concat(Array.from(new Set(props.jobs?.map((x: any) => x.status || '')))).map((x) => ({id: x, label: x}))} 
+            />
         </Box>
         {props.onCreate && (
             <Button onClick={props.onCreate} plain style={{padding: 6, borderRadius: 3}} icon={<Add />} hoverIndicator />
         )}
-      </Box>
+      </Paper>
     )
 }

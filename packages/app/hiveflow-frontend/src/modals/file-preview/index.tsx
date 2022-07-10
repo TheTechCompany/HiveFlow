@@ -2,7 +2,6 @@ import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextFie
 import { FileViewer } from '@hexhive/ui'
 import React from 'react';
 import { gql, useQuery } from '@apollo/client';
-import { BaseStyle } from '@hexhive/styles';
 import moment from 'moment';
 
 export interface FilePreviewDialogProps {
@@ -38,22 +37,27 @@ export const FilePreviewDialog : React.FC<FilePreviewDialogProps> = (props) => {
         <Dialog
             open={props.open}
             onClose={props.onClose}
+            maxWidth="lg"
             >
             <DialogTitle
                 sx={{
                     padding: '8px',
                     fontSize: '1rem'
                 }}
-                bgcolor={BaseStyle.global.colors['accent-2']}
+                // bgcolor={BaseStyle.global.colors['accent-2']}
                 color={'white'}>File Preview</DialogTitle>
-            <DialogContent sx={{display: 'flex', flexDirection: 'row', minWidth: '40vw', minHeight: '50vh'}} >
-                <Box sx={{flex: 1, display: 'flex'}}>
+            <DialogContent sx={{display: 'flex', flexDirection: 'row', minWidth: '60vw', minHeight: '50vh'}} >
+                <Box sx={{ border: "2px dashed #dfdfdf", borderRadius: '6px', flex: 0.6, display: 'flex'}}>
                     <FileViewer 
                         files={data?.filesById || []}
                         />
                 </Box>
-                <Box sx={{flex: 1, padding: '6px'}}>
-                    <TextField size="small" label="Filename" value={data?.filesById?.[0]?.name} />
+                <Box sx={{flex: 0.4, padding: '6px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end'}}>
+                    <TextField 
+                        fullWidth
+                        size="small" 
+                        label="Filename" 
+                        value={data?.filesById?.[0]?.name || ''} />
                     <Typography>Uploaded By: {data?.filesById?.[0]?.uploadedBy?.name}</Typography>  
                     <Typography>Uploaded at: {moment(data?.filesById?.[0]?.createdAt).format('HH:mma DD/MM/YY')}</Typography>
                 </Box>

@@ -2,6 +2,8 @@ import React from 'react';
 import { Box, TextInput, Select, Button } from 'grommet'
 import { Maybe } from '@hive-flow/api';
 import { Add } from '@mui/icons-material';
+import { Paper, TextField } from '@mui/material';
+import { FormControl } from '@hexhive/ui';
 
 export interface QuoteHeaderProps {
     quotes?: any[]
@@ -13,38 +15,41 @@ export interface QuoteHeaderProps {
 
 export const QuoteHeader : React.FC<QuoteHeaderProps> = (props) => {
     return (
-        <Box
-        pad={{horizontal: 'xsmall'}}
-        align="center"
-        margin={{bottom: 'xsmall'}}
-        round="xsmall"
-        height="50px"
-        direction="row"
-        gap="xsmall"
-        background="accent-1"
+        <Paper
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '3px',
+            height: '50px'
+          }}
+       
         >
         <Box
             flex
+            margin={{right: 'xsmall'}}
             round="xsmall"
             background="#ffffff42">
-  <TextInput 
+      <TextField
+          variant='filled'
+          size="small"
             value={props.filter?.search}
             onChange={(e: any) => props.onFilterChange?.({search: e.target.value})}
-          focusIndicator={false}
-          plain
-          placeholder="Search Estimates..." />
+          label="Search Estimates..." />
         </Box>
       <Box 
+        width={{min: '200px'}}
         round="xsmall"
         background="#ffffff42"
         >
 
-        <Select  
+
+        <FormControl  
             value={props.filter?.status}
             onChange={({option}) => props.onFilterChange?.({search: props.filter?.search, status: option })}
-          plain
-          placeholder="Status"
-          options={["All"].concat(Array.from(new Set(props.quotes?.filter((a) => a != undefined).map((x: any) => x.status || ''))))} 
+            labelKey="label"
+            valueKey='id'
+            placeholder="Status"
+            options={["All"].concat(Array.from(new Set(props.quotes?.filter((a) => a != undefined).map((x: any) => x.status || '')))).map((status) => ({id: status, label: status}))} 
           />
         </Box>
 
@@ -52,6 +57,6 @@ export const QuoteHeader : React.FC<QuoteHeaderProps> = (props) => {
           <Button onClick={props.onCreate} hoverIndicator plain style={{padding: 6, borderRadius: 3}} icon={<Add />} />
         )}
        
-      </Box>
+      </Paper>
     )
 }

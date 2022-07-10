@@ -1,14 +1,15 @@
 import React from 'react'
-import { TextArea } from 'grommet'
+import { Box, TextField } from '@mui/material'
 export const NoteTab = ({notes, updateNotes}: any) => {
     return (
-        <>
-            <TextArea 
+        <Box sx={{flex: 1, display: 'flex', padding: '6px'}}>
+            <TextField
+                fullWidth
                 value={notes}
                 onChange={updateNotes}
-                focusIndicator={false}
-                rows={8}
-                placeholder="Notes" />
-        </>
+                multiline
+                minRows={8}
+                label="Notes" />
+        </Box>
     );
 }

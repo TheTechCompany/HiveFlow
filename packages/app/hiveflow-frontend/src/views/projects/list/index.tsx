@@ -11,6 +11,7 @@ import { DataTable } from '../../../components/DataTable'
 // import { useQuery } from '../../../gqless';
 import { Header } from './header';
 import { Project, ProjectModal } from '../../../modals/project';
+import { Paper } from '@mui/material';
 
 export interface ProjectListProps {
 }
@@ -178,12 +179,12 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
         onFilterChange={(filter) => setFiler(filter)}
         jobs={projects || []} />
         
-      <Box 
-        flex
-        overflow={{vertical: 'auto'}}
-        round="xsmall"
-        background="neutral-1"
-        className="jobs-page">
+      <Paper
+        sx={{
+          flex: 1,
+          display: 'flex',
+          marginTop: '3px'
+        }} >
 
         <DataTable
           order={direction}
@@ -224,7 +225,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
           keys={listKeys}
           data={}
        onClick={selectJob.bind(this)}/>*/}
-      </Box>
+      </Paper>
       </Box>
 
     );
