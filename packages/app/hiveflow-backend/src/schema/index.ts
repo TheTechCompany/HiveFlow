@@ -79,9 +79,6 @@ export default (prisma: PrismaClient) => {
 			inactive: Boolean
 		}
 
-
-	
-
 `
 	return {
 		typeDefs: mergeTypeDefs([
