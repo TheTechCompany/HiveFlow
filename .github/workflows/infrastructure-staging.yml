@@ -270,11 +270,7 @@ jobs:
         working-directory: ./packages/infrastructure
 
       - run: mkdir ~/.kube/
-
-      - run: echo $(pulumi stack -s ultraviolet/apps/staging output kubeconfig) > ~/.kube/config.json
-        working-directory: ./packages/infrastructure
-        id: kube_config
-
+      
       - name: Setup DB stack
         run: |
           echo "DB_NAME=ultraviolet/hexhive-db/db-staging" >> $GITHUB_ENV
