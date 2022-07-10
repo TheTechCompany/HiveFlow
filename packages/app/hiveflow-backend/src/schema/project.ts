@@ -477,6 +477,7 @@ export default (prisma: PrismaClient) => {
         dependencyOf: [ProjectTask]
         dependencyOn: [ProjectTask]
     }
+    
 `
     return {
         typeDefs,
