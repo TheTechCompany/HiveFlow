@@ -184,7 +184,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = (props) => {
                     setActiveTab={setActiveTab}
                     activeTab={activeTab}
                 />}
-                <Box>
+                <Box sx={{flex: 1, display: 'flex'}}>
 
                     {cloneTab ? (
                         <CloneTab
@@ -193,7 +193,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = (props) => {
                             onSelect={(dates) => {
                                 setCloneDates(dates);
                             }} />
-                    ) : renderActiveTab()}
+                    ) : <Box sx={{maxHeight: '40vh', display: 'flex', flex: 1}}>{renderActiveTab()}</Box>}
 
                 </Box>
 
