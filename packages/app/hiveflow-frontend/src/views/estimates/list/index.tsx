@@ -51,7 +51,8 @@ export const EstimateList: React.FC<any> = (props) => {
     const item = mutation.createEstimate({
       input: {
        
-              name: args.name
+              name: args.name,
+              date: new Date().toISOString()
         }
         
     })

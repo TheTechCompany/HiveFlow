@@ -360,16 +360,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
     // const [timeline, setTimeline] = useState<any[]>([])
 
-    const getWonLost = (total: number, item: any, default_color: string) => {
-        let gradient = [];
-
-        for(var k in item){
-            gradient.push({color: StatusTypes[k], percent: item[k] / total})
-        }
-        
-
-        return generateStripes(gradient, false)
-    }
+   
 
     const getColorBars = (plan: { hatched?: boolean, items?: any[] }) => {
         let total = plan.items?.reduce((previous: any, current: any) => previous += current.quantity, 0)
@@ -390,65 +381,6 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
         return generateStripes(gradient, plan.hatched);
     }
-
-    // const parseEstimates = () => {
-    //     let _weeks: any = {};
-    //     const weeks = quotes?.filter((a: { status: string; }) => {
-    //         return filter.indexOf(a.status) > -1
-    //     }).reduce((previous: { [x: string]: { [x: string]: any; }; }, current: { start: { getTime: () => any; }; price: any; status: string | number; }) => {
-    //         let start = current.start.getTime();
-    //         console.log(current)
-    //         if (!previous[start]) previous[start] = {
-    //             value: 0
-    //         };
-    //         previous[start].value += current.price
-
-    //         if(!previous[start][current.status]) previous[start][current.status] = 0;
-    //         previous[start][current.status] += current.price
-            
-    //         return previous
-    //     }, _weeks)
-
-    //     console.log(weeks)
-    //     // setTimeline(Object.keys(weeks).sort((a, b) => a == b ? 0 : a > b ? -1 : 1).map((start, ix) => {
-    //     //     let value = weeks[start].value;
-    //     //     delete weeks[start].value;
-    //     //     return {
-    //     //         id: `${start}`,
-    //     //         name: `Week ${moment(new Date(parseInt(start))).format("W/yyyy")}`,
-    //     //         color: getWonLost(value, weeks[start], stringToColor(moment(new Date(parseInt(start))).format("DD/mm/yyyy"))),
-    //     //         start: new Date(parseInt(start)),
-    //     //         end: new Date(moment(new Date(parseInt(start))).add(7, 'days').valueOf()),
-    //     //         showLabel: formatter.format(value),
-    //     //         hoverInfo: (
-    //     //             <Box round="xsmall" overflow="hidden"  direction="column">
-    //     //                 <Box pad="xsmall" background="accent-2" margin={{bottom: 'xsmall'}} direction="row" justify="between">
-    //     //                     {/* <Text weight="bold">{capacity_plan?.project?.name?.substring(0, 15)}</Text> */}
-    //     //                     <Text>
-    //     //                         {formatter.format(value)}
-    //     //                     </Text>
-    //     //                 </Box>
-    //     //                 <Box pad="xsmall">
-    //     //                     {Object.keys(weeks[start]).map((x) => {
-    //     //                         let item = weeks[start][x]
-    //     //                         return (
-    //     //                         <Box align="center" direction="row" justify="between">
-    //     //                                 <Box direction="row" align="center">
-    //     //                                     <ColorDot color={StatusTypes[x || '']} size={10}/>
-    //     //                                     <Text>{((item / value )* 100).toFixed(2)}% - {x}</Text>
-    //     //                                 </Box>
-    //     //                             <Text margin={{left: 'small'}}>{formatter.format(item)}</Text>
-    //     //                         </Box>
-    //     //                         )
-    //     //                     }
-    //     //                     )}
-    //     //                 </Box>
-                 
-    //     //             </Box>
-    //     //         ),
-    //     //     }
-    //     // }))
-    // }
 
 
     const generateStripes = (colors: { color: string, percent: number }[], hatched?: boolean) => {

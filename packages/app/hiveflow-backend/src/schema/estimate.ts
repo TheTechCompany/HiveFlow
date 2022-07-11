@@ -55,6 +55,8 @@ export default (prisma: PrismaClient) => {
                     if(args.where.id) whereArg['id'] = args.where.id
                     if(args.where.status) whereArg['status'] = {in: args.where.status}
                     if(args.where.displayId) whereArg['displayId'] = args.where.displayId;
+                    if(args.where.date_GTE) whereArg['date'] = {...whereArg['date'], gte: args.where.date_GTE};
+                    if(args.where.date_LTE) whereArg['date'] = {...whereArg['date'], lte: args.where.date_LTE};
                 }
                 return await prisma.estimate.findMany({where: whereArg})
             }
