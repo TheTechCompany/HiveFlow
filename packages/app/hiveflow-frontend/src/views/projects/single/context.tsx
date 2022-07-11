@@ -3,12 +3,13 @@ import React, { useContext } from "react";
 export interface IProjectSingle {
     projectId?: string;
     tasks?: any[];
+    refetch?: () => void;
     createTask?: any;
     updateTask?: any;
     updateTaskStatus?: (taskId: string, status: string) => void;
     deleteTask?: any;
     createDependency?: any;
-    
+
 }
 
 export const ProjectSingleContext = React.createContext<IProjectSingle>({

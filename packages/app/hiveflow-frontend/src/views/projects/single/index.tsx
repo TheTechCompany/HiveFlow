@@ -288,6 +288,7 @@ console.log({pathname})
     <ProjectSingleProvider value={{
       projectId: job_id, 
       tasks: job?.tasks || [],
+      refetch,
       updateTaskStatus: (taskId, status) => {
           updateTask({
             args: {
@@ -305,7 +306,7 @@ console.log({pathname})
       createTask: (task: any) => {
         console.log({task})
 
-        setSelectedTask({...task, id: undefined, startDate: task.start, endDate: task.end})
+        setSelectedTask({...task, id: undefined, status: task.status, startDate: task.start, endDate: task.end})
         openTaskModal(true);
       },
       updateTask: (task: any) => {

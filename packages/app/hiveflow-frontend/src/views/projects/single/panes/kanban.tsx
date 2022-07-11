@@ -5,7 +5,7 @@ import { ProjectSingleContext } from "../context";
 
 export const KanbanPane = () => {
 
-    const { tasks, updateTaskStatus } = useContext(ProjectSingleContext)
+    const { tasks, updateTaskStatus, createTask, updateTask } = useContext(ProjectSingleContext)
 
     const STATUS = ["Backlog", "In Progress", "Reviewing", "Finished"];
 
@@ -14,13 +14,20 @@ export const KanbanPane = () => {
     return (
         <Box sx={{flex: 1, display: 'flex', bgcolor: '#bfbfbf'}}>
         <Kanban
+            onSelectCard={(card) => {
+                console.log({card})
+                updateTask(card)
+            }}
+            onCreateCard={(col) => {
+                createTask({status: col})
+            }}
             onDrag={(result) => {
                 console.log({result})
 
                 const status = STATUS[parseInt(result.destination?.droppableId)]
 
                 updateTaskStatus(result.draggableId, status)
-                
+
             console.log(result.destination?.droppableId)
             // if (result.destination?.droppableId != undefined) {
             //     let f = files.slice()
@@ -51,7 +58,7 @@ export const KanbanPane = () => {
                 )
             }}
             columns={STATUS.map((x) => {
-                const rows = tasks.filter((a) => a.status == x)?.map((x) => ({id: x.id, name: x.title})) //files.filter((a: any) => a.status == x).map((x) => ({ ...x }))
+                const rows = tasks.filter((a) => a.status == x)?.map((x) => ({...x, id: x.id, name: x.title})) //files.filter((a: any) => a.status == x).map((x) => ({ ...x }))
                 return {
                     id: x,
                     title: x,
