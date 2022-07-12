@@ -1272,10 +1272,10 @@
   dependencies:
     "@emotion/styled" "^11.9.3"
 
-"@hexhive/ui@1.0.1-alpha.23":
-  version "1.0.1-alpha.23"
-  resolved "https://registry.yarnpkg.com/@hexhive/ui/-/ui-1.0.1-alpha.23.tgz#7badf3f97a56dc113bc62ab8400a9038231942bd"
-  integrity sha512-NDkQmEdSeu7Rf7iL2QGEhuCm+1VdRHrVk3aEN8Fx0vgnnyqQsaITDvkbVfVJkXCxI1nwYxafKAg7oAS+mMSuyQ==
+"@hexhive/ui@1.0.1-alpha.25":
+  version "1.0.1-alpha.25"
+  resolved "https://registry.yarnpkg.com/@hexhive/ui/-/ui-1.0.1-alpha.25.tgz#cc42e16d6fb2ca6615e9975973ed986fef736e20"
+  integrity sha512-PRAhLCvq2wG2VtqRjw+YeGfheYQXF2WYAq/KgF7K7qsBRy04H6dGx5InYOk9M/wCVZLkI97wYWVM3vWR2o9viw==
   dependencies:
     "@emotion/react" "^11.9.0"
     "@emotion/styled" "^11.8.1"

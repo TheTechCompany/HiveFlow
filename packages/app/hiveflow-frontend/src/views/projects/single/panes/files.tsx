@@ -49,6 +49,8 @@ const theme = createTheme({
 });
 export const FilePane = () => {
 
+   const [ selected, setSelected ] = useState<string[]>([]);
+   
     const { projectId } = useProjectInfo();
 
     const client = useApolloClient()
@@ -180,6 +182,8 @@ export const FilePane = () => {
             
            
             <FileExplorer
+              selected={selected}
+              onSelectionChange={(selected) => setSelected(selected)}
               path={activePath}
               loading={loading}
               previewEngines={[
@@ -191,6 +195,8 @@ export const FilePane = () => {
               actions={[
                 {key: 'download', label: 'Download', onClick: (file) => {
                   //Download here
+                  if(Array.isArray(file)) return; //TODO download multiple files/folder
+
                   let saveFile = files.find((a: any) => a.id == file.id);
                
                   if(saveFile) saveAs(saveFile.url, saveFile.name)
@@ -210,8 +216,13 @@ export const FilePane = () => {
                 
               }}
               onDelete={async (file) => {
-                await deleteFile({args: {path: file.name}})
-                
+                if(Array.isArray(file)){
+                  await Promise.all(file.map(async (file) => {
+                    await deleteFile({args: {path: file.name}})
+                  }))
+                }else{
+                  await deleteFile({args: {path: file.name}})
+                }
                 await refetch()
               }}
               onRename={async (file, newName) => {

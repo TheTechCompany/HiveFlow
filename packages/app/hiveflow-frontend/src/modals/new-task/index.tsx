@@ -16,11 +16,16 @@ export const TaskModal = (props) => {
         startDate?: Date;
         endDate?: Date;
     }>({
-        status: 'Backlog'
+        status: 'Backlog',
+        startDate: new Date(),
+        endDate: new Date()
     });
 
     useEffect(() => {
         setTask({
+            status: 'Backlog',
+            startDate: new Date(),
+            endDate: new Date(),
             ...props.selected
         })
     }, [props.selected])
@@ -30,6 +35,8 @@ export const TaskModal = (props) => {
         await props.onDelete?.();
         setTask({
             status: 'Backlog',
+            startDate: new Date(),
+            endDate: new Date()
         })
         setDeleteLoading(false);
     }
@@ -38,7 +45,9 @@ export const TaskModal = (props) => {
         setLoading(true);
         await props.onSubmit?.(task);
         setTask({
-            status: 'Backlog'
+            status: 'Backlog',
+            startDate: new Date(),
+            endDate: new Date()
         });
         setLoading(false)
     }
