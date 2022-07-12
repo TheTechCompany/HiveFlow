@@ -2,6 +2,7 @@ import { Kanban } from "@hexhive/ui";
 import React, { useContext, useEffect, useState } from "react";
 import { Box, Paper } from '@mui/material'
 import { ProjectSingleContext } from "../context";
+import { stringToColor } from "@hexhive/utils";
 
 export const KanbanPane = () => {
 
@@ -72,7 +73,7 @@ export const KanbanPane = () => {
             }}
             renderCard={(item) => {
                 return (
-                    <Paper sx={{padding: '6px', marginTop: '6px'}}>
+                    <Paper sx={{background: stringToColor(item.title), minHeight: '24px', color: 'white', alignItems: 'center', display: 'flex', padding: '6px', marginTop: '6px'}}>
                         {item.name || item.title}
                     </Paper>
                 )
