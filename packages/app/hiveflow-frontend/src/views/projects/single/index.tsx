@@ -94,6 +94,7 @@ console.log({pathname})
           id
 
           title
+          description
           startDate
           endDate
           status

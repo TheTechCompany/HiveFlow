@@ -22,7 +22,11 @@ export const KanbanPane = () => {
         <Kanban
             onSelectCard={(card) => {
                 console.log({card})
-                updateTask(card)
+                updateTask({
+                    ...card,
+                    start: new Date(card.startDate),
+                    end: new Date(card.endDate)
+                })
             }}
             onCreateCard={(col) => {
                 createTask({status: col})
