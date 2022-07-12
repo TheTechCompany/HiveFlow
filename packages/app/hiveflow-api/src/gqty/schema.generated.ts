@@ -227,6 +227,8 @@ export const generatedSchema = {
   },
   ProjectTask: {
     __typename: { __type: "String!" },
+    dependencyOf: { __type: "[ProjectTask]" },
+    dependencyOn: { __type: "[ProjectTask]" },
     description: { __type: "String" },
     endDate: { __type: "DateTime" },
     id: { __type: "ID!" },
@@ -374,7 +376,7 @@ export const generatedSchema = {
     },
     createProjectTaskDependency: {
       __type: "ProjectTask!",
-      __args: { source: "ID", target: "ID" },
+      __args: { project: "ID", source: "ID", target: "ID" },
     },
     createScheduleItem: {
       __type: "ScheduleItem",
@@ -395,7 +397,7 @@ export const generatedSchema = {
     deleteProjectTask: { __type: "ProjectTask!", __args: { id: "ID" } },
     deleteProjectTaskDependency: {
       __type: "ProjectTask!",
-      __args: { source: "ID", target: "ID" },
+      __args: { project: "ID", source: "ID", target: "ID" },
     },
     deleteScheduleItem: { __type: "ScheduleItem", __args: { id: "ID" } },
     deleteTimeline: { __type: "Timeline", __args: { id: "ID" } },
@@ -553,6 +555,8 @@ export interface ProjectResult {
 
 export interface ProjectTask {
   __typename?: "ProjectTask";
+  dependencyOf?: Maybe<Array<Maybe<ProjectTask>>>;
+  dependencyOn?: Maybe<Array<Maybe<ProjectTask>>>;
   description?: Maybe<ScalarsEnums["String"]>;
   endDate?: Maybe<ScalarsEnums["DateTime"]>;
   id: ScalarsEnums["ID"];
@@ -660,6 +664,7 @@ export interface Mutation {
     input?: Maybe<ProjectTaskInput>;
   }) => ProjectTask;
   createProjectTaskDependency: (args?: {
+    project?: Maybe<Scalars["ID"]>;
     source?: Maybe<Scalars["ID"]>;
     target?: Maybe<Scalars["ID"]>;
   }) => ProjectTask;
@@ -679,6 +684,7 @@ export interface Mutation {
   }) => Maybe<File>;
   deleteProjectTask: (args?: { id?: Maybe<Scalars["ID"]> }) => ProjectTask;
   deleteProjectTaskDependency: (args?: {
+    project?: Maybe<Scalars["ID"]>;
     source?: Maybe<Scalars["ID"]>;
     target?: Maybe<Scalars["ID"]>;
   }) => ProjectTask;

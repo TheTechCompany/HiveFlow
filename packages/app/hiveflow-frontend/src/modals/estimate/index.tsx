@@ -1,4 +1,5 @@
-import { BaseModal, FormInput } from '@hexhive/ui';
+import { BaseModal, FormControl, FormInput } from '@hexhive/ui';
+import { TextField } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 
 export interface Estimate {
@@ -32,10 +33,21 @@ export const EstimateModal : React.FC<EstimateModalProps> = (props) => {
             onSubmit={submit}
             onDelete={props.selected && props.onDelete}
             open={props.open}>
-            <FormInput 
+
+            <TextField 
+                fullWidth
                 value={estimate.name}
-                onChange={(e) => setEstimate({...estimate, name: e})}
-                placeholder='Estimate name' />
+                size="small"
+                onChange={(e) => setEstimate({...estimate, name: e.target.value})}
+                label='Estimate name' />
+
+            <FormControl
+                fullWidth
+                placeholder='Status'
+                labelKey='id'
+                valueKey='id'
+                options={[{id: 'Lead'}, {id: 'Quoting'}]}
+                />
         </BaseModal>
     )
 }

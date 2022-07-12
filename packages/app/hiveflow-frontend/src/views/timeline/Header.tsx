@@ -43,7 +43,7 @@ export const BaseTimelineHeader: React.FC<TimelineProps> = (props) => {
 
     return (
         <Paper
-            sx={{display: 'flex', bgcolor: 'secondary.main', alignItems: 'center', justifyContent: 'space-between'}}>
+            sx={{display: 'flex', bgcolor: 'primary.light', alignItems: 'center', justifyContent: 'space-between'}}>
             <Box pad="xsmall" width={{min: '200px'}} round="xsmall">
 
                 <FormControl    

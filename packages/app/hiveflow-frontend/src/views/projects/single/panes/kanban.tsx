@@ -82,7 +82,7 @@ export const KanbanPane = () => {
                 let rows = kanbanTasks.filter((a) => a.status == x)?.map((x) => ({...x, id: x.id, name: x.title})) //files.filter((a: any) => a.status == x).map((x) => ({ ...x }))
 
                 if(x == 'Backlog') {
-                    rows = rows.filter((a) => a.dependencyOn?.map((x) => x.status == "Reviewing" || x.status == "Finished")?.indexOf(false) < 0)
+                    rows = rows.filter((a) => a.dependencyOn?.length < 1 || a.dependencyOn?.map((x) => x.status == "Reviewing" || x.status == "Finished")?.indexOf(true) > -1)
                 }
 
                 return {

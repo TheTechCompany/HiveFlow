@@ -9,7 +9,7 @@ export interface IProjectSingle {
     updateTaskStatus?: (taskId: string, status: string) => void;
     deleteTask?: any;
     createDependency?: any;
-
+    deleteDependency?: any;
 }
 
 export const ProjectSingleContext = React.createContext<IProjectSingle>({

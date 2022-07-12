@@ -38,7 +38,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
   const history = useNavigate()
 
   const selectJob = (id: string) => {
-    history(`${id}`)
+    history(`${id}/tickets`)
   }
 
   const [ createProject ] = useMutation((mutation, args: {name: string, status: string}) => {

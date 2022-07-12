@@ -92,7 +92,7 @@ export default (prisma: PrismaClient) => {
 
         type TimelineItem {
             id: ID 
-            timeline: Timeline
+            timeline: String
             startDate: DateTime
             endDate: DateTime
             notes: String

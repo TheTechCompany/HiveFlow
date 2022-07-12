@@ -169,28 +169,57 @@ export default (prisma: PrismaClient) => {
             deleteProjectTask: async (root: any, args: any) => {
                 return await prisma.projectTask.delete({where: {id: args.id}})
             },
-            createProjectTaskDependency: async (root: any, args: any) => {
-                return await prisma.projectTask.update({
-                    where: {id: args.source},
+            createProjectTaskDependency: async (root: any, args: any, context: any) => {
+
+                return await prisma.project.update({
+                    where: {
+                        organisation_displayId: {
+                            organisation: context?.jwt?.organisation,
+                            displayId: args.project
+                        }
+                    },
                     data: {
-                        dependencyOf: {
-                            connect: {
-                                id: args.target
-                            }
+                        tasks: {
+                            update: [{
+                                where: {
+                                    id: args.source,
+                                },
+                                data: {
+                                    dependencyOf: {
+                                        connect: {
+                                            id: args.target
+                                        }
+                                    }
+                                }
+                            
+                            }]
                         }
                     }
                 })
             },
-            deleteProjectTaskDependency: async (root: any, args: any) => {
-                return await prisma.projectTask.update({
+            deleteProjectTaskDependency: async (root: any, args: any, context: any) => {
+                return await prisma.project.update({
                     where: {
-                        id: args.source
+                        organisation_displayId: {
+                            organisation: context?.jwt?.organisation,
+                            displayId: args.project
+                        }
                     },
                     data: {
-                        dependencyOf: {
-                            disconnect: {
-                                id: args.target
-                            }
+                        tasks: {
+                            update: [{
+                                where: {
+                                    id: args.source,
+                                },
+                                data: {
+                                    dependencyOf: {
+                                        disconnect: {
+                                            id: args.target
+                                        }
+                                    }
+                                }
+                            
+                            }]
                         }
                     }
                 })
@@ -404,8 +433,8 @@ export default (prisma: PrismaClient) => {
         updateProjectTask(id: ID, input: ProjectTaskInput): ProjectTask!
         deleteProjectTask(id: ID): ProjectTask!
 
-        createProjectTaskDependency(source: ID, target: ID): ProjectTask!
-        deleteProjectTaskDependency(source: ID, target: ID): ProjectTask!
+        createProjectTaskDependency(project: ID, source: ID, target: ID): ProjectTask!
+        deleteProjectTaskDependency(project: ID, source: ID, target: ID): ProjectTask!
 
         createProjectFolder(project: ID!, path: String): File
         updateProjectFolder(project: ID!, path: String): File

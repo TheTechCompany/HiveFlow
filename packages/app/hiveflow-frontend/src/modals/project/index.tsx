@@ -1,4 +1,5 @@
-import { BaseModal, FormInput } from '@hexhive/ui';
+import { BaseModal, FormControl, FormInput } from '@hexhive/ui';
+import { TextField } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 
 export interface Project { 
@@ -34,8 +35,22 @@ export const ProjectModal : React.FC<ProjectModalProps> = (props) => {
             onSubmit={submit}
             onDelete={props.selected && props.onDelete}
             open={props.open}>
-            <FormInput value={project.name} onChange={(e) => setProject({...project, name: e})} placeholder='Project Name' />
-            <FormInput value={project.status} onChange={(e) => setProject({...project, status: e})} placeholder="Status" />
+            <TextField
+                size="small"
+                fullWidth
+                value={project.name} 
+                onChange={(e) => setProject({...project, name: e.target.value})} 
+                placeholder='Project Name' />
+            
+            <FormControl
+                fullWidth
+                placeholder='Status'
+                labelKey='id'
+                valueKey='id'
+                value={project.status}
+                onChange={(e) => setProject({...project, status: e})} 
+                options={[{id: 'Open'}, {id: 'Review'}, {id: 'Done'}]}
+                />            
         </BaseModal>
     )
 }

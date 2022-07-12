@@ -101,10 +101,15 @@ console.log({pathname})
 
           dependencyOn {
             id
+            title
             status
+            endDate
           }
           dependencyOf {
             id
+            title
+            status
+            endDate
           }
         }
       }
@@ -282,13 +287,25 @@ console.log({pathname})
   })
 
   const [ createTaskDependency ] = useMutation((mutation, args: any) => {
-    const item = mutation.createProjectTaskDependency({source: args.source, target: args.target});
+    const item = mutation.createProjectTaskDependency({project: job_id, source: args.source, target: args.target});
     return {
       item: {
         ...item
       }
     }
   })
+
+
+  const [ deleteTaskDependency ] = useMutation((mutation, args: any) => {
+    const item = mutation.deleteProjectTaskDependency({project: job_id, source: args.source, target: args.target});
+    return {
+      item: {
+        ...item
+      }
+    }
+  })
+  
+
   return (
     <ProjectSingleProvider value={{
       projectId: job_id, 
@@ -320,6 +337,16 @@ console.log({pathname})
       },
       deleteTask: () => {
 
+      },
+      deleteDependency: (source: string, target: string) => {
+        deleteTaskDependency({
+          args: {
+            source,
+            target
+          }
+        }).then(() => {
+          refetch();
+        })
       },
       createDependency: (source: string, target: string) => {
         createTaskDependency({

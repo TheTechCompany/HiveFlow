@@ -1,17 +1,19 @@
 import { Timeline } from "@hexhive/ui";
 import { stringToColor } from "@hexhive/utils";
 import { refetch, useMutation } from "@hive-flow/api";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import { ProjectSingleContext } from "../context";
 
 export const TimelinePane = () => {
     // const [ links, setLinks ] = useState([]);
 
-  const {  projectId, tasks, createTask, createDependency, refetch, updateTask, deleteTask } = useContext(ProjectSingleContext);
+  const {  projectId, tasks, createTask, createDependency, deleteDependency, refetch, updateTask, deleteTask } = useContext(ProjectSingleContext);
 
   const links = tasks.map((task) => task.dependencyOf.map((dep) => ({id: `${task.id}-${dep.id}`, source: task.id, target: dep.id}))).reduce((prev, curr) => [...prev, ...curr], [])
 
   const [ timelineTasks, setTasks ] = useState<any[]>(tasks || []);
+
+  const [selectedItem, setSelectedItem] = useState<any>();
 
   useEffect(() => {
     setTasks(tasks);
@@ -26,6 +28,27 @@ export const TimelinePane = () => {
     }
   })
   
+  const keyHandler = useCallback((e: any) => {
+    if(e.key == "Delete" || e.key == "Backspace") {
+      console.log({selectedItem})
+      deleteDependency(selectedItem.source, selectedItem.target)
+    }
+
+    if(e.key == "Escape"){
+      setSelectedItem(undefined)
+    }
+  }, [selectedItem])
+
+  console.log({selectedItem})
+
+  useEffect(() => {
+    window.addEventListener('keydown', keyHandler)
+
+    return () => {
+      window.removeEventListener('keydown', keyHandler)
+    }
+  }, [selectedItem])
+
     return (
         <Timeline
           dayStatus={() => 'rgb(163, 182, 150)'}
@@ -43,9 +66,17 @@ export const TimelinePane = () => {
               createTask(task)
             }}
             links={links}
+            selectedItem={selectedItem}
             onSelectItem={(task) => {
-              let origTask = timelineTasks.find((x) => x.id == task.id)
-              updateTask({...origTask, start: new Date(origTask.startDate), end: new Date(origTask.endDate)})
+              // console.log({task})
+
+              if((task as any).source && (task as any).target){
+                console.log({task})
+                setSelectedItem(task)
+              }else{
+                let origTask = timelineTasks.find((x) => x.id == task.id)
+                updateTask({...origTask, start: new Date(origTask.startDate), end: new Date(origTask.endDate)})
+              }
             }}
             onUpdateTask={(task, position) => {
               

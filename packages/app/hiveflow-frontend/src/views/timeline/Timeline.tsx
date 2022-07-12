@@ -55,7 +55,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     const [ createModalOpen, openCreateModal ] = useState(false)
     const [erpModal, openERP] = useState<boolean>(false);
 
-    const [view, setView] = useState<string>();
+    const [view, setView] = useState<string>('Project');
 
     const [date, setDate] = useState<Date>(sampleDate)
     const [horizon, setHorizon] = useState<{ start: Date, end: Date } | undefined>()
@@ -79,14 +79,17 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
    const { timelines = [] } = timelineData || {}
 
     const { data } = useApollo(gql`
-        query Q($startDate: DateTime, $endDate: DateTime){
+        query Q($timeline: String, $startDate: DateTime, $endDate: DateTime){
       
 
-            timelineItems(where: {startDate_LTE: $endDate, endDate_GTE: $startDate}) {
+            timelineItems(where: {timeline: $timeline, startDate_LTE: $endDate, endDate_GTE: $startDate}) {
                 id
                 startDate
                 endDate
                 notes
+
+                timeline 
+
                 project {
                     id
                     displayId
@@ -109,6 +112,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     `, {
         fetchPolicy: 'cache-and-network',
         variables: {
+            timeline: view,
             startDate: horizon?.start?.toISOString(),
             endDate: horizon?.end?.toISOString(),
         }
@@ -124,7 +128,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                 name
 
             }
-            estimates(where:  {status: ["Customer has quote"] }) {
+            estimates {
                 id
                 displayId
                 name
@@ -436,7 +440,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     const mapItems = (item: any) => {
         return {
             id: item?.id,
-            name: `${item?.project?.displayId} - ${item?.project?.name}`,
+            name: `${item?.estimate?.displayId || item?.project?.displayId} - ${item?.estimate?.name || item?.project?.name}`,
             start: item?.startDate,
             end: item?.endDate,
             color: getColorBars({ hatched: Boolean(item?.esimate), items: item?.data || [] }),
@@ -683,7 +687,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                         ...attachUpdate,
                         startDate: plan.startDate?.toISOString(),
                         endDate: plan.endDate?.toISOString(),
-                        timeline: plan.project?.type,
+                        timeline: view || plan.project?.type,
                         notes: plan.notes,
                         items:  plan.data || []
                     }
@@ -757,7 +761,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                 projects={projects?.map((x) => ({ id: x.id, displayId: x.displayId, name: x.name, type: "Project" })).concat(estimates?.map((x) => ({ id: x.id, displayId: x.displayId, name: x.name, type: "Estimate" })) || []) || []}
                 open={erpModal} />
             <TimelineHeader
-                timelines={[{id: 'projects', name: "Projects"}, {id: 'people', name: "People"}, {id: 'estimates', name: "Estimates"}]}
+                timelines={[{id: 'Project', name: "Projects"}, {id: 'People', name: "People"}, {id: 'Estimate', name: "Estimates"}]}
                 filter={filter}
                 filters={filters}
                 onCreateTimeline={() => {
@@ -767,7 +771,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                     setFilter(filter)
                 }}
                 onAdd={() => openERP(true)}
-                view={view || timelines?.[0]?.id || 'projects'}
+                view={view || timelines?.[0]?.id || 'Project'}
                 onViewChange={(view) => setView(view)} />
 
             <Paper
@@ -872,7 +876,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                     resizable
                     mode="month"
                     links={[]}
-                    data={timelineItems || []}
+                    data={timelineItems?.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()) || []}
                     date={date}
                     itemHeight={30}
                     onUpdateTask={async (task: any, info: any) => {

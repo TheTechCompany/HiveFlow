@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 
-import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material'
-import { DateInput, FormControl } from '@hexhive/ui'
+import { Box, Button, CircularProgress, Collapse, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Paper, TextField, Typography } from '@mui/material'
+import { ColorDot, DateInput, FormControl } from '@hexhive/ui'
 
 export const TaskModal = (props) => {
 
@@ -15,6 +15,8 @@ export const TaskModal = (props) => {
         status?: string;
         startDate?: Date;
         endDate?: Date;
+        dependencyOn?: {title: string, status: string, endDate: Date}[];
+        dependencyOf?: {title: string, status: string, endDate: Date}[];
     }>({
         status: 'Backlog',
         startDate: new Date(),
@@ -54,49 +56,84 @@ export const TaskModal = (props) => {
 
     return (
         <Dialog 
-            maxWidth="md"
+            maxWidth="lg"
             onClose={props.onClose}
             open={props.open}>
             <DialogTitle>Task</DialogTitle>
-            <DialogContent sx={{display: 'flex', flexDirection: 'column'}}>
-                <TextField 
-                    sx={{marginTop: '8px'}}
-                    label="Title" 
-                    fullWidth 
-                    size="small"
-                    value={task.title}
-                    onChange={(e) => setTask({...task, title: e.target.value})}
-                        />
-                <TextField 
-                    sx={{marginTop: '8px', marginBottom: '8px'}}
-                    multiline 
-                    minRows={3}
-                    label="Description" 
-                    fullWidth 
-                    value={task.description}
-                    onChange={(e) => setTask({...task, description: e.target.value})}
-                    size="small" />
-                
-                <FormControl
-                    placeholder='Status'
-                    value={task.status}
-                    onChange={(val) => setTask({...task, status: val})}
-                    labelKey='label'
-                    valueKey='id'
-                    options={["Backlog", "In Progress", "Review", "Done"].map((x) => ({id: x, label: x}))}
-                        />
+            <DialogContent sx={{display: 'flex', position: 'relative'}}>
 
-                <Box sx={{marginTop: '8px', display: 'flex'}}>
-                    <DateInput 
-                        format='dd/MM/yyyy'
-                        value={task.startDate?.toISOString()}
-                        onChange={(date) => setTask({...task, startDate: new Date(date)})}
-                        label='Start Date' />
-                    <DateInput 
-                        format='dd/MM/yyyy'
-                        value={task.endDate?.toISOString()}
-                        onChange={(date) => setTask({...task, endDate: new Date(date)})}
-                        label="End Date" />
+                {/* <Collapse in={task.dependencyOf?.length > 0 || task.dependencyOn?.length > 0} sx={{display: 'flex', flexDirection: 'column', padding: '3px', position: 'absolute', top: 0, bottom: 0, left: '-100%'}}>
+                    {task.dependencyOn?.length > 0 && <Paper>
+                        <Box sx={{padding: '3px', color: 'white', bgcolor: 'secondary.light'}}>
+                            <Typography>Needs</Typography>
+                        </Box>
+                        <Divider />
+                        <Box sx={{padding: '3px'}}>
+                            {task.dependencyOn?.filter((a) => a.status != "Done" && a.status != "Reviewing").map((dependency) => (
+                                <Box sx={{display: 'flex', alignItems: 'center'}}>
+                                {(new Date(dependency.endDate).getTime() < new Date().getTime()) ? <ColorDot size={8} color="red" /> : ""}
+                                <Typography>{dependency.title}</Typography>
+                                </Box>
+                            )).map((x) => [x, <Divider />])}
+                        </Box>
+                    </Paper>}
+                    {task.dependencyOf?.length > 0 && <Paper>
+                        <Box sx={{padding: '3px', color: 'white', bgcolor: 'secondary.light'}}>
+                            <Typography>Needed by</Typography>
+                        </Box>
+                        <Divider />
+                        <Box sx={{padding: '3px'}}>
+                            {task.dependencyOf?.filter((a) => a.status != "Done" && a.status != "Reviewing").map((dependency) => (
+                                <Box sx={{display: 'flex', alignItems: 'center'}}>
+                                    {(new Date(dependency.endDate).getTime() < new Date().getTime()) ? <ColorDot size={8} color="red" /> : ""}
+                                    <Typography>{dependency.title}</Typography>
+                                </Box>
+                            )).map((x) => [x, <Divider />])}
+                        </Box>
+                    </Paper>}
+                </Collapse> */}
+
+                <Box sx={{display: 'flex', flex: 1, flexDirection: 'column'}}>
+                    <TextField 
+                        sx={{marginTop: '8px'}}
+                        label="Title" 
+                        fullWidth 
+                        size="small"
+                        value={task.title}
+                        onChange={(e) => setTask({...task, title: e.target.value})}
+                            />
+                    <TextField 
+                        sx={{marginTop: '8px', marginBottom: '8px'}}
+                        multiline 
+                        minRows={3}
+                        label="Description" 
+                        fullWidth 
+                        value={task.description}
+                        onChange={(e) => setTask({...task, description: e.target.value})}
+                        size="small" />
+                    
+                    <FormControl
+                        placeholder='Status'
+                        value={task.status}
+                        onChange={(val) => setTask({...task, status: val})}
+                        labelKey='label'
+                        valueKey='id'
+                        options={["Backlog", "In Progress", "Reviewing", "Done"].map((x) => ({id: x, label: x}))}
+                            />
+
+                    <Box sx={{marginTop: '8px', display: 'flex'}}>
+                        <DateInput 
+                            format='dd/MM/yyyy'
+                            value={task.startDate?.toISOString()}
+                            onChange={(date) => setTask({...task, startDate: new Date(date)})}
+                            label='Start Date' />
+                        <DateInput 
+                            format='dd/MM/yyyy'
+                            value={task.endDate?.toISOString()}
+                            onChange={(date) => setTask({...task, endDate: new Date(date)})}
+                            label="End Date" />
+                    </Box>
+
                 </Box>
             </DialogContent>
             <DialogActions sx={{display: 'flex', justifyContent: props.selected?.id ? 'space-between' : undefined}}>
