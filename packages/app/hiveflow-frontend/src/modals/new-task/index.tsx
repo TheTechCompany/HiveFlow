@@ -118,7 +118,7 @@ export const TaskModal = (props) => {
                         onChange={(val) => setTask({...task, status: val})}
                         labelKey='label'
                         valueKey='id'
-                        options={["Backlog", "In Progress", "Reviewing", "Done"].map((x) => ({id: x, label: x}))}
+                        options={["Backlog", "In Progress", "Reviewing", "Finished"].map((x) => ({id: x, label: x}))}
                             />
 
                     <Box sx={{marginTop: '8px', display: 'flex'}}>

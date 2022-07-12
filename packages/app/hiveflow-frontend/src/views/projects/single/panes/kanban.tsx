@@ -88,7 +88,7 @@ export const KanbanPane = () => {
                 return {
                     id: x,
                     title: x,
-                    ttl: x == "Finished" ? 14 * 24 * 60 * 60 * 1000 : undefined,
+                    // ttl: x == "Finished" ? 14 * 24 * 60 * 60 * 1000 : undefined,
                     menu: [
                         { label: "Archive all cards", onClick: () => { } },
                         {
