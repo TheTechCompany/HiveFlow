@@ -1165,6 +1165,17 @@
     "@emotion/utils" "^1.0.0"
     csstype "^3.0.2"
 
+"@emotion/serialize@^1.0.4":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@emotion/serialize/-/serialize-1.0.4.tgz#ff31fd11bb07999611199c2229e152faadc21a3c"
+  integrity sha512-1JHamSpH8PIfFwAMryO2bNka+y8+KA5yga5Ocf2d7ZEiJjb7xlLW7aknBGZqJLajuLOvJ+72vN+IBSwPlXD1Pg==
+  dependencies:
+    "@emotion/hash" "^0.8.0"
+    "@emotion/memoize" "^0.7.4"
+    "@emotion/unitless" "^0.7.5"
+    "@emotion/utils" "^1.0.0"
+    csstype "^3.0.2"
+
 "@emotion/sheet@^1.1.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@emotion/sheet/-/sheet-1.1.0.tgz#56d99c41f0a1cda2726a05aa6a20afd4c63e58d2"
@@ -1184,6 +1195,17 @@
     "@emotion/babel-plugin" "^11.7.1"
     "@emotion/is-prop-valid" "^1.1.2"
     "@emotion/serialize" "^1.0.2"
+    "@emotion/utils" "^1.1.0"
+
+"@emotion/styled@^11.9.3":
+  version "11.9.3"
+  resolved "https://registry.yarnpkg.com/@emotion/styled/-/styled-11.9.3.tgz#47f0c71137fec7c57035bf3659b52fb536792340"
+  integrity sha512-o3sBNwbtoVz9v7WB1/Y/AmXl69YHmei2mrVnK7JgyBJ//Rst5yqPZCecEJlMlJrFeWHp+ki/54uN265V2pEcXA==
+  dependencies:
+    "@babel/runtime" "^7.13.10"
+    "@emotion/babel-plugin" "^11.7.1"
+    "@emotion/is-prop-valid" "^1.1.3"
+    "@emotion/serialize" "^1.0.4"
     "@emotion/utils" "^1.1.0"
 
 "@emotion/stylis@^0.8.4":
@@ -1243,15 +1265,17 @@
     react "^17.0.2"
     styled-components "^5.3.0"
 
-"@hexhive/styles@1.0.1-alpha.6":
-  version "1.0.1-alpha.6"
-  resolved "https://registry.yarnpkg.com/@hexhive/styles/-/styles-1.0.1-alpha.6.tgz#ad71016288c0ce5d3d8f3e52f96ea5e6383fd43e"
-  integrity sha512-00gG6xx9OvEiT9F1PsyqzNMGG6T285TrI7ZBF5KOj3SemRTClFI4YcRgOmcw2bNskp774BCCAeT+L5JB8YLMEQ==
+"@hexhive/styles@1.0.1-alpha.23":
+  version "1.0.1-alpha.23"
+  resolved "https://registry.yarnpkg.com/@hexhive/styles/-/styles-1.0.1-alpha.23.tgz#d6d1e53fb6d59edde4f1b700c941826e7f6f8e8b"
+  integrity sha512-/X0CSINNmL+TKX5u1cxwWOfd89Mr0NTZlZZuL6mN5vkRJwSSRhVEAtT+Vkd5ZpiCKhX18RNn4FZx8u+6bIeN+A==
+  dependencies:
+    "@emotion/styled" "^11.9.3"
 
-"@hexhive/ui@1.0.1-alpha.21":
-  version "1.0.1-alpha.21"
-  resolved "https://registry.yarnpkg.com/@hexhive/ui/-/ui-1.0.1-alpha.21.tgz#1c8bfd8568e76d3f0548adfa389bb5ee38be19df"
-  integrity sha512-ZG0JIofy5/sKNc8EbqztISwCSHZjFEWmJ3YogEXFe+Hwuq13WgWvLwoBezQJFimyYXDxFFTdBj/dEvfuBtYTiw==
+"@hexhive/ui@1.0.1-alpha.23":
+  version "1.0.1-alpha.23"
+  resolved "https://registry.yarnpkg.com/@hexhive/ui/-/ui-1.0.1-alpha.23.tgz#7badf3f97a56dc113bc62ab8400a9038231942bd"
+  integrity sha512-NDkQmEdSeu7Rf7iL2QGEhuCm+1VdRHrVk3aEN8Fx0vgnnyqQsaITDvkbVfVJkXCxI1nwYxafKAg7oAS+mMSuyQ==
   dependencies:
     "@emotion/react" "^11.9.0"
     "@emotion/styled" "^11.8.1"

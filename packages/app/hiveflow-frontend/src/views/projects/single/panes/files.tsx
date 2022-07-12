@@ -133,6 +133,7 @@ export const FilePane = () => {
                     url
                     directory
                     size
+                    lastUpdated:createdAt
                 }
             
             }
