@@ -7,13 +7,17 @@ export const TaskModal = (props) => {
 
     const [ loading, setLoading ] = useState(false);
 
+    const [ deleteLoading, setDeleteLoading ] = useState(false)
+
     const [ task, setTask ] = useState<{
         title?: string;
         description?: string;
         status?: string;
         startDate?: Date;
         endDate?: Date;
-    }>({});
+    }>({
+        status: 'Backlog'
+    });
 
     useEffect(() => {
         setTask({
@@ -21,10 +25,21 @@ export const TaskModal = (props) => {
         })
     }, [props.selected])
 
+    const onDelete = async () => {
+        setDeleteLoading(true);
+        await props.onDelete?.();
+        setTask({
+            status: 'Backlog',
+        })
+        setDeleteLoading(false);
+    }
+
     const submit = async () => {
         setLoading(true);
         await props.onSubmit?.(task);
-        setTask({});
+        setTask({
+            status: 'Backlog'
+        });
         setLoading(false)
     }
 
@@ -75,9 +90,14 @@ export const TaskModal = (props) => {
                         label="End Date" />
                 </Box>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={props.onClose}>Close</Button>
-                <Button onClick={submit} disabled={loading} color="primary" variant="contained">{loading ? <CircularProgress size="20px" /> : "Save"}</Button>
+            <DialogActions sx={{display: 'flex', justifyContent: props.selected?.id ? 'space-between' : undefined}}>
+                {props.selected?.id &&  <Box>
+                    <Button onClick={onDelete} disabled={deleteLoading} variant="contained" color="error">{deleteLoading ? <CircularProgress size="20px" /> : "Delete"}</Button>
+                </Box>}
+                <Box>
+                    <Button onClick={props.onClose}>Close</Button>
+                    <Button onClick={submit} disabled={loading} color="primary" variant="contained">{loading ? <CircularProgress size="20px" /> : "Save"}</Button>
+                </Box>
             </DialogActions>
         </Dialog>
     )

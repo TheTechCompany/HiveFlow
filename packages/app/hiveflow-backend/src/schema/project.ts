@@ -65,7 +65,8 @@ export default (prisma: PrismaClient) => {
                     include: {
                         tasks: {
                             include: {
-                                dependencyOf: true
+                                dependencyOf: true,
+                                dependencyOn: true
                             }
                         }
                     }

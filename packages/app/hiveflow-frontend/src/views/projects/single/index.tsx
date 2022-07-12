@@ -48,7 +48,7 @@ export const ProjectSingle: React.FC<ProjectSingleProps> = (props) => {
   const client = useApolloClient()
 
   const [taskModalOpen, openTaskModal] = useState(false);
-  const [ selectedTask, setSelectedTask ] = useState();
+  const [ selectedTask, setSelectedTask ] = useState<any>();
 
   const [kanbanMenuVisible, showKanbanMenu] = useState<boolean>(false);
 
@@ -98,6 +98,10 @@ console.log({pathname})
           endDate
           status
 
+          dependencyOn {
+            id
+            status
+          }
           dependencyOf {
             id
           }
@@ -336,6 +340,20 @@ console.log({pathname})
         onClose={() => {
           openTaskModal(false)
           setSelectedTask(null)
+        }}
+        onDelete={async () => {
+          if(!selectedTask) return;
+
+          await deleteTask({
+            args: {
+              id: selectedTask?.id
+            }
+          })
+          refetch();
+
+          setSelectedTask(null)
+          openTaskModal(false)
+          
         }}
         selected={selectedTask}
         onSubmit={async (task) => {

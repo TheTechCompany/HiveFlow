@@ -1248,10 +1248,10 @@
   resolved "https://registry.yarnpkg.com/@hexhive/styles/-/styles-1.0.1-alpha.6.tgz#ad71016288c0ce5d3d8f3e52f96ea5e6383fd43e"
   integrity sha512-00gG6xx9OvEiT9F1PsyqzNMGG6T285TrI7ZBF5KOj3SemRTClFI4YcRgOmcw2bNskp774BCCAeT+L5JB8YLMEQ==
 
-"@hexhive/ui@1.0.1-alpha.20":
-  version "1.0.1-alpha.20"
-  resolved "https://registry.yarnpkg.com/@hexhive/ui/-/ui-1.0.1-alpha.20.tgz#d16966dc7d29d97fcef1bfc1277ac13cf534d357"
-  integrity sha512-D8YSOcIWWYc7V07iHVe/cFb0v1ufVbIX0SSsa56E0OplNKva3F8wNZNH1++Nj+5wVkOo7UHoq8AhNPKM4ymezg==
+"@hexhive/ui@1.0.1-alpha.21":
+  version "1.0.1-alpha.21"
+  resolved "https://registry.yarnpkg.com/@hexhive/ui/-/ui-1.0.1-alpha.21.tgz#1c8bfd8568e76d3f0548adfa389bb5ee38be19df"
+  integrity sha512-ZG0JIofy5/sKNc8EbqztISwCSHZjFEWmJ3YogEXFe+Hwuq13WgWvLwoBezQJFimyYXDxFFTdBj/dEvfuBtYTiw==
   dependencies:
     "@emotion/react" "^11.9.0"
     "@emotion/styled" "^11.8.1"
@@ -1996,6 +1996,11 @@
     "@types/express-serve-static-core" "^4.17.18"
     "@types/qs" "*"
     "@types/serve-static" "*"
+
+"@types/file-saver@^2.0.5":
+  version "2.0.5"
+  resolved "https://registry.yarnpkg.com/@types/file-saver/-/file-saver-2.0.5.tgz#9ee342a5d1314bb0928375424a2f162f97c310c7"
+  integrity sha512-zv9kNf3keYegP5oThGLaPk8E081DFDuwfqjtiTzm6PoxChdJ1raSuADf2YGCVIyrSynLrgc8JWv296s7Q7pQSQ==
 
 "@types/graceful-fs@^4.1.2":
   version "4.1.5"
@@ -4244,6 +4249,11 @@ file-entry-cache@^6.0.1:
   integrity sha512-7Gps/XWymbLk2QLYK4NzpMOrYjMhdIxXuIvy2QBsLE6ljuodKvdkWs/cpyJJ3CVIVpH0Oi1Hvg1ovbMzLdFBBg==
   dependencies:
     flat-cache "^3.0.4"
+
+file-saver@^2.0.5:
+  version "2.0.5"
+  resolved "https://registry.yarnpkg.com/file-saver/-/file-saver-2.0.5.tgz#d61cfe2ce059f414d899e9dd6d4107ee25670c38"
+  integrity sha512-P9bmyZ3h/PRG+Nzga+rbdI4OEpNDzAVyy74uVO9ATgzLK6VtAsYybF/+TOCvrc0MO793d6+42lLyZTw7/ArVzA==
 
 file-selector@^0.5.0:
   version "0.5.0"

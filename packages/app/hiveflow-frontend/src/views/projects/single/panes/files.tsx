@@ -9,6 +9,7 @@ import { useProjectInfo } from "../context";
 import { FilePreviewDialog } from "../../../../modals/file-preview";
 import {nanoid} from 'nanoid'
 import { ExplorerModal } from "../../../../modals/file-explorer";
+import { saveAs } from 'file-saver'
 
 const theme = createTheme({
   palette: {
@@ -129,6 +130,7 @@ export const FilePane = () => {
                 files(path: $path) {
                     id
                     name
+                    url
                     directory
                     size
                 }
@@ -186,6 +188,12 @@ export const FilePane = () => {
                 }
               ]}
               actions={[
+                {key: 'download', label: 'Download', onClick: (file) => {
+                  //Download here
+                  let saveFile = files.find((a: any) => a.id == file.id);
+               
+                  if(saveFile) saveAs(saveFile.url, saveFile.name)
+                }},
                 {key: 'move', label: 'Move', onClick: (file) => {
                   console.log({file})
                   openMove(file)
