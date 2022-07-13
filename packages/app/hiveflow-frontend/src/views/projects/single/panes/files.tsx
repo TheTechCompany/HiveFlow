@@ -10,6 +10,7 @@ import { FilePreviewDialog } from "../../../../modals/file-preview";
 import {nanoid} from 'nanoid'
 import { ExplorerModal } from "../../../../modals/file-explorer";
 import { saveAs } from 'file-saver'
+import { Download, Preview, DriveFileMove } from '@mui/icons-material'
 
 const theme = createTheme({
   palette: {
@@ -60,7 +61,7 @@ export const FilePane = () => {
     const [activePath, setActivePath] = useState('/');
 
     const [createFolderOpen, openCreateFolder] = useState<boolean>(false)
-    const [filePreviewOpen, openFilePreview] = useState<any>(null)
+    const [filePreviewOpen, openFilePreview] = useState<any  | any[]>(null)
 
     const [anchorPos, setAnchorPos] = useState<{ top: number, left: number }>()
 
@@ -177,7 +178,7 @@ export const FilePane = () => {
             <FilePreviewDialog
                 open={Boolean(filePreviewOpen)}
                 onClose={() => openFilePreview(null)}
-                files={filePreviewOpen ? [filePreviewOpen.id] : []}
+                files={Array.isArray(filePreviewOpen) ? (filePreviewOpen || []) : filePreviewOpen != undefined ? [filePreviewOpen] : []}
                 />
             
            
@@ -193,7 +194,7 @@ export const FilePane = () => {
                 }
               ]}
               actions={[
-                {key: 'download', label: 'Download', onClick: (file) => {
+                {key: 'download', icon: <Download />, label: 'Download', onClick: (file) => {
                   //Download here
                   if(Array.isArray(file)) return; //TODO download multiple files/folder
 
@@ -201,10 +202,23 @@ export const FilePane = () => {
                
                   if(saveFile) saveAs(saveFile.url, saveFile.name)
                 }},
-                {key: 'move', label: 'Move', onClick: (file) => {
+                {key: 'move', icon: <DriveFileMove />, label: 'Move', onClick: (file) => {
                   console.log({file})
                   openMove(file)
-                }}
+                }},
+                {
+                  key: 'preview', 
+                  icon: <Preview />,
+                  label: 'Preview',
+                  onClick: () => {
+                    let selectedFiles = files.slice();
+                    if(Array.isArray(files)){
+                      selectedFiles = selectedFiles.filter((x) => selected.indexOf(x.id) > -1)
+                    }
+                    console.log("FILE PREVIEW", selectedFiles)
+                    openFilePreview(selectedFiles)
+                  }
+                }
               ]}
               onCreateFolder={async (folder) => {
                 await createDirectory({
