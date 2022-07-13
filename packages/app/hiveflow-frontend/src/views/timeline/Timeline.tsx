@@ -441,13 +441,13 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         return {
             id: item?.id,
             name: `${item?.estimate?.displayId || item?.project?.displayId} - ${item?.estimate?.name || item?.project?.name}`,
-            start: item?.startDate,
-            end: item?.endDate,
+            start: new Date(item?.startDate),
+            end: new Date(item?.endDate),
             color: getColorBars({ hatched: Boolean(item?.esimate), items: item?.data || [] }),
             showLabel: `${item?.data?.reduce((previous: any, current: any) => {
                                 return previous += (current?.quantity || 0)
             }, 0)}hrs`,
-            hoverInfo: (
+            hoverInfo: item.data.length > 0 || item.notes.length > 0 && (
                 <Box sx={{display: 'flex', flexDirection: 'column'}}>
                                      <Box sx={{bgcolor: 'secondary.main', display: 'flex', justifyContent: 'space-between'}}>
                                          {/* <Text weight="bold">{capacity_plan?.project?.name?.substring(0, 15)}</Text> */}
@@ -743,7 +743,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                 }}
                 />
             <TimelineModal
-                type={"Projects"}
+                type={view == "Project" ? "Projects" : "Estimates"}
                 selected={selected}
                 onClose={() => {
                     openERP(false)
@@ -758,7 +758,10 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                     })
                 }}
                 onSubmit={createTimelinePlan}
-                projects={projects?.map((x) => ({ id: x.id, displayId: x.displayId, name: x.name, type: "Project" })).concat(estimates?.map((x) => ({ id: x.id, displayId: x.displayId, name: x.name, type: "Estimate" })) || []) || []}
+                projects={view == "Project" ? 
+                    projects?.map((x) => ({ id: x.id, displayId: x.displayId, name: x.name, type: "Project" })) || [] :
+                    estimates?.map((x) => ({ id: x.id, displayId: x.displayId, name: x.name, type: "Estimate" })) || []
+                }
                 open={erpModal} />
             <TimelineHeader
                 timelines={[{id: 'Project', name: "Projects"}, {id: 'People', name: "People"}, {id: 'Estimate', name: "Estimates"}]}

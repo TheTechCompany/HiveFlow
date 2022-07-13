@@ -47,6 +47,8 @@ model ProjectTask {
     dependencyOf ProjectTask[] @relation(name: "dependencyOf")
     dependencyOn ProjectTask[] @relation(name: "dependencyOf")
 
+    lastUpdated DateTime?
+
     @@unique([projectId, id])
 }
 

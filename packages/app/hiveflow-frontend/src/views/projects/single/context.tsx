@@ -2,6 +2,8 @@ import React, { useContext } from "react";
 
 export interface IProjectSingle {
     projectId?: string;
+    finishTtl?: number;
+    
     tasks?: any[];
     refetch?: () => void;
     createTask?: any;

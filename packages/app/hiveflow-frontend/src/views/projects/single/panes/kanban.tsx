@@ -6,7 +6,7 @@ import { stringToColor } from "@hexhive/utils";
 
 export const KanbanPane = () => {
 
-    const { tasks, updateTaskStatus, createTask, updateTask } = useContext(ProjectSingleContext)
+    const { tasks, updateTaskStatus, createTask, finishTtl, updateTask } = useContext(ProjectSingleContext)
 
     const [ kanbanTasks, setTasks ] = useState<any[]>([]);
 
@@ -30,7 +30,11 @@ export const KanbanPane = () => {
                 })
             }}
             onCreateCard={(col) => {
-                createTask({status: col})
+                createTask({
+                    status: col,
+                    start: new Date(),
+                    end: new Date()
+                })
             }}
             onDrag={(result) => {
                 console.log({result})
@@ -88,7 +92,7 @@ export const KanbanPane = () => {
                 return {
                     id: x,
                     title: x,
-                    // ttl: x == "Finished" ? 14 * 24 * 60 * 60 * 1000 : undefined,
+                    ttl: x == "Finished" ? finishTtl : undefined,
                     menu: [
                         { label: "Archive all cards", onClick: () => { } },
                         {

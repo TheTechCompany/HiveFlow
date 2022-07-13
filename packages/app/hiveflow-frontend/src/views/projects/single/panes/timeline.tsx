@@ -7,7 +7,7 @@ import { ProjectSingleContext } from "../context";
 export const TimelinePane = () => {
     // const [ links, setLinks ] = useState([]);
 
-  const {  projectId, tasks, createTask, createDependency, deleteDependency, refetch, updateTask, deleteTask } = useContext(ProjectSingleContext);
+  const {  projectId, tasks, createTask, createDependency, finishTtl, deleteDependency, refetch, updateTask, deleteTask } = useContext(ProjectSingleContext);
 
   const links = tasks.map((task) => task.dependencyOf.map((dep) => ({id: `${task.id}-${dep.id}`, source: task.id, target: dep.id}))).reduce((prev, curr) => [...prev, ...curr], [])
 
@@ -52,14 +52,25 @@ export const TimelinePane = () => {
     return (
         <Timeline
           dayStatus={() => 'rgb(163, 182, 150)'}
-            data={timelineTasks.map((task) => ({
+            data={
+              timelineTasks.map((task) => ({
                 id: task.id,
-                start: task.startDate,
-                end: task.endDate,
+                status: task.status,
+                lastUpdated: task.lastUpdated,
+                start: new Date(task.startDate),
+                end: new Date(task.endDate),
                 name: task.title,
                 color: stringToColor(task.title),
                 showLabel: true
-            })).sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())}
+            })).sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()).filter((task) => {
+              // console.log(Date.now() - new Date(task.lastUpdated).getTime(), finishTtl)
+              if(task.status == "Finished" && task.lastUpdated && (Date.now() - new Date(task.lastUpdated).getTime() > finishTtl)){
+                return false;
+              }else{
+                return true;
+              }
+            })
+          }
             onCreateTask={async (task) => {
               // console.log({task})
               // setTemp([task])
@@ -68,7 +79,7 @@ export const TimelinePane = () => {
             links={links}
             selectedItem={selectedItem}
             onSelectItem={(task) => {
-              // console.log({task})
+              console.log("SELECT", {task})
 
               if((task as any).source && (task as any).target){
                 console.log({task})

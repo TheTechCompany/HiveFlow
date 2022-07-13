@@ -43,6 +43,7 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
 
     const [plan, setPlan] = useState<{
         project?: string,
+        estimate?: string,
         startDate?: string,
         endDate?: string,
         notes?: string,
@@ -60,6 +61,7 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
         setPlan(props.selected ? {
             ...Object.assign({}, props.selected),
             project: props.selected?.project?.id,
+            estimate: props.selected?.estimate?.id,
             startDate: new Date(props.selected?.startDate)?.toISOString(),
             endDate: new Date(props.selected?.endDate)?.toISOString(),
         } : { items: [] })
@@ -139,6 +141,8 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
         }
     }
 
+    console.log({plan, projects: props.projects})
+
     return (
         <Dialog
             maxWidth="md"
@@ -154,11 +158,11 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
 
                 {/* Content */}
                 <Box sx={{marginTop: '6px'}}>
-                    {props.type == "Projects" && <Box >
+                    {(props.type == "Projects" || props.type == "Estimates") && <Box >
 
                         <Autocomplete
                             size='small'
-                            value={props.projects?.find((a) => a.id == plan?.project)}
+                            value={props.projects?.find((a) => a.id == plan?.project || a.id == plan?.estimate) || ''}
 
                             disablePortal
                             onChange={(event, value) => {

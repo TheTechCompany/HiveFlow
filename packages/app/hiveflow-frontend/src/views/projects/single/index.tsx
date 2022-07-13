@@ -99,6 +99,8 @@ console.log({pathname})
           endDate
           status
 
+          lastUpdated
+
           dependencyOn {
             id
             title
@@ -310,6 +312,7 @@ console.log({pathname})
     <ProjectSingleProvider value={{
       projectId: job_id, 
       tasks: job?.tasks || [],
+      finishTtl: 60 * 1000 * 60 * 24,
       refetch,
       updateTaskStatus: (taskId, status) => {
           updateTask({

@@ -135,7 +135,8 @@ export default (prisma: PrismaClient) => {
                                 description: args.input.description,
                                 startDate: args.input.startDate,
                                 endDate: args.input.endDate,
-                                status: args.input.status
+                                status: args.input.status,
+                                lastUpdated: new Date()
                             }
                         }
                     }
@@ -162,7 +163,8 @@ export default (prisma: PrismaClient) => {
                         startDate: args.input.startDate,
                         endDate: args.input.endDate,
                         status: args.input.status,
-                        projectId: projectId
+                        projectId: projectId,
+                        lastUpdated: new Date()
                     }
                 })
             },
@@ -503,6 +505,8 @@ export default (prisma: PrismaClient) => {
         status: String
 
         project: Project
+
+        lastUpdated: DateTime
 
         dependencyOf: [ProjectTask]
         dependencyOn: [ProjectTask]
