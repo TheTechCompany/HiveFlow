@@ -50,7 +50,7 @@ const theme = createTheme({
 export const FilePane = () => {
 
    const [ selected, setSelected ] = useState<string[]>([]);
-   
+
     const { projectId } = useProjectInfo();
 
     const client = useApolloClient()
@@ -241,6 +241,7 @@ export const FilePane = () => {
               }}
               onNavigate={(path) => {
                 setActivePath(path)
+                setSelected([])
               }}
               files={files?.map((x: any) => ({ ...x, isFolder: x.directory })) || []}
               onDrop={(files) => {
