@@ -194,13 +194,19 @@ export const FilePane = () => {
                 }
               ]}
               actions={[
-                {key: 'download', icon: <Download />, label: 'Download', onClick: (file) => {
+                {key: 'download', icon: <Download />, label: 'Download', onClick: async (file) => {
                   //Download here
-                  if(Array.isArray(file)) return; //TODO download multiple files/folder
+                  if(Array.isArray(file)) {
+                    await Promise.all(file.map(async (f) => {
+                      let saveFile = files.find((a: any) => a.id == f.id)
+                      if(saveFile) await saveAs(saveFile.url, saveFile.name)
+                    }))
+                  }else{
 
-                  let saveFile = files.find((a: any) => a.id == file.id);
-               
-                  if(saveFile) saveAs(saveFile.url, saveFile.name)
+                    let saveFile = files.find((a: any) => a.id == file.id);
+                
+                    if(saveFile) saveAs(saveFile.url, saveFile.name)
+                  }
                 }},
                 {key: 'move', icon: <DriveFileMove />, label: 'Move', onClick: (file) => {
                   console.log({file})
@@ -210,12 +216,15 @@ export const FilePane = () => {
                   key: 'preview', 
                   icon: <Preview />,
                   label: 'Preview',
-                  onClick: () => {
+                  onClick: (file) => {
                     let selectedFiles = files.slice();
-                    if(Array.isArray(files)){
-                      selectedFiles = selectedFiles.filter((x) => selected.indexOf(x.id) > -1)
+                 
+                    if(Array.isArray(file)){
+                      selectedFiles = selectedFiles.filter((x) => file.map((a) => a.id).indexOf(x.id) > -1)
+                    }else{
+                      selectedFiles = selectedFiles.filter((a) => a.id == (file as any).id) //[file]
                     }
-                    console.log("FILE PREVIEW", selectedFiles)
+                    console.log("FILE PREVIEW", selectedFiles, file)
                     openFilePreview(selectedFiles)
                   }
                 }
