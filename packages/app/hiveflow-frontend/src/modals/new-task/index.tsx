@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
-
-import { Box, Button, CircularProgress, Collapse, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Paper, TextField, Typography } from '@mui/material'
-import { ColorDot, DateInput, FormControl } from '@hexhive/ui'
+import { Add } from '@mui/icons-material'
+import { Box, Button, CircularProgress, Collapse, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Paper, TextField, Typography } from '@mui/material'
+import { AvatarList, ColorDot, DateInput, FormControl } from '@hexhive/ui'
+import { MemberList } from './members'
 
 export const TaskModal = (props) => {
 
@@ -13,6 +14,7 @@ export const TaskModal = (props) => {
         title?: string;
         description?: string;
         status?: string;
+        members?: string[];
         startDate?: Date;
         endDate?: Date;
         dependencyOn?: {title: string, status: string, endDate: Date}[];
@@ -28,7 +30,8 @@ export const TaskModal = (props) => {
             status: 'Backlog',
             startDate: new Date(),
             endDate: new Date(),
-            ...props.selected
+            ...props.selected,
+            members: props.selected?.members?.map((x) => x.id)
         })
     }, [props.selected])
 
@@ -59,7 +62,18 @@ export const TaskModal = (props) => {
             maxWidth="lg"
             onClose={props.onClose}
             open={props.open}>
-            <DialogTitle>Task</DialogTitle>
+            <DialogTitle>
+                <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                    <Typography>Task</Typography>
+                    <MemberList
+                        data={props.users || []}
+                        members={props.users.filter((a) => task.members?.indexOf(a.id) > -1) || []}
+                        onMembersChanged={(members) => {
+                            setTask({...task, members: members.map((x) => x.id)})
+                        }}
+                        />
+                </Box>
+            </DialogTitle>
             <DialogContent sx={{display: 'flex', position: 'relative'}}>
 
                 {/* <Collapse in={task.dependencyOf?.length > 0 || task.dependencyOn?.length > 0} sx={{display: 'flex', flexDirection: 'column', padding: '3px', position: 'absolute', top: 0, bottom: 0, left: '-100%'}}>
@@ -121,7 +135,7 @@ export const TaskModal = (props) => {
                         options={["Backlog", "In Progress", "Reviewing", "Finished"].map((x) => ({id: x, label: x}))}
                             />
 
-                    <Box sx={{marginTop: '8px', display: 'flex'}}>
+                    <Box sx={{marginTop: '8px', marginBottom: '3px', display: 'flex'}}>
                         <DateInput 
                             format='dd/MM/yyyy'
                             value={task.startDate?.toISOString()}

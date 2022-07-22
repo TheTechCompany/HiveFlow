@@ -74,6 +74,11 @@ export default (prisma: PrismaClient) => {
 
 				return result.map((x) => ({
 					...x,
+                    tasks: x.tasks.map((task) => ({
+                        ...task,
+                        createdBy: task.createdBy ? {id: task.createdBy} : undefined,
+                        members: task.members?.map((member) => ({id: member}))
+                    })),
 					organisation: {id: x.organisation}
 				}));            
             }
@@ -133,6 +138,8 @@ export default (prisma: PrismaClient) => {
                                 id: nanoid(),
                                 title: args.input.title,
                                 description: args.input.description,
+                                createdBy: context?.jwt?.id,
+                                members: args.input.members || [],
                                 startDate: args.input.startDate,
                                 endDate: args.input.endDate,
                                 status: args.input.status,
@@ -160,6 +167,7 @@ export default (prisma: PrismaClient) => {
                     data: {
                         title: args.input.title,
                         description: args.input.description,
+                        members: args.input.members || [],
                         startDate: args.input.startDate,
                         endDate: args.input.endDate,
                         status: args.input.status,
@@ -485,6 +493,9 @@ export default (prisma: PrismaClient) => {
     input ProjectTaskInput {
         title: String
         description: String
+
+        members: [String]
+
         startDate: DateTime
         endDate: DateTime
 
@@ -505,6 +516,10 @@ export default (prisma: PrismaClient) => {
         status: String
 
         project: Project
+
+        members: [HiveUser]
+
+        createdBy: HiveUser
 
         lastUpdated: DateTime
 

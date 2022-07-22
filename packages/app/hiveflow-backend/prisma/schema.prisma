@@ -44,6 +44,10 @@ model ProjectTask {
     startDate DateTime?
     endDate   DateTime?
 
+    members String[]
+
+    createdBy String?
+
     dependencyOf ProjectTask[] @relation(name: "dependencyOf")
     dependencyOn ProjectTask[] @relation(name: "dependencyOf")
 

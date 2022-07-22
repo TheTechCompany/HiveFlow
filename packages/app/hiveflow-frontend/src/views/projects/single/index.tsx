@@ -83,6 +83,11 @@ console.log({pathname})
 
   const { data } = useQuery(gql`
     query GetProject($id: String) {
+      users {
+        id
+        name
+      }
+
       projects(where: {displayId: $id}){
         id
         displayId
@@ -98,6 +103,11 @@ console.log({pathname})
           startDate
           endDate
           status
+
+          members {
+            id
+            name
+          }
 
           lastUpdated
 
@@ -128,6 +138,7 @@ console.log({pathname})
   }
 
 
+  const users = data?.users || [];
 
   const job = data?.projects?.[0] //query.projects({where: {id: job_id}})?.[0]
 
@@ -368,6 +379,7 @@ console.log({pathname})
       className="job-one-container" style={{ flex: 1, display: 'flex' }}>
       
       <TaskModal 
+        users={users}
         onClose={() => {
           openTaskModal(false)
           setSelectedTask(null)
@@ -395,6 +407,7 @@ console.log({pathname})
                 id: task.id, 
                 input: {
                    title: task.title,
+                    members: task.members,
                    description: task.description, 
                    startDate: task.startDate,
                    endDate: task.endDate,
@@ -410,6 +423,7 @@ console.log({pathname})
               args: {
                  input: {
                   title: task.title,
+                  members: task.members,
                   description: task.description, 
                   startDate: task.startDate,
                   endDate: task.endDate,

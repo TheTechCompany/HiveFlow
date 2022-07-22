@@ -66,6 +66,7 @@ export interface ProjectInput {
 export interface ProjectTaskInput {
   description?: InputMaybe<Scalars["String"]>;
   endDate?: InputMaybe<Scalars["DateTime"]>;
+  members?: InputMaybe<Array<InputMaybe<Scalars["String"]>>>;
   projectId: Scalars["String"];
   startDate?: InputMaybe<Scalars["DateTime"]>;
   status?: InputMaybe<Scalars["String"]>;
@@ -227,11 +228,14 @@ export const generatedSchema = {
   },
   ProjectTask: {
     __typename: { __type: "String!" },
+    createdBy: { __type: "HiveUser" },
     dependencyOf: { __type: "[ProjectTask]" },
     dependencyOn: { __type: "[ProjectTask]" },
     description: { __type: "String" },
     endDate: { __type: "DateTime" },
     id: { __type: "ID!" },
+    lastUpdated: { __type: "DateTime" },
+    members: { __type: "[HiveUser]" },
     project: { __type: "Project" },
     startDate: { __type: "DateTime" },
     status: { __type: "String" },
@@ -240,6 +244,7 @@ export const generatedSchema = {
   ProjectTaskInput: {
     description: { __type: "String" },
     endDate: { __type: "DateTime" },
+    members: { __type: "[String]" },
     projectId: { __type: "String!" },
     startDate: { __type: "DateTime" },
     status: { __type: "String" },
@@ -306,7 +311,7 @@ export const generatedSchema = {
     organisation: { __type: "HiveOrganisation" },
     project: { __type: "Project" },
     startDate: { __type: "DateTime" },
-    timeline: { __type: "Timeline" },
+    timeline: { __type: "String" },
   },
   TimelineItemData: {
     __typename: { __type: "String!" },
@@ -555,11 +560,14 @@ export interface ProjectResult {
 
 export interface ProjectTask {
   __typename?: "ProjectTask";
+  createdBy?: Maybe<HiveUser>;
   dependencyOf?: Maybe<Array<Maybe<ProjectTask>>>;
   dependencyOn?: Maybe<Array<Maybe<ProjectTask>>>;
   description?: Maybe<ScalarsEnums["String"]>;
   endDate?: Maybe<ScalarsEnums["DateTime"]>;
   id: ScalarsEnums["ID"];
+  lastUpdated?: Maybe<ScalarsEnums["DateTime"]>;
+  members?: Maybe<Array<Maybe<HiveUser>>>;
   project?: Maybe<Project>;
   startDate?: Maybe<ScalarsEnums["DateTime"]>;
   status?: Maybe<ScalarsEnums["String"]>;
@@ -613,7 +621,7 @@ export interface TimelineItem {
   organisation?: Maybe<HiveOrganisation>;
   project?: Maybe<Project>;
   startDate?: Maybe<ScalarsEnums["DateTime"]>;
-  timeline?: Maybe<Timeline>;
+  timeline?: Maybe<ScalarsEnums["String"]>;
 }
 
 export interface TimelineItemData {

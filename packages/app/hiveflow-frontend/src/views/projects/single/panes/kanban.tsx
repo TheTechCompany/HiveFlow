@@ -1,6 +1,7 @@
-import { Kanban } from "@hexhive/ui";
+import { AvatarList, Kanban } from "@hexhive/ui";
 import React, { useContext, useEffect, useState } from "react";
-import { Box, Paper } from '@mui/material'
+import { Subject } from '@mui/icons-material'
+import { Box, Paper, Typography } from '@mui/material'
 import { ProjectSingleContext } from "../context";
 import { stringToColor } from "@hexhive/utils";
 
@@ -77,8 +78,19 @@ export const KanbanPane = () => {
             }}
             renderCard={(item) => {
                 return (
-                    <Paper sx={{background: stringToColor(item.title), minHeight: '24px', color: 'white', alignItems: 'center', display: 'flex', padding: '6px', marginTop: '6px'}}>
-                        {item.name || item.title}
+                    <Paper sx={{background: stringToColor(item.title), minHeight: '24px', color: 'white', flexDirection: 'column', display: 'flex', padding: '6px', marginTop: '6px'}}>
+                        <Typography>
+                            {item.name || item.title}
+                        </Typography>
+                        <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                            <Box>
+                                {item.description?.length > 0 && <Subject fontSize="small" />}
+                            </Box>
+                            <AvatarList
+                                size={20}
+                                users={item.members}
+                                />
+                        </Box>
                     </Paper>
                 )
             }}
