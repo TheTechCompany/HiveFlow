@@ -1,9 +1,11 @@
 import { gql, useQuery } from '@apollo/client';
-import { Box, Button, Text } from 'grommet';
+import { Box, Button, IconButton, Paper, Typography } from '@mui/material';
 import { ChevronLeft as Previous } from '@mui/icons-material';
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Spreadsheet, { createEmptyMatrix } from "react-spreadsheet";
+import { QuoteBuilder } from '../../../components/QuoteBuilder';
+
 
 export const EstimateSingle = (props) => {
 
@@ -28,32 +30,41 @@ export const EstimateSingle = (props) => {
 
     const estimate = data?.estimates?.[0] || {};
 
+    const [ lineItems, setLineItems ] = useState([])
+
     return (
-        <Box    
-            round="xsmall"
-            overflow={"hidden"}
-            flex 
-            background={'light-1'}>
+        <Paper    
+            sx={{flex: 1, display: 'flex', flexDirection: 'column'}}
+         >
             <Box
-                pad="xsmall"
-                gap="xsmall"
-                background={'accent-2'}
-                direction='row'>
-                <Button 
+                sx={{bgcolor: 'secondary.main', color: 'navigation.main', display: 'flex', alignItems: 'center'}}>
+                <IconButton 
+                    sx={{color: 'navigation.main'}}
                     onClick={() => navigate('../')}
-                    hoverIndicator
-                    plain
-                    style={{padding: 6, borderRadius: 3}} 
-                    icon={<Previous fontSize='small' />} />
-                <Text>{estimate.displayId} - {estimate.name}</Text>
+                   >
+                        <Previous fontSize='small' />
+                </IconButton>
+                <Typography>{estimate.displayId} - {estimate.name}</Typography>
             </Box>
             <Box 
-                background={'white'}
-                overflow={'scroll'}
-                flex>
-                <Spreadsheet 
-                    data={createEmptyMatrix(50, 50).map((row, rix) => row.map((col) => ({value: ''})))} />
+                sx={{flex: 1, overflow: 'auto', maxHeight: 'calc(100% - 36px)', display: 'flex'}}>
+                <QuoteBuilder 
+                    items={lineItems}
+                    onUpdateRow={(ix, key, value) => {
+                        let items = lineItems.slice();
+                        items[ix][key] = value;
+                        setLineItems(items)
+                    }}
+                    onDeleteRow={(ix) => {
+                        let items = lineItems.slice();
+                        items.splice(ix, 1);
+                        setLineItems(items);
+                    }}
+                    onAddRow={() => {
+                        setLineItems([...lineItems, {}])
+                    }}
+                    />
             </Box>
-        </Box>
+        </Paper>
     )
 }
