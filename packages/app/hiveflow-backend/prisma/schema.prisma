@@ -87,6 +87,8 @@ model Estimate {
 model EstimateLineItem {
     id String @id
 
+    order Int?
+
     item String?
     description String?
     quantity Float?

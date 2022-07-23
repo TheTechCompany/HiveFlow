@@ -59,6 +59,8 @@ export default (prisma: PrismaClient) => {
         }
 
         input EstimateLineItemInput {
+            order: Int
+
             item: String
             description: String
             price: Float
@@ -67,6 +69,8 @@ export default (prisma: PrismaClient) => {
 
         type EstimateLineItem {
             id: ID
+
+            order: Int
 
             item: String
             description: String
@@ -103,6 +107,13 @@ export default (prisma: PrismaClient) => {
             createEstimateLineItem: async  (root: any, args: any, context: any) => {
                 const id = nanoid();
 
+                const order_count = await prisma.estimateLineItem.count({where: {
+                    estimate: {
+                        displayId: args.estimate,
+                        organisation: context?.jwt?.organisation
+                    }
+                }})
+
                 const item = await prisma.estimate.update({
                     where: {
                         displayId_organisation: {
@@ -114,6 +125,7 @@ export default (prisma: PrismaClient) => {
                         lineItems: {
                             create: {
                                 id: id,
+                                order: args.input.order || order_count + 1,
                                 item: args.input.item,
                                 description: args.input.description,
                                 quantity: args.input.quantity,
@@ -140,6 +152,7 @@ export default (prisma: PrismaClient) => {
                             update: {
                                 where: {id: args.id},
                                 data: {
+                                    order: args.input.order,
                                     item: args.input.item,
                                     description: args.input.description,
                                     quantity: args.input.quantity,

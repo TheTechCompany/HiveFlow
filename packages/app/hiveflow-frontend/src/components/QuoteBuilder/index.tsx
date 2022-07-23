@@ -5,6 +5,8 @@ import { Delete } from '@mui/icons-material'
 
 export interface QuoteItem {
     id: string;
+    order: number;
+
     item: string;
     description: string;
 
@@ -14,6 +16,10 @@ export interface QuoteItem {
 
 export interface QuoteBuilderProps {
     items?: QuoteItem[];
+    quoteId?: string;
+    date?: Date;
+    expiry?: Date;
+    customer?: string;
     onAddRow?: () => void;
     onDeleteRow?: (id: string) => void;
     onUpdateRow?: (id: string, key: string, value: any) => void;
@@ -43,9 +49,9 @@ export const QuoteBuilder : React.FC<QuoteBuilderProps> = (props) => {
                     <TextField fullWidth size="small" label="Customer" />
                 </Box>
                 <Box sx={{display: 'flex', flex: 1}}>
-                    <TextField size="small" fullWidth label="Date" />
-                    <TextField size="small" fullWidth label="Expiry" />
-                    <TextField size="small" fullWidth label="Quote Number" InputProps={{startAdornment: <InputAdornment position="start">#</InputAdornment>}} />
+                    <TextField size="small" value={props.date} fullWidth label="Date" />
+                    <TextField size="small" value={props.expiry} fullWidth label="Expiry" />
+                    <TextField size="small" value={props.quoteId} fullWidth label="Quote Number" InputProps={{startAdornment: <InputAdornment position="start">#</InputAdornment>}} />
                 </Box>
             </Box>
             <Box sx={{display: 'flex', justifyContent: 'flex-end'}}>
@@ -65,7 +71,8 @@ export const QuoteBuilder : React.FC<QuoteBuilderProps> = (props) => {
                         </TableHead>
                         <TableBody >
                             {props.items?.map((item, ix) => (
-                                <TableRow >
+                                <TableRow
+                                    key={item.id} >
                                     {itemKeys.map((key) => (
                                         <TableCell sx={{padding: 0, height: '0'}}>
                                             <TextField 
@@ -81,7 +88,7 @@ export const QuoteBuilder : React.FC<QuoteBuilderProps> = (props) => {
                                                 sx={{height: '100%', flex: 1, '& .MuiOutlinedInput-input': {height: '100%'}, '& .MuiOutlinedInput-root': {height: '100%', borderRadius: 0}}}
                                                 fullWidth
                                                 size="small" 
-                                                value={key.func ? key.func(item) : item[key.key]} />
+                                                value={(key.func ? key.func(item) : item[key.key]) || ''} />
                                         </TableCell>
                                     ))}
                                     <TableCell sx={{width: '20px', padding: 0}}>
