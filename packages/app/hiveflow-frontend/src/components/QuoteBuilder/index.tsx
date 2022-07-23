@@ -4,6 +4,10 @@ import React, { useMemo } from "react";
 import { Delete } from '@mui/icons-material'
 
 export interface QuoteItem {
+    id: string;
+    item: string;
+    description: string;
+
     quantity: number;
     price: number;
 }
@@ -11,8 +15,8 @@ export interface QuoteItem {
 export interface QuoteBuilderProps {
     items?: QuoteItem[];
     onAddRow?: () => void;
-    onDeleteRow?: (ix: number) => void;
-    onUpdateRow?: (ix: number, key: string, value: any) => void;
+    onDeleteRow?: (id: string) => void;
+    onUpdateRow?: (id: string, key: string, value: any) => void;
 }
 
 
@@ -22,7 +26,7 @@ export const QuoteBuilder : React.FC<QuoteBuilderProps> = (props) => {
 
     const itemKeys = [
         {label: 'Item', key: 'item'}, 
-        {label: 'Description', key: 'description'}, 
+        {label: 'Description', key: 'description', multiline: true}, 
         {label: 'Quantity', type: 'number', key: 'quantity'}, 
         {label: 'Price', type: 'number', key: 'price'}, 
         {label: 'Amount', type: 'number', key: 'amount', func: (item: any) => item.price * item.quantity}
@@ -48,7 +52,7 @@ export const QuoteBuilder : React.FC<QuoteBuilderProps> = (props) => {
                 <TextField size="small" label="Reference" />
             </Box>
             <Box sx={{display: 'flex', backgroundClip: 'border-box', borderRadius: '3px', marginTop: '6px', marginBottom: '20px', boxShadow: '0 0 0 1px #ccced2 inset'}}>
-                    <Table>
+                    <Table sx={{height: 1}}>
                         <TableHead sx={{ bgcolor: 'unset', position: 'relative', border: '1px solid #dfdfdf'}}>
                             <TableRow>
                                 {itemKeys.map((key, ix) => (
@@ -61,15 +65,20 @@ export const QuoteBuilder : React.FC<QuoteBuilderProps> = (props) => {
                         </TableHead>
                         <TableBody >
                             {props.items?.map((item, ix) => (
-                                <TableRow>
+                                <TableRow >
                                     {itemKeys.map((key) => (
-                                        <TableCell sx={{padding: 0}}>
+                                        <TableCell sx={{padding: 0, height: '0'}}>
                                             <TextField 
+                                                multiline={key.multiline}
                                                 type={key.type}
                                                 onChange={(e) => {
-                                                    props.onUpdateRow?.(ix, key.key, e.target.value)
+                                                    let value : any = e.target.value;
+                                                    if(key.type == 'number'){
+                                                        value = parseFloat(value);
+                                                    }
+                                                    props.onUpdateRow?.(item.id, key.key, value)
                                                 }}
-                                                sx={{'& .MuiOutlinedInput-root': {borderRadius: 0}}}
+                                                sx={{height: '100%', flex: 1, '& .MuiOutlinedInput-input': {height: '100%'}, '& .MuiOutlinedInput-root': {height: '100%', borderRadius: 0}}}
                                                 fullWidth
                                                 size="small" 
                                                 value={key.func ? key.func(item) : item[key.key]} />
@@ -78,7 +87,7 @@ export const QuoteBuilder : React.FC<QuoteBuilderProps> = (props) => {
                                     <TableCell sx={{width: '20px', padding: 0}}>
                                         <IconButton 
                                             onClick={() => {
-                                                props.onDeleteRow?.(ix)
+                                                props.onDeleteRow?.(item.id)
                                             }}
                                             size="small">
                                             <Delete />

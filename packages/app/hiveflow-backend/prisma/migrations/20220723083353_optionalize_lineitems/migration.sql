@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "EstimateLineItem" ALTER COLUMN "item" DROP NOT NULL,
+ALTER COLUMN "quantity" DROP NOT NULL,
+ALTER COLUMN "price" DROP NOT NULL;

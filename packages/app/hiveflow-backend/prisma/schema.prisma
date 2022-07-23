@@ -64,11 +64,16 @@ model Estimate {
     status       String?
 
     date        DateTime?
+    expiry      DateTime?
+
+    lineItems   EstimateLineItem[] @relation(name: "hasLineItems")
 
     companyName  String?
 
     createdAt    DateTime @default(now())
     updatedAt    DateTime @default(now())
+
+    terms       String?
 
     price        Float?
     
@@ -77,6 +82,18 @@ model Estimate {
     timeline TimelineItem[] @relation(name: "estimateTimeline")
 
     @@unique([ displayId, organisation ])
+}
+
+model EstimateLineItem {
+    id String @id
+
+    item String?
+    description String?
+    quantity Float?
+    price Float?
+
+    estimate Estimate @relation(name: "hasLineItems", fields: [estimateId], references: [id])
+    estimateId String
 }
 
 model Equipment {

@@ -40,10 +40,19 @@ export interface EquipmentInput {
 export interface EstimateInput {
   companyName?: InputMaybe<Scalars["String"]>;
   date?: InputMaybe<Scalars["DateTime"]>;
+  expiry?: InputMaybe<Scalars["DateTime"]>;
   id?: InputMaybe<Scalars["ID"]>;
+  lineItems?: InputMaybe<Array<InputMaybe<EstimateLineItemInput>>>;
   name?: InputMaybe<Scalars["String"]>;
   price?: InputMaybe<Scalars["Float"]>;
   status?: InputMaybe<Scalars["String"]>;
+}
+
+export interface EstimateLineItemInput {
+  description?: InputMaybe<Scalars["String"]>;
+  item?: InputMaybe<Scalars["String"]>;
+  price?: InputMaybe<Scalars["Float"]>;
+  quantity?: InputMaybe<Scalars["Float"]>;
 }
 
 export interface EstimateWhere {
@@ -157,7 +166,9 @@ export const generatedSchema = {
     companyName: { __type: "String" },
     date: { __type: "DateTime" },
     displayId: { __type: "String" },
+    expiry: { __type: "DateTime" },
     id: { __type: "ID!" },
+    lineItems: { __type: "[EstimateLineItem]" },
     name: { __type: "String" },
     organisation: { __type: "HiveOrganisation" },
     price: { __type: "Float" },
@@ -166,10 +177,27 @@ export const generatedSchema = {
   EstimateInput: {
     companyName: { __type: "String" },
     date: { __type: "DateTime" },
+    expiry: { __type: "DateTime" },
     id: { __type: "ID" },
+    lineItems: { __type: "[EstimateLineItemInput]" },
     name: { __type: "String" },
     price: { __type: "Float" },
     status: { __type: "String" },
+  },
+  EstimateLineItem: {
+    __typename: { __type: "String!" },
+    amount: { __type: "Float" },
+    description: { __type: "String" },
+    id: { __type: "ID" },
+    item: { __type: "String" },
+    price: { __type: "Float" },
+    quantity: { __type: "Float" },
+  },
+  EstimateLineItemInput: {
+    description: { __type: "String" },
+    item: { __type: "String" },
+    price: { __type: "Float" },
+    quantity: { __type: "Float" },
   },
   EstimateWhere: {
     date_GTE: { __type: "DateTime" },
@@ -370,6 +398,10 @@ export const generatedSchema = {
       __args: { input: "EquipmentInput" },
     },
     createEstimate: { __type: "Estimate", __args: { input: "EstimateInput" } },
+    createEstimateLineItem: {
+      __type: "EstimateLineItem",
+      __args: { estimate: "ID", input: "EstimateLineItemInput" },
+    },
     createProject: { __type: "Project!", __args: { input: "ProjectInput" } },
     createProjectFolder: {
       __type: "File",
@@ -394,6 +426,10 @@ export const generatedSchema = {
     },
     deleteEquipment: { __type: "Equipment", __args: { id: "ID!" } },
     deleteEstimate: { __type: "Estimate", __args: { id: "ID!" } },
+    deleteEstimateLineItem: {
+      __type: "EstimateLineItem",
+      __args: { estimate: "ID", id: "ID" },
+    },
     deleteProject: { __type: "Project!", __args: { id: "ID!" } },
     deleteProjectFile: {
       __type: "File",
@@ -425,6 +461,10 @@ export const generatedSchema = {
     updateEstimate: {
       __type: "Estimate",
       __args: { id: "ID!", input: "EstimateInput" },
+    },
+    updateEstimateLineItem: {
+      __type: "EstimateLineItem",
+      __args: { estimate: "ID", id: "ID", input: "EstimateLineItemInput" },
     },
     updateProject: {
       __type: "Project!",
@@ -497,11 +537,23 @@ export interface Estimate {
   companyName?: Maybe<ScalarsEnums["String"]>;
   date?: Maybe<ScalarsEnums["DateTime"]>;
   displayId?: Maybe<ScalarsEnums["String"]>;
+  expiry?: Maybe<ScalarsEnums["DateTime"]>;
   id: ScalarsEnums["ID"];
+  lineItems?: Maybe<Array<Maybe<EstimateLineItem>>>;
   name?: Maybe<ScalarsEnums["String"]>;
   organisation?: Maybe<HiveOrganisation>;
   price?: Maybe<ScalarsEnums["Float"]>;
   status?: Maybe<ScalarsEnums["String"]>;
+}
+
+export interface EstimateLineItem {
+  __typename?: "EstimateLineItem";
+  amount?: Maybe<ScalarsEnums["Float"]>;
+  description?: Maybe<ScalarsEnums["String"]>;
+  id?: Maybe<ScalarsEnums["ID"]>;
+  item?: Maybe<ScalarsEnums["String"]>;
+  price?: Maybe<ScalarsEnums["Float"]>;
+  quantity?: Maybe<ScalarsEnums["Float"]>;
 }
 
 export interface File {
@@ -663,6 +715,10 @@ export interface Mutation {
     input?: Maybe<EquipmentInput>;
   }) => Maybe<Equipment>;
   createEstimate: (args?: { input?: Maybe<EstimateInput> }) => Maybe<Estimate>;
+  createEstimateLineItem: (args?: {
+    estimate?: Maybe<Scalars["ID"]>;
+    input?: Maybe<EstimateLineItemInput>;
+  }) => Maybe<EstimateLineItem>;
   createProject: (args?: { input?: Maybe<ProjectInput> }) => Project;
   createProjectFolder: (args: {
     path?: Maybe<Scalars["String"]>;
@@ -685,6 +741,10 @@ export interface Mutation {
   }) => Maybe<TimelineItem>;
   deleteEquipment: (args: { id: Scalars["ID"] }) => Maybe<Equipment>;
   deleteEstimate: (args: { id: Scalars["ID"] }) => Maybe<Estimate>;
+  deleteEstimateLineItem: (args?: {
+    estimate?: Maybe<Scalars["ID"]>;
+    id?: Maybe<Scalars["ID"]>;
+  }) => Maybe<EstimateLineItem>;
   deleteProject: (args: { id: Scalars["ID"] }) => Project;
   deleteProjectFile: (args: {
     path?: Maybe<Scalars["String"]>;
@@ -728,6 +788,11 @@ export interface Mutation {
     id: Scalars["ID"];
     input?: Maybe<EstimateInput>;
   }) => Maybe<Estimate>;
+  updateEstimateLineItem: (args?: {
+    estimate?: Maybe<Scalars["ID"]>;
+    id?: Maybe<Scalars["ID"]>;
+    input?: Maybe<EstimateLineItemInput>;
+  }) => Maybe<EstimateLineItem>;
   updateProject: (args: {
     id: Scalars["ID"];
     input?: Maybe<ProjectInput>;
@@ -789,6 +854,7 @@ export interface Subscription {
 export interface SchemaObjectTypes {
   Equipment: Equipment;
   Estimate: Estimate;
+  EstimateLineItem: EstimateLineItem;
   File: File;
   HiveOrganisation: HiveOrganisation;
   HiveUser: HiveUser;
@@ -811,6 +877,7 @@ export interface SchemaObjectTypes {
 export type SchemaObjectTypesNames =
   | "Equipment"
   | "Estimate"
+  | "EstimateLineItem"
   | "File"
   | "HiveOrganisation"
   | "HiveUser"
