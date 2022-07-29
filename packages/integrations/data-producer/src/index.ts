@@ -30,6 +30,9 @@ const main = async () => {
             ${task.map((t: any) => t.query).join('\n')}
         }
     `
+
+    console.log(query);
+    
     const initialResp = await request(process.env.ROOT_SERVER || '', gql`
         ${query}
     `, {
