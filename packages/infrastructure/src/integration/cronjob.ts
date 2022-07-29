@@ -108,6 +108,7 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
     }, {
         provider
     })
+    
     // const deployment = new k8s.apps.v1.Deployment(`${appName}-dep`, {
     //     metadata: { labels: appLabels },
     //     spec: {

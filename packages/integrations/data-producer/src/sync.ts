@@ -14,7 +14,6 @@ interface HiveEvent {
 
 
 const stringToDate = (date: any) => {
-    // console.log(date)
     if (!date) return undefined;
     if (date instanceof Date) {
         return date.toISOString();
