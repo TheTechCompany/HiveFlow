@@ -38,7 +38,7 @@ const main = async () => {
 	    'Authorization': `API-Key ${process.env.INTEGRATION_KEY}`
     })
 
-    console.log(JSON.stringify(initialResp))
+    // console.log(JSON.stringify(initialResp))
 
     const initialState = task.map((t: any) => {
 
