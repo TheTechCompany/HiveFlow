@@ -19,8 +19,8 @@ export const ScheduleModalHeader : React.FC<ScheduleModalHeaderProps> = (props) 
  
 
             <Box
-                sx={{marginTop: '6px', display: 'flex', alignItems: 'center'}}>
-                <Box sx={{flex: 1}}>
+                sx={{marginTop: '6px', marginBottom: '6px', display: 'flex', alignItems: 'center'}}>
+                <Box sx={{flex: 1, paddingLeft: '6px'}}>
                     <Autocomplete
                         color='white'
                         size='small'

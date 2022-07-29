@@ -8,7 +8,7 @@ export const TabHeader = (props) => {
         'Notes'
     ]
     return (
-        <Paper sx={{bgcolor: 'secondary.main', marginTop: '4px'}}>
+        <Paper sx={{bgcolor: 'secondary.main', borderRadius: 0, marginTop: '4px'}}>
             <Tabs
                 onChange={(ev, value) => props.setActiveTab(value)}
                 value={props.activeTab}

@@ -166,7 +166,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = (props) => {
                                     // props.onLeave()
                                 }}
 
-                                style={{ padding: 6, borderRadius: 3 }}>{canEdit() ? "Leave" : "Join"}</Button></>}
+                                style={{ padding: 6, borderRadius: 3, color: 'navigation.main' }}>{canEdit() ? "Leave" : "Join"}</Button></>}
                 </Box>
             </DialogTitle>
             <DialogContent sx={{padding: 0, flex: 1, minHeight: '50vh', display: 'flex', flexDirection: 'column'}}>

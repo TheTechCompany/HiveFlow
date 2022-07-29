@@ -1,5 +1,5 @@
 import React from 'react'
-import { List, Box, TextInput } from 'grommet';
+import { Box } from '@mui/material';
 
 import { IconButton, Button, TextareaAutosize, TextField, Typography } from '@mui/material'
 import { Close, Add } from '@mui/icons-material'
@@ -31,13 +31,14 @@ const NoteTab: React.FC<NoteTabProps> = (props) => {
   }
 
   return (
-    <Box gap="xsmall" pad="xsmall" overflow={"auto"} height={{min: '50vh'}} className="note-tab">
+    <Box sx={{flex: 1, minHeight: '50vh', overflow: 'auto'}} className="note-tab">
 
         {props.data.map((item: any, index: number) => (
-          <Box direction="row" align="center">
+          <Box sx={{display: 'flex', alignItems: 'center', marginBottom: '6px'}}>
             <TextField
               key={`${index}`}
               multiline
+              size="small"
               // autoFocus
               fullWidth
               // focusIndicator={false}
@@ -54,6 +55,7 @@ const NoteTab: React.FC<NoteTabProps> = (props) => {
           </Box>
         ))}
       <Button
+        fullWidth
         endIcon={<Add fontSize="small" />}
         sx={{alignItems: 'center'}}
         onClick={_insertEmpty}>

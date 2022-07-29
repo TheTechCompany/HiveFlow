@@ -153,7 +153,7 @@ export const Dashboard = (props: any) => {
       
   const menu = [
     {
-      path: 'schedule',
+      path: '',
       label: 'Schedule',
       icon: <Schedule filter="invert(1)" />,
       component: <ScheduleView />
