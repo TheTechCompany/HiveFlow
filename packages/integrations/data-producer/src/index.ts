@@ -38,7 +38,7 @@ const main = async () => {
 	    'Authorization': `API-Key ${process.env.INTEGRATION_KEY}`
     })
 
-    // console.log(JSON.stringify(initialResp))
+    console.log(JSON.stringify(initialResp))
 
     const initialState = task.map((t: any) => {
 
@@ -74,105 +74,105 @@ const main = async () => {
 		}
 	}, task, initialState)
 
-	await worker.runOnce()
+	// await worker.runOnce()
 
-    worker.on('NEW', async (event: any) => {
-        console.log("NEW EVENT", event)
+    // worker.on('NEW', async (event: any) => {
+    //     console.log("NEW EVENT", event)
     
-        if(!process.env.DRYRUN){
-            const new_task = task.find((a: any) => a.family.cluster == event.id)
+    //     if(!process.env.DRYRUN){
+    //         const new_task = task.find((a: any) => a.family.cluster == event.id)
 
-            let createObject : any = {}
+    //         let createObject : any = {}
 
-            Object.keys(event.value[0]).forEach((key) => {
-                createObject[key] = event.value[0][key];
+    //         Object.keys(event.value[0]).forEach((key) => {
+    //             createObject[key] = event.value[0][key];
 
-                const type = new_task.collect.find((a: any) => a.to == key)?.type 
+    //             const type = new_task.collect.find((a: any) => a.to == key)?.type 
 
-                if(type == "Number"){
-                    if(typeof(createObject[key]) != "number") createObject[key] = parseFloat(createObject[key])
-                    createObject[key] = parseFloat(createObject[key].toFixed(2))
-                }else if(type == "Date" || type == "Function"){
-                    try{
-                        if(!(createObject[key] instanceof Date)){
-                            const parts = createObject[key]?.match(/(.*)\/(.*)\/(....)/);
+    //             if(type == "Number"){
+    //                 if(typeof(createObject[key]) != "number") createObject[key] = parseFloat(createObject[key])
+    //                 createObject[key] = parseFloat(createObject[key].toFixed(2))
+    //             }else if(type == "Date" || type == "Function"){
+    //                 try{
+    //                     if(!(createObject[key] instanceof Date)){
+    //                         const parts = createObject[key]?.match(/(.*)\/(.*)\/(....)/);
 
-                            createObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString(); //.match(/(..\/..\/....)/)?.[1];
-                        }else{
-                            createObject[key] = createObject[key].toISOString();
-                        }
-                    }catch(e){
-                        console.log(createObject[key], e)
-                        createObject[key] = undefined;
-                    }
-                }
-            })
+    //                         createObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString(); //.match(/(..\/..\/....)/)?.[1];
+    //                     }else{
+    //                         createObject[key] = createObject[key].toISOString();
+    //                     }
+    //                 }catch(e){
+    //                     console.log(createObject[key], e)
+    //                     createObject[key] = undefined;
+    //                 }
+    //             }
+    //         })
             
-            if(new_task.create){
-                await updateRecord({
-                    action: 'CREATE',
-                    create: new_task.create,
-                    update: new_task.update,
-                    data: createObject,
-                    primaryKey: new_task?.family.species,
-                    id: event.value[new_task?.family.species],
-                    type: new_task?.type
-                });
-            }
-        }
+    //         if(new_task.create){
+    //             await updateRecord({
+    //                 action: 'CREATE',
+    //                 create: new_task.create,
+    //                 update: new_task.update,
+    //                 data: createObject,
+    //                 primaryKey: new_task?.family.species,
+    //                 id: event.value[new_task?.family.species],
+    //                 type: new_task?.type
+    //             });
+    //         }
+    //     }
 
-    });
+    // });
 
-    worker.on('UPDATE', async (event: any) => {
-        console.log("UPDATE", event)
+    // worker.on('UPDATE', async (event: any) => {
+    //     console.log("UPDATE", event)
     
-        if(!process.env.DRYRUN){
-            let t = task.find((a: any) => a.family.cluster == event.id)
+    //     if(!process.env.DRYRUN){
+    //         let t = task.find((a: any) => a.family.cluster == event.id)
         
-            let updateObject : any = {};
+    //         let updateObject : any = {};
             
-            Object.keys(event.value).forEach((key) => {
-                updateObject[key] = event.value[key]?.[1] || event.value[key]?.[0];
+    //         Object.keys(event.value).forEach((key) => {
+    //             updateObject[key] = event.value[key]?.[1] || event.value[key]?.[0];
 
-                const type = t.collect.find((a: any) => a.to == key)?.type
+    //             const type = t.collect.find((a: any) => a.to == key)?.type
 
-                if(type == "Number"){
-                    if(typeof(updateObject[key]) != "number") updateObject[key] = parseFloat(updateObject[key])
-                    // console.log({type:typeof(updateObject[key]), key: key, update: updateObject[key]});
-                    updateObject[key] = parseFloat(updateObject[key].toFixed(2))
-                }else if(type == "Date" || type == "Function"){
-                    try{
+    //             if(type == "Number"){
+    //                 if(typeof(updateObject[key]) != "number") updateObject[key] = parseFloat(updateObject[key])
+    //                 // console.log({type:typeof(updateObject[key]), key: key, update: updateObject[key]});
+    //                 updateObject[key] = parseFloat(updateObject[key].toFixed(2))
+    //             }else if(type == "Date" || type == "Function"){
+    //                 try{
 
-                        if(!(updateObject[key] instanceof Date)){
-                            const parts = updateObject[key]?.match(/(.*)\/(.*)\/(....)/);
+    //                     if(!(updateObject[key] instanceof Date)){
+    //                         const parts = updateObject[key]?.match(/(.*)\/(.*)\/(....)/);
 
-                            updateObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString(); //.match(/(..\/..\/....)/)?.[1];
-                        }else{
-                            updateObject[key] = updateObject[key].toISOString();
-                        }
-                        // const parts = updateObject[key].match(/(.*)\/(.*)\/(....)/);
+    //                         updateObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString(); //.match(/(..\/..\/....)/)?.[1];
+    //                     }else{
+    //                         updateObject[key] = updateObject[key].toISOString();
+    //                     }
+    //                     // const parts = updateObject[key].match(/(.*)\/(.*)\/(....)/);
 
-                        // updateObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString() //.match(/(..\/..\/....)/)?.[1];
-                    }catch(e){
-                        console.log(updateObject[key], e)
-                        updateObject[key] = undefined;
-                    }
-                }
-            })
+    //                     // updateObject[key] = new Date(parts[3], parts[2], parts[1]).toISOString() //.match(/(..\/..\/....)/)?.[1];
+    //                 }catch(e){
+    //                     console.log(updateObject[key], e)
+    //                     updateObject[key] = undefined;
+    //                 }
+    //             }
+    //         })
 
-            if(t.update){
-                await updateRecord({
-                    action: 'UPDATE',
-                    create: t.create,
-                    update: t.update,
-                    id: event.valueId,
-                    data: updateObject,
-                    primaryKey: t?.family.sepcies,
-                    type: task.find((a: any) => a.family.cluster == event.id)?.type
-                })
+    //         if(t.update){
+    //             await updateRecord({
+    //                 action: 'UPDATE',
+    //                 create: t.create,
+    //                 update: t.update,
+    //                 id: event.valueId,
+    //                 data: updateObject,
+    //                 primaryKey: t?.family.sepcies,
+    //                 type: task.find((a: any) => a.family.cluster == event.id)?.type
+    //             })
 
-            }
-        }
-    })
+    //         }
+    //     }
+    // })
 }
 main()
