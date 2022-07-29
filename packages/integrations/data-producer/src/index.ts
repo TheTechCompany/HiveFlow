@@ -38,6 +38,8 @@ const main = async () => {
 	    'Authorization': `API-Key ${process.env.INTEGRATION_KEY}`
     })
 
+    console.log(JSON.stringify(initialResp))
+
     const initialState = task.map((t: any) => {
 
         console.log(`Fetched ${initialResp[t?.queryKey].length} ${t.type}`)
