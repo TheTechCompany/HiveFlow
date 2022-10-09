@@ -18,6 +18,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 const API_URL = localStorage.getItem('HEXHIVE_API');
 
+
 const uploadLink = createUploadLink({
   uri:  process.env.NODE_ENV == 'production'
   ? `${API_URL || process.env.REACT_APP_API}/graphql`
