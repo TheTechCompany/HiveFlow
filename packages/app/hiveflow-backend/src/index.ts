@@ -15,7 +15,6 @@ const prisma = new PrismaClient();
 
 (async () => {
 
-
   // const driver = neo4j.driver(
   //   process.env.NEO4J_URI || "localhost",
   //   neo4j.auth.basic(
