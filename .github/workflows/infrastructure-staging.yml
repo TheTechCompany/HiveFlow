@@ -274,20 +274,26 @@ jobs:
       - name: Setup DB stack
         run: |
           echo "DB_NAME=ultraviolet/hexhive-db/db-staging" >> $GITHUB_ENV
+          echo "DB=db-staging" >> $GITHUB_ENV
         if: ${{ github.ref == 'refs/heads/staging' }}
 
       - name: Setup stack
         run: |
           echo "DB_NAME=ultraviolet/hexhive-db/db-prod" >> $GITHUB_ENV
+          echo "DB=db-prod" >> $GITHUB_ENV
+
         if: ${{ github.ref == 'refs/heads/next' }}
 
       - name: Setup stack
         run: |
           echo "DB_NAME=ultraviolet/hexhive-db/db-prod" >> $GITHUB_ENV
+          echo "DB=db-prod" >> $GITHUB_ENV
+
         if: ${{ github.ref == 'refs/heads/master' }}
 
-      - run: pulumi stack -s ultraviolet/prod output k3sconfig > ~/.kube/config
-        working-directory: ./packages/infrastructure/base
+
+      - run: pulumi stack -s ultraviolet/base-infrastructure/prod output k3sconfig > ~/.kube/config
+        working-directory: ./packages/infrastructure
         id: kube_config
         
       - run: echo "::set-output name=postgres::$(pulumi stack -s ${{ env.DB_NAME }} output postgres_name)" 
@@ -311,7 +317,7 @@ jobs:
           
       # - run: aws eks update-kubeconfig --name hexhive-cluster-eksCluster-506b63f
 
-      - run: kubectl --kubeconfig ~/.kube/config port-forward service/${{ steps.postgres_url.outputs.postgres }} 5432:5432 &
+      - run: kubectl --kubeconfig ~/.kube/config -n ${{ env.DB }} port-forward service/${{ steps.postgres_url.outputs.postgres }} 5432:5432 &
       
       - run: sleep 30s
 
