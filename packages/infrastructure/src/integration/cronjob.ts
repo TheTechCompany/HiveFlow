@@ -65,9 +65,9 @@ export const IntegrationDeployment = async (provider: Provider, rootServer: stri
                     template: {
                         spec: {
                             restartPolicy: 'Never',
-                            nodeSelector: {
-                                'eks.amazonaws.com/nodegroup': 'managed-nodes'                
-                            },
+                            // nodeSelector: {
+                            //     'eks.amazonaws.com/nodegroup': 'managed-nodes'                
+                            // },
                             containers: [
                                 {
                                     imagePullPolicy: "IfNotPresent",

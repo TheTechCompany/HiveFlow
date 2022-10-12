@@ -19,9 +19,9 @@ const main = (async () => {
 
     const gatewayRef = new pulumi.StackReference(`${org}/apps/${suffix}`)
 
-    const kubeconfig = stackRef.getOutput('kubeconfig');
+    const kubeconfig = stackRef.getOutput('k3sconfig');
     
-    const rootServer = gatewayRef.getOutput('gatewayUrl');
+    const rootServer = gatewayRef.getOutput('internalGatewayUrl');
     const dbUrl = dbRef.getOutput('postgres_name');
     const dbPass = dbRef.getOutput('postgres_pass');
 
