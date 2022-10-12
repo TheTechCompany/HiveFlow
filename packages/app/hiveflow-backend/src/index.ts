@@ -1,13 +1,8 @@
 import { config } from "dotenv";
 config();
 import { HiveGraph } from '@hexhive/graphql-server'
-import { readFileSync } from 'fs'
 import express from "express";
-import neo4j from "neo4j-driver";
-import { Neo4jGraphQL } from "@neo4j/graphql";
-import { graphqlHTTP } from "express-graphql";
 import schema from "./schema";
-import jwt from "jsonwebtoken";
 import { PrismaClient } from '@prisma/client'
 
 
@@ -15,25 +10,10 @@ const prisma = new PrismaClient();
 
 (async () => {
 
-  // const driver = neo4j.driver(
-  //   process.env.NEO4J_URI || "localhost",
-  //   neo4j.auth.basic(
-  //     process.env.NEO4J_USER || "neo4j",
-  //     process.env.NEO4J_PASSWORD || "test"
-  //   )
-  // );
-
   console.log("RabbitMQ");
 
-  // const resolved = await resolvers(pool, prisma);
-
   const { typeDefs, resolvers } = schema(prisma);
-  // const neoSchema: Neo4jGraphQL = new Neo4jGraphQL({
-  //   typeDefs,
-  //   resolvers: resolved,
-  //   driver,
-  // });
-
+  
   const graphServer = new HiveGraph({
 		rootServer: process.env.ROOT_SERVER || "http://localhost:7000",
     dev: false,
