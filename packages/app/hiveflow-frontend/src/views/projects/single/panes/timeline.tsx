@@ -49,8 +49,12 @@ export const TimelinePane = () => {
     }
   }, [selectedItem])
 
+  const [ horizon, setHorizon ] = useState<{start?: Date, end?: Date}>({})
     return (
         <Timeline
+          onHorizonChange={(start, end) => {
+            setHorizon({start, end})
+          }}
           dayStatus={() => 'rgb(163, 182, 150)'}
             data={
               timelineTasks.map((task) => ({
@@ -69,6 +73,8 @@ export const TimelinePane = () => {
               }else{
                 return true;
               }
+            }).filter((task) => {
+              return task.end > horizon.start && task.start < horizon.end
             })
           }
             onCreateTask={async (task) => {
