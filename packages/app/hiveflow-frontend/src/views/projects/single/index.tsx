@@ -83,7 +83,7 @@ console.log({pathname})
 
   const { data } = useQuery(gql`
     query GetProject($id: String) {
-      users {
+      users (active: true) {
         id
         name
       }
