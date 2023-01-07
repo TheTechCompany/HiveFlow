@@ -323,7 +323,7 @@ console.log({pathname})
     <ProjectSingleProvider value={{
       projectId: job_id, 
       tasks: job?.tasks || [],
-      finishTtl: 60 * 1000 * 60 * 24,
+      finishTtl: (60 * 1000) * 60 * 12, //12 hours
       refetch,
       updateTaskStatus: (taskId, status) => {
           updateTask({
