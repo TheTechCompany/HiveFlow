@@ -5,10 +5,10 @@ import moment from 'moment';
 import { stringToColor } from '@hexhive/utils';
 import { Box, Typography } from '@mui/material';
 import { Add } from 'grommet-icons';
-import {TimelineItem, TimelineItemItems, useMutation, useQuery } from '@hive-flow/api';
+import {TimelineItem, TimelineItemItems, useMutation } from '@hive-flow/api';
 import { TimelineHeader, TimelineView } from './Header';
 import _, { filter, toUpper } from 'lodash';
-import { useQuery as useApollo, useApolloClient, gql } from '@apollo/client';
+import { useQuery, useMutation as useApolloMutation, useApolloClient, gql } from '@apollo/client';
 import { TimelineModal } from '../../modals/timeline';
 import { CreateTimelineModal } from '../../modals/create-timeline';
 import { Paper } from '@mui/material';
@@ -52,6 +52,8 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
     const [selected, setSelected] = useState<any | undefined>()
 
+    const [selectedItem, setSelectedItem] = useState<any | undefined>()
+
     const [ createModalOpen, openCreateModal ] = useState(false)
     const [erpModal, openERP] = useState<boolean>(false);
 
@@ -60,14 +62,15 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     const [date, setDate] = useState<Date>(sampleDate)
     const [horizon, setHorizon] = useState<{ start: Date, end: Date } | undefined>()
 
-    const [timelineItems, setTimelineItems] = useState<any[]>([]);
+    const [ timelineItems, setTimelineItems ] = useState<any[]>([]);
+    const [ timelineLinks, setTimelineLinks ] = useState<any[]>([]);
 
-    const query = useQuery({
-        suspense: false,
-        staleWhileRevalidate: true
-    })
+    // const query = useQuery({
+    //     suspense: false,
+    //     staleWhileRevalidate: true
+    // })
 
-    const { data: timelineData } = useApollo(gql`
+    const { data: timelineData } = useQuery(gql`
         query Timelines {
             timelines {
                 id
@@ -78,12 +81,17 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
    const { timelines = [] } = timelineData || {}
 
-    const { data } = useApollo(gql`
-        query Q($timeline: String, $startDate: DateTime, $endDate: DateTime){
+    const { data } = useQuery(gql`
+        query TimelineData($timeline: String, $startDate: DateTime, $endDate: DateTime){
       
 
             timelineItems(where: {timeline: $timeline, startDate_LTE: $endDate, endDate_GTE: $startDate}) {
                 id
+
+                blocks {
+                    id
+                }
+
                 startDate
                 endDate
                 notes
@@ -120,7 +128,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
     // ($start: DateTime, $end: DateTime) 
     //(where: {date_GTE: $start, date_LTE: $end})
-    const { data: projectInfo } = useApollo(gql`
+    const { data: projectInfo } = useQuery(gql`
         query ProjectInfo{
             projects {
                 id
@@ -145,6 +153,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     })
 
     useEffect(() => {
+        setTimelineLinks((data?.timelineItems || []).map((x) => x.blocks.map((a) => ({id: `${x.id}-${a.id}`, source: x.id, target: a.id})) || [])?.reduce((a, b) => a.concat(b), []));
         setTimelineItems(data?.timelineItems?.map(mapItems))
     }, [data?.timelineItems])
 
@@ -181,7 +190,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     // })
 
     const refetchTimeline = () => {
-        client.refetchQueries({include: ['Q']})
+        client.refetchQueries({include: ['TimelineData']})
     }
 
     // const timelines = data?.timelines || [];
@@ -342,6 +351,27 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         awaitRefetchQueries: true,
         suspense: false,
     })
+    
+
+    const [ createTimelineItemDependency ] = useApolloMutation(gql`
+        mutation CreateDependency ($source: ID, $target: ID){
+            createTimelineItemDependency(source: $source, target: $target){
+                id
+            }
+        }
+    `, {
+        refetchQueries: ['TimelineData']
+    })
+
+    const [ deleteTimelineItemDependency ] = useApolloMutation(gql`
+        mutation DeleteDependency ($source: ID, $target: ID){
+            deleteTimelineItemDependency(source: $source, target: $target){
+                id
+            }
+        }
+    `, {
+        refetchQueries: ['TimelineData']
+    })
 
     // console.log("QUOTE DATA", quoteData)
 
@@ -431,11 +461,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     }
 
     //Turn initial load off
-    useEffect(() => {
-        if(initialLoad && !query.$state.isLoading){
-            setInitialLoad(false)
-        }
-    }, [query.$state.isLoading])
+
 
     const mapItems = (item: any) => {
         return {
@@ -700,6 +726,14 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         }
     }
 
+    const createTimelineDependency = () => {
+        
+    }
+
+    const deleteTimelineDependency = () => {
+
+    }
+
     const updateTimelinePlan = async (id: string, item: { notes?: string, start: Date, end: Date }) => {
 
         try {
@@ -778,7 +812,30 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                 onViewChange={(view) => setView(view)} />
 
             <Paper
-                sx={{flex: 1, marginTop: '3px', display: 'flex'}}>
+                tabIndex={1}
+                onKeyDown={(e) => {
+                    if(selectedItem && (e.key == "Delete" || e.key == "Backspace")){
+                        const [source, target] = selectedItem?.split('-');
+
+                        if(!source || !target) return;
+
+                        deleteTimelineItemDependency({
+                            variables: {
+                                source: source,
+                                target: target,
+                            }
+                        }).then(() => {
+                            setSelectedItem(null);
+                        })
+
+                    }   
+                    // console.log(e.key)
+                }}
+                sx={{
+                    flex: 1, 
+                    marginTop: '3px', 
+                    display: 'flex'
+                }}>
 
                 <Timeline
                     onCreateTask={async (task) => {
@@ -790,16 +847,16 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                         let horizonStart = (day || moment()).clone().startOf('isoWeek').valueOf()
                         let horizonEnd = (day || moment()).clone().endOf('isoWeek').valueOf()
 
-                        console.log(day, people, horizonStart, horizonEnd)
+                        // console.log(day, people, horizonStart, horizonEnd)
                         let people_power = people?.filter((a) => {
-                            console.log(horizonEnd, new Date(a.startDate).getTime(), horizonStart < (new Date(a.endDate).getTime()))
+                            // console.log(horizonEnd, new Date(a.startDate).getTime(), horizonStart < (new Date(a.endDate).getTime()))
                             return (horizonEnd > (new Date(a?.startDate).getTime() || 0) && horizonStart < (new Date(a?.endDate).getTime() || 0))
                         })
 
                         let job_power = capacity?.filter((a: { startDate: string | number | Date; endDate: string | number | Date; }) => {
                             return (horizonEnd > (new Date(a?.startDate).getTime() || 0) && horizonStart < (new Date(a?.endDate).getTime() || 0))
                         })
-                        console.log(people_power)
+                        // console.log(people_power)
 
                         let week_power = people_power?.reduce((previous, current) => {
                             let weeks = moment(current?.endDate).diff(moment(current?.startDate), 'weeks')
@@ -824,7 +881,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                             return previous + (week && week > 0 ? (week) / weeks : 0) //((week || 0) / weeks)
                         }, 0)
 
-                        console.log(job_week, week_power)
+                        // console.log(job_week, week_power)
 
                         let alarm_level = (job_week || 0) > (week_power || 0) ? ((job_week || 0) / (week_power || 0)) : 0;
                        
@@ -870,15 +927,31 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                     }}
                     onSelectItem={(item: any) => {
                         console.log(item, capacity)
-                        openERP(true)
-                        setSelected(_.cloneDeep(capacity?.find((a: { id: any; }) => a?.id == (item as any)?.id)))
-                        console.log(item)
+
+                        if(item.source && item.target){
+                            //Set selected link
+                            setSelectedItem(item.id)
+                        }else{
+                            setSelectedItem(item.id)
+
+                            openERP(true)
+                            setSelected(_.cloneDeep(capacity?.find((a: { id: any; }) => a?.id == (item as any)?.id)))
+                        }
                     }}
+                    onCreateLink={(link) => {
+                        createTimelineItemDependency({
+                            variables: {
+                                source: link.source,
+                                target: link.target
+                            }
+                        })
+                    }}
+                    selectedItem={{id: selectedItem}}
                     loading={initialLoad}
                     onHorizonChange={onHorizonChange}
                     resizable
                     mode="month"
-                    links={[]}
+                    links={timelineLinks}
                     data={timelineItems?.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()) || []}
                     date={date}
                     itemHeight={30}

@@ -159,6 +159,9 @@ model ScheduleItemPermission {
 model TimelineItem {
 	id String @id
 
+    requires TimelineItem[] @relation(name: "blocksTimeline")
+    blocks TimelineItem[] @relation(name: "blocksTimeline")
+
     estimate Estimate? @relation(name: "estimateTimeline", fields: [estimateId], references: [id])
     estimateId String?
 

@@ -19,6 +19,9 @@ export default (prisma: PrismaClient) => {
             updateTimelineItem(id: ID, input: TimelineItemInput): TimelineItem
             deleteTimelineItem(id: ID): TimelineItem
 
+            createTimelineItemDependency(source: ID, target: ID): TimelineItem 
+            deleteTimelineItemDependency(source: ID, target: ID): TimelineItem 
+
             createScheduleItem(input: ScheduleItemInput): ScheduleItem
             updateScheduleItem(id: ID, input: ScheduleItemInput): ScheduleItem
             deleteScheduleItem(id: ID): ScheduleItem
@@ -92,6 +95,10 @@ export default (prisma: PrismaClient) => {
 
         type TimelineItem {
             id: ID 
+
+            blocks: [TimelineItem]
+            requires: [TimelineItem]
+
             timeline: String
             startDate: DateTime
             endDate: DateTime
@@ -203,7 +210,9 @@ export default (prisma: PrismaClient) => {
                     },
                     include: {
                         project: true,
-                        estimate: true
+                        estimate: true,
+                        blocks: true,
+                        requires: true
                     }
                 })
             }
@@ -291,6 +300,32 @@ export default (prisma: PrismaClient) => {
             deleteTimelineItem: async (root: any, args: {id: string}) => {
                 return await prisma.timelineItem.delete({
                     where: {id: args.id}
+                })
+            },
+            createTimelineItemDependency: async (root: any, args: {source: string, target: string}) => {
+                return await prisma.timelineItem.update({
+                    where: {
+                        id: args.source
+                    },
+                    data: {
+                        blocks: {
+                            connect: {id: args.target}
+                        }
+                    }
+                })
+            },
+            deleteTimelineItemDependency: async (root: any, args: {source: string, target: string}) => {
+                return await prisma.timelineItem.update({
+                    where: {
+                        id: args.source
+                    },
+                    data: {
+                        blocks: {
+                            disconnect: {
+                                id: args.target
+                            }
+                        }
+                    }
                 })
             },
             createScheduleItem: async (root: any, args: {input: any}, context: any) => {

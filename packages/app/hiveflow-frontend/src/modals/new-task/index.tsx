@@ -137,12 +137,20 @@ export const TaskModal = (props) => {
 
                     <Box sx={{marginTop: '8px', marginBottom: '3px', display: 'flex'}}>
                         <DateInput 
-                            format='dd/MM/yyyy'
+                            format='DD/MM/yyyy'
                             value={task.startDate?.toISOString()}
-                            onChange={(date) => setTask({...task, startDate: new Date(date)})}
+                            onChange={(date) => {
+                                try{
+                                    console.log({date, old: '12'})
+                                    // setTask({...task, startDate: new Date(date)})
+                                }catch(e){
+
+                                }
+                            
+                            }}
                             label='Start Date' />
                         <DateInput 
-                            format='dd/MM/yyyy'
+                            format='DD/MM/yyyy'
                             value={task.endDate?.toISOString()}
                             onChange={(date) => setTask({...task, endDate: new Date(date)})}
                             label="End Date" />

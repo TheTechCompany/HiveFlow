@@ -14,14 +14,14 @@ import { buildAxiosFetch } from "@lifeomic/axios-fetch";
 import axios from "axios";
 import { createTheme, ThemeProvider } from "@mui/material";
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
 
 const API_URL = localStorage.getItem('HEXHIVE_API');
 
 const uploadLink = createUploadLink({
-  uri:  process.env.NODE_ENV == 'production'
-  ? `${API_URL || process.env.REACT_APP_API}/graphql`
-  : "http://localhost:7000/graphql",
+  uri: process.env.NODE_ENV == 'production'
+    ? `${API_URL || process.env.REACT_APP_API}/graphql`
+    : "http://localhost:7000/graphql",
 
   headers: {
     "keep-alive": "true"
@@ -36,8 +36,8 @@ const uploadLink = createUploadLink({
 
 
 const authServer = process.env.REACT_APP_API
-? `${process.env.REACT_APP_API}`
-: "http://localhost:7000"
+  ? `${process.env.REACT_APP_API}`
+  : "http://localhost:7000"
 
 const client = new ApolloClient({
   link: uploadLink,
@@ -96,13 +96,13 @@ export const theme = createTheme({
           padding: '6px',
           // color: globalTheme.palette.navigation.main,
           minHeight: '36px',
-         
+
           '&.Mui-selected': {
             // color: globalTheme.palette.navigation.main
-            
+
           }
         }
-      
+
       }
     },
     MuiDialogContent: {
@@ -147,7 +147,7 @@ function App(props: any) {
 
   const { REACT_APP_API, PUBLIC_URL, REACT_APP_URL, NODE_ENV } = process.env;
 
-  const [ config, setConfig ] = React.useState<HiveFlowConfiguration[]>([]);
+  const [config, setConfig] = React.useState<HiveFlowConfiguration[]>([]);
 
   useEffect(() => {
     getConfig().then((data) => {
@@ -156,24 +156,24 @@ function App(props: any) {
   }, [])
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-<ThemeProvider theme={HexHiveTheme}>
+    <LocalizationProvider dateAdapter={AdapterMoment}>
+      <ThemeProvider theme={HexHiveTheme}>
 
-    <HiveFlowProvider value={{config}}>
-    <AuthProvider authorizationServer={authServer}>
-      <Router basename={process.env.PUBLIC_URL || "/dashboard/flow"}>
-      
-            <ApolloProvider client={client}>
-              <Routes>
-                <Route path="*" element={<Dashboard />} />
-              </Routes>
+        <HiveFlowProvider value={{ config }}>
+          <AuthProvider authorizationServer={authServer}>
+            <Router basename={process.env.PUBLIC_URL || "/dashboard/flow"}>
 
-            </ApolloProvider>
+              <ApolloProvider client={client}>
+                <Routes>
+                  <Route path="*" element={<Dashboard />} />
+                </Routes>
 
-      </Router>
-    </AuthProvider>
-    </HiveFlowProvider>
-    </ThemeProvider>
+              </ApolloProvider>
+
+            </Router>
+          </AuthProvider>
+        </HiveFlowProvider>
+      </ThemeProvider>
     </LocalizationProvider>
 
   );
