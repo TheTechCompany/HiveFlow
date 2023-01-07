@@ -20,12 +20,11 @@
     "prisma": "^3.12.0",
     "ts-node": "^10.4.0",
     "tsconfig-paths-webpack-plugin": "^3.5.2",
-    "typescript": "^4.5.4"
+    "typescript": "4.5.4"
   },
   "dependencies": {
     "@apollo/client": "^3.6.2",
     "@hexhive/graphql-server": "1.0.2-beta.53",
-    "@neo4j/graphql": "^2.5.4",
     "@prisma/client": "3.12.0",
     "apollo-upload-client": "^17.0.0",
     "axios": "^0.27.2",
@@ -37,7 +36,6 @@
     "graphql-tag": "^2.12.6",
     "jsonwebtoken": "^8.5.1",
     "nanoid": "^3.3.2",
-    "neo4j-driver": "^4.4.5",
     "pg": "^8.7.3"
   }
 }

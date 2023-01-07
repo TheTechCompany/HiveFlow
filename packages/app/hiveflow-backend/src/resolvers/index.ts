@@ -1,4 +1,3 @@
-import { Session } from "neo4j-driver"
 import path from 'path';
 import { gql, request } from 'graphql-request'
 import { Pool } from "pg";
