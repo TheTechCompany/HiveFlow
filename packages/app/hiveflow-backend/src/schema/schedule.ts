@@ -73,6 +73,9 @@ export default (prisma: PrismaClient) => {
         
         input TimelineItemInput {
             timelineId: String
+
+            belowId: ID
+
             project: String
             estimate: String
             startDate: DateTime
@@ -98,6 +101,8 @@ export default (prisma: PrismaClient) => {
 
             blocks: [TimelineItem]
             requires: [TimelineItem]
+
+            below: TimelineItem
 
             timeline: String
             startDate: DateTime
@@ -209,6 +214,7 @@ export default (prisma: PrismaClient) => {
                         ...whereArg,
                     },
                     include: {
+                        below: true,
                         project: true,
                         estimate: true,
                         blocks: true,
@@ -278,6 +284,16 @@ export default (prisma: PrismaClient) => {
                         estimateId: args.input.estimate,
                         
                         project: undefined
+                    }
+                }
+
+                if(args.input.belowId){
+                    relatedItem = {
+                        below: {
+                            connect: {
+                                id: args.input.belowId
+                            }
+                        }
                     }
                 }
 

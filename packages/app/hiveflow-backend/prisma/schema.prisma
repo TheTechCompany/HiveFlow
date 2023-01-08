@@ -162,6 +162,11 @@ model TimelineItem {
     requires TimelineItem[] @relation(name: "blocksTimeline")
     blocks TimelineItem[] @relation(name: "blocksTimeline")
 
+    below TimelineItem? @relation(name: "aboveTimelineItem", fields: [belowId], references: [id], onDelete: SetNull)
+    belowId String?
+
+    above TimelineItem[] @relation(name: "aboveTimelineItem")
+
     estimate Estimate? @relation(name: "estimateTimeline", fields: [estimateId], references: [id])
     estimateId String?
 
