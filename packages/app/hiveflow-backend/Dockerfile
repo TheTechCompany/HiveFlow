@@ -2,7 +2,7 @@ FROM node:16-slim
 
 ARG BUILD_ENV=github
 
-RUN apk update && apk add openssl
+RUN apt-get update && apt-get install -y openssl
 
 WORKDIR /app
 
