@@ -162,6 +162,8 @@ model TimelineItem {
     requires TimelineItem[] @relation(name: "blocksTimeline")
     blocks TimelineItem[] @relation(name: "blocksTimeline")
 
+    rank String?
+
     estimate Estimate? @relation(name: "estimateTimeline", fields: [estimateId], references: [id])
     estimateId String?
 

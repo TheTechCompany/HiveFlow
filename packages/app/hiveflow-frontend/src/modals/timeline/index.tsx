@@ -217,7 +217,7 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
 
                                     }
                                 }}
-                                format="dd/MM/yyyy" />
+                                format="DD/MM/yyyy" />
 
                         {/*
                                    // (plan.startDate && !isNaN(+plan.startDate))? 
@@ -240,7 +240,7 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
 
                                     }
                                 }}
-                                format="dd/MM/yyyy" />
+                                format="DD/MM/yyyy" />
                     </Box>
                     <Divider />
 

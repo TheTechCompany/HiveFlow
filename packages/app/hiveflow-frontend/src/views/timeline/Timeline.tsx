@@ -5,13 +5,15 @@ import moment from 'moment';
 import { stringToColor } from '@hexhive/utils';
 import { Box, Typography } from '@mui/material';
 import { Add } from 'grommet-icons';
-import {TimelineItem, TimelineItemItems, useMutation } from '@hive-flow/api';
+import { TimelineItem, TimelineItemItems, useMutation } from '@hive-flow/api';
 import { TimelineHeader, TimelineView } from './Header';
 import _, { filter, toUpper } from 'lodash';
 import { useQuery, useMutation as useApolloMutation, useApolloClient, gql } from '@apollo/client';
 import { TimelineModal } from '../../modals/timeline';
 import { CreateTimelineModal } from '../../modals/create-timeline';
 import { Paper } from '@mui/material';
+
+import { arrayMove } from '@dnd-kit/sortable'
 
 interface TimelineProps {
 
@@ -30,11 +32,11 @@ const HourTypes: any = {
     "Civil Subcontractor": "#c9900a"
 }
 
-const StatusTypes : any = {
+const StatusTypes: any = {
     Won: 'green',
     Lost: 'red',
     "Customer has quote": '#8fb7cf',
-    "Open": '#EEBC1D' 
+    "Open": '#EEBC1D'
 }
 
 const sampleDate = new Date()
@@ -43,8 +45,8 @@ sampleDate.setDate(sampleDate.getDate() - 14)
 
 const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
-    const [ initialLoad, setInitialLoad ] = useState<boolean>(true);
-    
+    // const [initialLoad, setInitialLoad] = useState<boolean>(true);
+
     const [filter, setFilter] = useState<string[]>([])
     const [filters, setFilters] = useState<string[]>([])
 
@@ -54,7 +56,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
     const [selectedItem, setSelectedItem] = useState<any | undefined>()
 
-    const [ createModalOpen, openCreateModal ] = useState(false)
+    const [createModalOpen, openCreateModal] = useState(false)
     const [erpModal, openERP] = useState<boolean>(false);
 
     const [view, setView] = useState<string>('Project');
@@ -62,8 +64,8 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     const [date, setDate] = useState<Date>(sampleDate)
     const [horizon, setHorizon] = useState<{ start: Date, end: Date } | undefined>()
 
-    const [ timelineItems, setTimelineItems ] = useState<any[]>([]);
-    const [ timelineLinks, setTimelineLinks ] = useState<any[]>([]);
+    const [timelineItems, setTimelineItems] = useState<any[]>([]);
+    const [timelineLinks, setTimelineLinks] = useState<any[]>([]);
 
     // const query = useQuery({
     //     suspense: false,
@@ -79,7 +81,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         }
     `)
 
-   const { timelines = [] } = timelineData || {}
+    const { timelines = [] } = timelineData || {}
 
     const { data } = useQuery(gql`
         query TimelineData($timeline: String, $startDate: DateTime, $endDate: DateTime){
@@ -91,6 +93,8 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                 blocks {
                     id
                 }
+
+                rank
 
                 startDate
                 endDate
@@ -153,8 +157,11 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     })
 
     useEffect(() => {
-        setTimelineLinks((data?.timelineItems || []).map((x) => x.blocks.map((a) => ({id: `${x.id}-${a.id}`, source: x.id, target: a.id})) || [])?.reduce((a, b) => a.concat(b), []));
-        setTimelineItems(data?.timelineItems?.map(mapItems))
+        if(data?.timelineItems){
+            console.log("UPDATE", {timeline: data?.timelineItems})
+            setTimelineLinks((data?.timelineItems || []).map((x) => x.blocks.map((a) => ({ id: `${x.id}-${a.id}`, source: x.id, target: a.id })) || [])?.reduce((a, b) => a.concat(b), []));
+            setTimelineItems(data?.timelineItems?.map(mapItems)?.sort((a, b) => (a.rank || '').localeCompare(b.rank || '')) )
+        }
     }, [data?.timelineItems])
 
     // const peopleData = useApollo(gql`
@@ -182,15 +189,15 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     //                 location
     //                 estimate
     //             }
-           
+
     //         }
     //     }
     // `, {
-        
+
     // })
 
     const refetchTimeline = () => {
-        client.refetchQueries({include: ['TimelineData']})
+        client.refetchQueries({ include: ['TimelineData'] })
     }
 
     // const timelines = data?.timelines || [];
@@ -199,11 +206,11 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
     console.log(data)
 
-    const [ createTimeline ] = useMutation((mutation, args: {
+    const [createTimeline] = useMutation((mutation, args: {
         name: string
 
     }) => {
-        const item = mutation.createTimeline({input: {name: args.name}})
+        const item = mutation.createTimeline({ input: { name: args.name } })
 
         return {
             item: {
@@ -212,45 +219,55 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         }
     })
 
-    const [createTimelineItem, createInfo] = useMutation((mutation, args: { item:  { 
-        timeline: string,
-        project?: any, 
-        estimate?: any,
-        notes?: string, 
-        items?: any[], 
-        startDate?: string, 
-        endDate?: string
-    }  }) => {
-        const item = mutation.createTimelineItem({
-            input: {
-                timelineId: args.item.timeline,
-                project: args.item.project,
-                estimate: args.item.estimate,
-                notes: args.item.notes,
-                startDate: args.item.startDate,
-                endDate: args.item.endDate,
-                data: args.item?.items || []
-            } 
-        })
-        return {
-            item: {
-                ...item
-            },
-            error: null
+    const [ createTimelineItem ] = useApolloMutation(gql`
+        mutation CreateTimelineItem ($prev: ID, $input: TimelineItemInput){
+            createTimelineItem(prev: $prev, input: $input){
+                id
+            }
         }
-    }, {
-        onCompleted(data) { },
-        onError(error) { },
-        refetchQueries: [],
-        awaitRefetchQueries: true,
-        suspense: false,
-    })
+    `)
+
+    // const [createTimelineItem, createInfo] = useMutation((mutation, args: {
+    //     item: {
+    //         timeline: string,
+    //         project?: any,
+    //         estimate?: any,
+    //         notes?: string,
+    //         items?: any[],
+    //         startDate?: string,
+    //         endDate?: string
+    //     }
+    // }) => {
+    //     const item = mutation.createTimelineItem({
+    //         input: {
+    //             timelineId: args.item.timeline,
+    //             project: args.item.project,
+    //             estimate: args.item.estimate,
+    //             notes: args.item.notes,
+    //             startDate: args.item.startDate,
+    //             endDate: args.item.endDate,
+    //             data: args.item?.items || []
+    //         }
+    //     })
+    //     return {
+    //         item: {
+    //             ...item
+    //         },
+    //         error: null
+    //     }
+    // }, {
+    //     onCompleted(data) { },
+    //     onError(error) { },
+    //     refetchQueries: [],
+    //     awaitRefetchQueries: true,
+    //     suspense: false,
+    // })
 
     const [deleteTimelineItem, deleteInfo] = useMutation((mutation, args: { id: string }) => {
-        if(!args.id) return {err: "No ID Supplied"}
-        const result = mutation.deleteTimelineItem({ 
+        if (!args.id) return { err: "No ID Supplied" }
+        const result = mutation.deleteTimelineItem({
             id: args.id
-   
+
         })
         return {
             item: {
@@ -266,27 +283,29 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         suspense: false,
     })
 
-    const [updateTimelineItem, updateInfo] = useMutation((mutation, args: { id: string, item: { 
-        project?: string, 
-        estimate?: string, 
-        notes?: string, 
-        items?: any[], 
-        startDate?: string, 
-        endDate?: string
-    } }) => {
-       
-        if(!args.id) return;
+    const [updateTimelineItem, updateInfo] = useMutation((mutation, args: {
+        id: string, item: {
+            project?: string,
+            estimate?: string,
+            notes?: string,
+            items?: any[],
+            startDate?: string,
+            endDate?: string
+        }
+    }) => {
 
-        let update : any = {};
+        if (!args.id) return;
 
-        if(args.item.project) update.project = args.item.project;
-        if(args.item.estimate) update.estimate = args.item.estimate;
+        let update: any = {};
 
-        if(args.item.startDate) update.startDate = args.item.startDate;
-        if(args.item.endDate) update.endDate = args.item.endDate;
+        if (args.item.project) update.project = args.item.project;
+        if (args.item.estimate) update.estimate = args.item.estimate;
 
-        if(args.item.notes) update.notes = args.item.notes;
-        if(args.item.items) update.data = args.item.items;
+        if (args.item.startDate) update.startDate = args.item.startDate;
+        if (args.item.endDate) update.endDate = args.item.endDate;
+
+        if (args.item.notes) update.notes = args.item.notes;
+        if (args.item.items) update.data = args.item.items;
         // if(args.item.items){
         //     let items = args.item.items?.map((x) => ({
         //         id: x?.id,
@@ -294,13 +313,13 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         //         location: x?.location,
         //         estimate: x?.estimate
         //     }))
-    
+
         //     let old_item = capacity.find((a: { id: string; }) => a.id == args.id)
-    
+
         //     let delete_items = old_item.items?.filter((a: { id: any; }) => items?.map((x) => x.id).indexOf(a.id) < 0)
         //     let update_items = items?.filter((a) => a.id)
         //     let create_items = items?.filter((a) => !a.id)
-            
+
         //     update = {
         //         ...update,
         //         items: (delete_items?.map((item: { id: any; }) => ({
@@ -351,9 +370,17 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         awaitRefetchQueries: true,
         suspense: false,
     })
-    
 
-    const [ createTimelineItemDependency ] = useApolloMutation(gql`
+
+    const [ updateTimelineItemOrder ] = useApolloMutation(gql`
+        mutation UpdateTimelineOrder ($item: ID, $prev: ID, $next: ID){
+            updateTimelineItemOrder(id: $item, prev: $prev, next: $next){
+                id
+            }
+        }
+    `)
+
+    const [createTimelineItemDependency] = useApolloMutation(gql`
         mutation CreateDependency ($source: ID, $target: ID){
             createTimelineItemDependency(source: $source, target: $target){
                 id
@@ -363,7 +390,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         refetchQueries: ['TimelineData']
     })
 
-    const [ deleteTimelineItemDependency ] = useApolloMutation(gql`
+    const [deleteTimelineItemDependency] = useApolloMutation(gql`
         mutation DeleteDependency ($source: ID, $target: ID){
             deleteTimelineItemDependency(source: $source, target: $target){
                 id
@@ -384,17 +411,17 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     //     color: stringToColor(quote?.name || '')
     // }))
 
-//where: {status: ["Job Open", "Handover"] }
+    //where: {status: ["Job Open", "Handover"] }
     const projects = projectInfo?.projects || [] // query.projects({ })?.map((x) => ({ ...x }))
     const estimates = projectInfo?.estimates || [] // query.estimates({ where:})?.map((x) => ({ ...x }))
 
     // const capacity = query.timelineItems({ where: {timeline: view}});
 
-    const people : any[] =  [] //peopleData?.data?.timelineItems;
+    const people: any[] = [] //peopleData?.data?.timelineItems;
 
     // const [timeline, setTimeline] = useState<any[]>([])
 
-   
+
 
     const getColorBars = (plan: { hatched?: boolean, items?: any[] }) => {
         let total = plan.items?.reduce((previous: any, current: any) => previous += current.quantity, 0)
@@ -469,36 +496,39 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
             name: `${item?.estimate?.displayId || item?.project?.displayId} - ${item?.estimate?.name || item?.project?.name}`,
             start: new Date(item?.startDate),
             end: new Date(item?.endDate),
+
+            rank: item?.rank,
+
             color: getColorBars({ hatched: Boolean(item?.esimate), items: item?.data || [] }),
             showLabel: `${item?.data?.reduce((previous: any, current: any) => {
-                                return previous += (current?.quantity || 0)
+                return previous += (current?.quantity || 0)
             }, 0)}hrs`,
             hoverInfo: item.data.length > 0 || item.notes.length > 0 && (
-                <Box sx={{display: 'flex', flexDirection: 'column'}}>
-                                     <Box sx={{bgcolor: 'secondary.main', display: 'flex', justifyContent: 'space-between'}}>
-                                         {/* <Text weight="bold">{capacity_plan?.project?.name?.substring(0, 15)}</Text> */}
-                                         <Typography fontWeight="bold">Total Hours: </Typography>
-                                         <Typography>{
-                                            item?.data?.reduce((previous: any, current: any) => {
-                                                return previous += (current?.quantity || 0)
-                                            }, 0)}hrs
-                                        </Typography>
-                                    </Box>
-                                    <Box>
-                                        {item?.data?.slice().sort((a: { location: any; }, b: { location: any; }) => (a?.location || '') > (b?.location || '') ? -1 : 1).map((x: {item: string, location: string, quantity: number}) => (
-                                            <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}} >
-                                                    <Box sx={{display: 'flex', alignItems: 'center'}}>
-                                                        { <ColorDot color={HourTypes[x?.item  as any || '']} size={10}/> }
-                                                        <Typography>{x?.item}{x?.location ? ` - ${x?.location}` : ''} :</Typography>
-                                                    </Box>
-                                                <Typography sx={{marginLeft: '4px'}}>{x?.quantity}hrs</Typography>
-                                            </Box>
-                                        ))}
-                                    </Box>
-                                    <Typography>
-                                        { item?.notes || ''}
-                                    </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                    <Box sx={{ bgcolor: 'secondary.main', display: 'flex', justifyContent: 'space-between' }}>
+                        {/* <Text weight="bold">{capacity_plan?.project?.name?.substring(0, 15)}</Text> */}
+                        <Typography fontWeight="bold">Total Hours: </Typography>
+                        <Typography>{
+                            item?.data?.reduce((previous: any, current: any) => {
+                                return previous += (current?.quantity || 0)
+                            }, 0)}hrs
+                        </Typography>
+                    </Box>
+                    <Box>
+                        {item?.data?.slice().sort((a: { location: any; }, b: { location: any; }) => (a?.location || '') > (b?.location || '') ? -1 : 1).map((x: { item: string, location: string, quantity: number }) => (
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} >
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    {<ColorDot color={HourTypes[x?.item as any || '']} size={10} />}
+                                    <Typography>{x?.item}{x?.location ? ` - ${x?.location}` : ''} :</Typography>
                                 </Box>
+                                <Typography sx={{ marginLeft: '4px' }}>{x?.quantity}hrs</Typography>
+                            </Box>
+                        ))}
+                    </Box>
+                    <Typography>
+                        {item?.notes || ''}
+                    </Typography>
+                </Box>
             )
         }
     }
@@ -618,7 +648,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     //         setFilters(status)
 
     //         parseEstimates()
-          
+
     //     }
     // }, [JSON.stringify(quotes), view])
 
@@ -643,6 +673,8 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         setHorizon({ start, end })
     };
 
+    
+
     const filterData = (item: { start?: Date, end?: Date }) => {
         if (horizon && horizon.start && horizon.end) {
             let horizonStart = horizon.start.getTime();
@@ -657,19 +689,20 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         }
     }
 
-   
+
 
     const createTimelinePlan = (plan: { id?: string, project?: { id?: string, type?: string }, notes?: string, data?: any[], startDate?: Date, endDate?: Date }) => {
-        console.log({plan})
-        plan.data = (plan.data || []).map((x) => ({item: x.item, location: x.location, quantity: x.quantity}))
+        console.log({ plan })
+        plan.data = (plan.data || []).map((x) => ({ item: x.item, location: x.location, quantity: x.quantity }))
 
-        let attachUpdate : any = {};
+        let attachUpdate: any = {};
 
-        if(plan.project.type == "Estimate"){
+        if (plan.project.type == "Estimate") {
             attachUpdate.estimate = plan.project?.id
-        }else{
+        } else {
             attachUpdate.project = plan.project?.id
         }
+        
         if (plan.id) {
             console.log("Update", plan)
 
@@ -690,17 +723,17 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
             }).then(() => {
 
                 // setTimeout(() => {
-                    let items = timelineItems.slice();
-                    let ix = items.map((x) => x.id).indexOf(plan.id);
-                    if(ix > -1){
-                        items[ix] = {
-                            ...items[ix],
-                            ...plan
-                        }
-                        setTimelineItems(items)
+                let items = timelineItems.slice();
+                let ix = items.map((x) => x.id).indexOf(plan.id);
+                if (ix > -1) {
+                    items[ix] = {
+                        ...items[ix],
+                        ...plan
                     }
+                    setTimelineItems(items)
+                }
                 // }, 2000);
-                
+
                 // setTimelineItems(items)
                 refetchTimeline()
                 openERP(false)
@@ -708,14 +741,15 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         } else {
             console.log(plan)
             createTimelineItem({
-                args: {
-                    item: {
+                variables: {
+                    prev: timelineItems?.[timelineItems.length -1]?.id,
+                    input: {
                         ...attachUpdate,
                         startDate: plan.startDate?.toISOString(),
                         endDate: plan.endDate?.toISOString(),
-                        timeline: view || plan.project?.type,
+                        timelineId: view || plan.project?.type,
                         notes: plan.notes,
-                        items:  plan.data || []
+                        data: plan.data || []
                     }
                 }
             }).then((data) => {
@@ -727,7 +761,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     }
 
     const createTimelineDependency = () => {
-        
+
     }
 
     const deleteTimelineDependency = () => {
@@ -749,21 +783,21 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
             })
             refetchTimeline()
         } catch (e) {
-            console.log({e})
+            console.log({ e })
         }
         return true;
 
     }
 
     return (
-        <Box    
+        <Box
             sx={{
                 flex: 1,
                 display: 'flex',
                 flexDirection: 'column'
             }}>
-            <CreateTimelineModal 
-                open={createModalOpen} 
+            <CreateTimelineModal
+                open={createModalOpen}
                 onClose={() => openCreateModal(false)}
                 onSubmit={(timeline) => {
                     createTimeline({
@@ -775,7 +809,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                         openCreateModal(false)
                     })
                 }}
-                />
+            />
             <TimelineModal
                 type={view == "Project" ? "Projects" : "Estimates"}
                 selected={selected}
@@ -792,13 +826,13 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                     })
                 }}
                 onSubmit={createTimelinePlan}
-                projects={view == "Project" ? 
+                projects={view == "Project" ?
                     projects?.map((x) => ({ id: x.id, displayId: x.displayId, name: x.name, type: "Project" })) || [] :
                     estimates?.map((x) => ({ id: x.id, displayId: x.displayId, name: x.name, type: "Estimate" })) || []
                 }
                 open={erpModal} />
             <TimelineHeader
-                timelines={[{id: 'Project', name: "Projects"}, {id: 'People', name: "People"}, {id: 'Estimate', name: "Estimates"}]}
+                timelines={[{ id: 'Project', name: "Projects" }, { id: 'People', name: "People" }, { id: 'Estimate', name: "Estimates" }]}
                 filter={filter}
                 filters={filters}
                 onCreateTimeline={() => {
@@ -814,10 +848,10 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
             <Paper
                 tabIndex={1}
                 onKeyDown={(e) => {
-                    if(selectedItem && (e.key == "Delete" || e.key == "Backspace")){
+                    if (selectedItem && (e.key == "Delete" || e.key == "Backspace")) {
                         const [source, target] = selectedItem?.split('-');
 
-                        if(!source || !target) return;
+                        if (!source || !target) return;
 
                         deleteTimelineItemDependency({
                             variables: {
@@ -828,22 +862,22 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                             setSelectedItem(null);
                         })
 
-                    }   
+                    }
                     // console.log(e.key)
                 }}
                 sx={{
-                    flex: 1, 
-                    marginTop: '3px', 
+                    flex: 1,
+                    marginTop: '3px',
                     display: 'flex'
                 }}>
 
                 <Timeline
                     onCreateTask={async (task) => {
-                        setSelected({startDate: task.start, endDate: task.end})
+                        setSelected({ startDate: task.start, endDate: task.end })
                         openERP(true);
                     }}
                     dayInfo={(day) => {
-                        
+
                         let horizonStart = (day || moment()).clone().startOf('isoWeek').valueOf()
                         let horizonEnd = (day || moment()).clone().endOf('isoWeek').valueOf()
 
@@ -884,11 +918,11 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                         // console.log(job_week, week_power)
 
                         let alarm_level = (job_week || 0) > (week_power || 0) ? ((job_week || 0) / (week_power || 0)) : 0;
-                       
+
                         return (alarm_level > 0) && (
-                            <Typography 
+                            <Typography
                                 color={alarm_level == Infinity ? 'error' : undefined}
-                                >{alarm_level != Infinity ? `${(alarm_level * 100).toFixed(2)}%` : "No people available"}</Typography>
+                            >{alarm_level != Infinity ? `${(alarm_level * 100).toFixed(2)}%` : "No people available"}</Typography>
                         )
                     }}
                     dayStatus={(day) => {
@@ -928,10 +962,10 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                     onSelectItem={(item: any) => {
                         console.log(item, capacity)
 
-                        if(item.source && item.target){
+                        if (item.source && item.target) {
                             //Set selected link
                             setSelectedItem(item.id)
-                        }else{
+                        } else {
                             setSelectedItem(item.id)
 
                             openERP(true)
@@ -946,17 +980,46 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                             }
                         })
                     }}
-                    selectedItem={{id: selectedItem}}
-                    loading={initialLoad}
+                    selectedItem={{ id: selectedItem }}
+                    loading={false}
                     onHorizonChange={onHorizonChange}
                     resizable
                     mode="month"
                     links={timelineLinks}
-                    data={timelineItems?.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()) || []}
+                    data={timelineItems || []}
                     date={date}
                     itemHeight={30}
+                    onUpdateTaskOrder={(task, newIx, finished) => {
+                        
+                        let newTasks = timelineItems?.slice();
+                        let ix = newTasks.findIndex((a) => a.id == task.id);
+
+                        newTasks = arrayMove(newTasks, ix, newIx);
+
+                        let prevTask = newTasks?.[newIx - 1];
+                        let nextTask = newTasks?.[newIx + 1];
+
+                        // setTimelineItems((tasks) => {                              
+                        //     let ix = tasks.findIndex((a) => a.id == task.id);
+
+                        //     return  arrayMove(tasks, ix, newIx);
+                        // })
+
+                        if(finished){
+                            updateTimelineItemOrder({
+                                variables: {
+                                    item: task.id,
+                                    prev: prevTask?.id,
+                                    next: nextTask?.id 
+                                }
+                            }).then(() => {
+                                refetchTimeline()
+                            })
+                        }
+
+                    }}
                     onUpdateTask={async (task: any, info: any) => {
-                        console.log({task, info});
+                        console.log({ task, info });
 
                         //Task is old state, info is new {start:Date, end: Date}
 
