@@ -1,5 +1,6 @@
-import { PrismaClient } from "@prisma/client"
+import { Prisma, PrismaClient } from "@prisma/client"
 import { nanoid } from "nanoid";
+import { LexoRank } from 'lexorank';
 
 export default (prisma: PrismaClient) => {
 
@@ -15,9 +16,11 @@ export default (prisma: PrismaClient) => {
             updateTimeline(id: ID, input: TimelineInput): Timeline
             deleteTimeline(id: ID): Timeline
 
-            createTimelineItem(input: TimelineItemInput): TimelineItem
+            createTimelineItem(prev: ID, input: TimelineItemInput): TimelineItem
             updateTimelineItem(id: ID, input: TimelineItemInput): TimelineItem
             deleteTimelineItem(id: ID): TimelineItem
+
+            updateTimelineItemOrder(id: ID, prev: ID, next: ID): TimelineItem
 
             createTimelineItemDependency(source: ID, target: ID): TimelineItem 
             deleteTimelineItemDependency(source: ID, target: ID): TimelineItem 
@@ -74,8 +77,6 @@ export default (prisma: PrismaClient) => {
         input TimelineItemInput {
             timelineId: String
 
-            belowId: ID
-
             project: String
             estimate: String
             startDate: DateTime
@@ -102,7 +103,7 @@ export default (prisma: PrismaClient) => {
             blocks: [TimelineItem]
             requires: [TimelineItem]
 
-            below: TimelineItem
+            rank: String
 
             timeline: String
             startDate: DateTime
@@ -214,7 +215,6 @@ export default (prisma: PrismaClient) => {
                         ...whereArg,
                     },
                     include: {
-                        below: true,
                         project: true,
                         estimate: true,
                         blocks: true,
@@ -244,8 +244,70 @@ export default (prisma: PrismaClient) => {
             // deleteTimeline: async (root: any, args: {id: any}, context: any) => {
             //     return await prisma.timeline.delete({where: {id: args.id}});
             // },
-            createTimelineItem: async (root: any, args: {input: any}, context: any) => {
+            createTimelineItem: async (root: any, args: {prev: string, input: any}, context: any) => {
                 // return await prisma.
+
+                let newRank;
+
+                if(args.prev){
+
+                    //Find previous item
+
+                    const result = await prisma.$queryRaw<{id: string, rank: string, lead_rank?: string}>`WITH cte as (
+                        SELECT id, rank FROM "TimelineItem" 
+                        WHERE organisation=${context?.jwt?.organisation} AND timeline=${args.input?.timelineId}
+                        ORDER BY rank
+                    ), cte2 as (
+                        SELECT id, rank, LEAD(rank) OVER (ORDER BY rank) as lead_rank FROM cte
+                    )
+                    SELECT id, rank, lead_rank FROM cte2 WHERE id=${args.prev}`
+
+                    const { rank, lead_rank } = result?.[0];
+
+                    let aboveRank = LexoRank.parse(rank || LexoRank.min().toString())
+                    let belowRank = LexoRank.parse(lead_rank || LexoRank.max().toString())
+
+                    newRank = aboveRank.between(belowRank).toString()
+                    console.log("First channel ", result, rank, lead_rank, aboveRank, belowRank, newRank)
+                }else{
+
+                    //Fallback to finding first item in previous history window
+                    const prevItem = await prisma.timelineItem.findFirst({
+                        where: {
+                            organisation: context?.jwt?.organisation,
+                            timeline: args.input.timelineId,
+                            endDate: {
+                                lt: args.input.startDate
+                            }
+                        },
+                        orderBy: {
+                            endDate: 'desc'
+                        }
+                    })
+
+                    //Fallback to finding first item in next history window
+                    const nextItem = await prisma.timelineItem.findFirst({
+                        where: {
+                            organisation: context?.jwt?.organisation,
+                            timeline: args.input.timelineId,
+                            startDate: {
+                                gt: args.input.endDate
+                            }
+                        },
+                        orderBy: {
+                            startDate: 'asc'
+                        }
+                    })
+
+                    //Fallback to max min
+                    let aboveRank = LexoRank.parse(prevItem?.rank || LexoRank.min().toString())
+                    let belowRank = LexoRank.parse(nextItem?.rank || LexoRank.max().toString())
+
+                    newRank = aboveRank.between(belowRank).toString()
+
+                    console.log("Second channel ", aboveRank, belowRank, newRank)
+
+                }
 
                 let relatedItem : any = {};
                 if(args.input.project) relatedItem = {
@@ -260,10 +322,12 @@ export default (prisma: PrismaClient) => {
                         },
                     }
                 }
+
                 return await prisma.timelineItem.create({
                     data: {
                         id: nanoid(),
                         ...relatedItem,
+                        rank: newRank,
                         data: args.input.data,
                         startDate: args.input.startDate,
                         endDate: args.input.endDate,
@@ -272,6 +336,44 @@ export default (prisma: PrismaClient) => {
                         organisation: context?.jwt?.organisation
                     }
                 })
+            },
+            updateTimelineItemOrder: async (root: any, args: any, context: any) => {
+
+                const { prev, next } = args;
+
+                const item = await prisma.timelineItem.findFirst({where: {id: args.id, organisation: context?.jwt?.organisation }});
+
+                const isForward = prev != undefined;
+
+                const result = await prisma.$queryRaw<{id: string, rank: string, lead_rank?: string}>`WITH cte as (
+                    SELECT id, rank FROM "TimelineItem" 
+                    WHERE organisation=${context?.jwt?.organisation} AND timeline=${item?.timeline}
+                    ORDER BY rank
+                ), cte2 as (
+                    SELECT id, rank, ${isForward ? Prisma.sql`LEAD(rank)` : Prisma.sql`LAG(rank)`} OVER (ORDER BY rank) as lead_rank FROM cte
+                )
+                SELECT id, rank, lead_rank FROM cte2 WHERE id=${prev || next}
+                
+                `
+                
+                const { rank, lead_rank } = result?.[0]
+
+                const belowRank = LexoRank.parse((isForward ? rank : lead_rank) || LexoRank.min().toString());
+                const aboveRank = LexoRank.parse((isForward ? lead_rank : rank) || LexoRank.max().toString()); //TODO anything but just using max
+
+                const newRank = belowRank.between(aboveRank)
+
+                console.log({newRank, belowRank, aboveRank, result});
+
+                return await prisma.timelineItem.update({
+                    where: {
+                        id: args.id
+                    },
+                    data: {
+                        rank: newRank.toString()
+                    }
+                })
+
             },
             updateTimelineItem: async (root: any, args: {id: string, input: any}, context: any) => {
                 let relatedItem : any = {};
@@ -287,15 +389,6 @@ export default (prisma: PrismaClient) => {
                     }
                 }
 
-                if(args.input.belowId){
-                    relatedItem = {
-                        below: {
-                            connect: {
-                                id: args.input.belowId
-                            }
-                        }
-                    }
-                }
 
                 return await prisma.timelineItem.update({
                     where: {id: args.id},

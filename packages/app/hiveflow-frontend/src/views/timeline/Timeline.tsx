@@ -13,6 +13,8 @@ import { TimelineModal } from '../../modals/timeline';
 import { CreateTimelineModal } from '../../modals/create-timeline';
 import { Paper } from '@mui/material';
 
+import { arrayMove } from '@dnd-kit/sortable'
+
 interface TimelineProps {
 
 }
@@ -43,7 +45,7 @@ sampleDate.setDate(sampleDate.getDate() - 14)
 
 const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
-    const [initialLoad, setInitialLoad] = useState<boolean>(true);
+    // const [initialLoad, setInitialLoad] = useState<boolean>(true);
 
     const [filter, setFilter] = useState<string[]>([])
     const [filters, setFilters] = useState<string[]>([])
@@ -92,9 +94,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                     id
                 }
 
-                below {
-                    id
-                }
+                rank
 
                 startDate
                 endDate
@@ -157,8 +157,11 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     })
 
     useEffect(() => {
-        setTimelineLinks((data?.timelineItems || []).map((x) => x.blocks.map((a) => ({ id: `${x.id}-${a.id}`, source: x.id, target: a.id })) || [])?.reduce((a, b) => a.concat(b), []));
-        setTimelineItems(data?.timelineItems?.map(mapItems))
+        if(data?.timelineItems){
+            console.log("UPDATE", {timeline: data?.timelineItems})
+            setTimelineLinks((data?.timelineItems || []).map((x) => x.blocks.map((a) => ({ id: `${x.id}-${a.id}`, source: x.id, target: a.id })) || [])?.reduce((a, b) => a.concat(b), []));
+            setTimelineItems(data?.timelineItems?.map(mapItems)?.sort((a, b) => (a.rank || '').localeCompare(b.rank || '')) )
+        }
     }, [data?.timelineItems])
 
     // const peopleData = useApollo(gql`
@@ -216,41 +219,49 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         }
     })
 
-    const [createTimelineItem, createInfo] = useMutation((mutation, args: {
-        item: {
-            timeline: string,
-            project?: any,
-            estimate?: any,
-            notes?: string,
-            items?: any[],
-            startDate?: string,
-            endDate?: string
-        }
-    }) => {
-        const item = mutation.createTimelineItem({
-            input: {
-                timelineId: args.item.timeline,
-                project: args.item.project,
-                estimate: args.item.estimate,
-                notes: args.item.notes,
-                startDate: args.item.startDate,
-                endDate: args.item.endDate,
-                data: args.item?.items || []
+    const [ createTimelineItem ] = useApolloMutation(gql`
+        mutation CreateTimelineItem ($prev: ID, $input: TimelineItemInput){
+            createTimelineItem(prev: $prev, input: $input){
+                id
             }
-        })
-        return {
-            item: {
-                ...item
-            },
-            error: null
         }
-    }, {
-        onCompleted(data) { },
-        onError(error) { },
-        refetchQueries: [],
-        awaitRefetchQueries: true,
-        suspense: false,
-    })
+    `)
+
+    // const [createTimelineItem, createInfo] = useMutation((mutation, args: {
+    //     item: {
+    //         timeline: string,
+    //         project?: any,
+    //         estimate?: any,
+    //         notes?: string,
+    //         items?: any[],
+    //         startDate?: string,
+    //         endDate?: string
+    //     }
+    // }) => {
+    //     const item = mutation.createTimelineItem({
+    //         input: {
+    //             timelineId: args.item.timeline,
+    //             project: args.item.project,
+    //             estimate: args.item.estimate,
+    //             notes: args.item.notes,
+    //             startDate: args.item.startDate,
+    //             endDate: args.item.endDate,
+    //             data: args.item?.items || []
+    //         }
+    //     })
+    //     return {
+    //         item: {
+    //             ...item
+    //         },
+    //         error: null
+    //     }
+    // }, {
+    //     onCompleted(data) { },
+    //     onError(error) { },
+    //     refetchQueries: [],
+    //     awaitRefetchQueries: true,
+    //     suspense: false,
+    // })
 
     const [deleteTimelineItem, deleteInfo] = useMutation((mutation, args: { id: string }) => {
         if (!args.id) return { err: "No ID Supplied" }
@@ -360,6 +371,14 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         suspense: false,
     })
 
+
+    const [ updateTimelineItemOrder ] = useApolloMutation(gql`
+        mutation UpdateTimelineOrder ($item: ID, $prev: ID, $next: ID){
+            updateTimelineItemOrder(id: $item, prev: $prev, next: $next){
+                id
+            }
+        }
+    `)
 
     const [createTimelineItemDependency] = useApolloMutation(gql`
         mutation CreateDependency ($source: ID, $target: ID){
@@ -478,7 +497,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
             start: new Date(item?.startDate),
             end: new Date(item?.endDate),
 
-            below: item?.below,
+            rank: item?.rank,
 
             color: getColorBars({ hatched: Boolean(item?.esimate), items: item?.data || [] }),
             showLabel: `${item?.data?.reduce((previous: any, current: any) => {
@@ -654,90 +673,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         setHorizon({ start, end })
     };
 
-    const sortTimeline = (arr: any[] = []) => {
-        let i, j;
-        let len = arr.length;
-
-        let isSwapped = false;
-
-        console.log({arr});
-
-        for (i = 0; i < len; i++) {
-
-            isSwapped = false;
-
-            let curr = arr[i];
-
-            for (j = 0; j < len -1; j++) {
-                // let curr = arr[j];
-                let next = arr[j + 1];
-
-                console.log({curr, next});
-
-                if (curr.below?.id == next.id) {
-                    var temp = arr[j]
-                    arr[i + 1] = curr //arr[j + 1];
-                    arr[i] =  next;
-                    isSwapped = true;
-                }
-            }
-
-            // IF no two elements were swapped by inner loop, then break
-
-            if (!isSwapped) {
-                break;
-            }
-        }
-        console.log({arr});
-
-        return arr;
-    }
-    const bubbleSort = (arr: any[] = []) => {
-
-        let timeline = arr.slice();
-        console.log({ timeline });
-
-        let swapped;
-
-        do {
-            console.log("Check");
-
-            swapped = false;
-
-            for (let i = 0; i < timeline.length - 1; i++) {
-
-                console.log("Checked,");
-
-                let current = timeline[i];
-                let next = timeline[i + 1];
-
-                console.log({ current, next })
-
-                if (current.below && next.id === current.below.id) {
-                    timeline[i] = next;
-                    timeline[i + 1] = current;
-                    console.log({ timeline, next, current })
-                    swapped = true;
-                }
-
-                /*
- if (!current.below && next.below) { 
-                    timeline[i] = next;
-                    timeline[i + 1] = current;
-                    swapped = true;
-                } else 
-                */
-            }
-
-        } while (swapped);
-
-        console.log({ timeline });
-
-        return timeline;
-
-        // return timeline?.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
-
-    }
+    
 
     const filterData = (item: { start?: Date, end?: Date }) => {
         if (horizon && horizon.start && horizon.end) {
@@ -766,6 +702,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         } else {
             attachUpdate.project = plan.project?.id
         }
+        
         if (plan.id) {
             console.log("Update", plan)
 
@@ -804,14 +741,15 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
         } else {
             console.log(plan)
             createTimelineItem({
-                args: {
-                    item: {
+                variables: {
+                    prev: timelineItems?.[timelineItems.length -1]?.id,
+                    input: {
                         ...attachUpdate,
                         startDate: plan.startDate?.toISOString(),
                         endDate: plan.endDate?.toISOString(),
-                        timeline: view || plan.project?.type,
+                        timelineId: view || plan.project?.type,
                         notes: plan.notes,
-                        items: plan.data || []
+                        data: plan.data || []
                     }
                 }
             }).then((data) => {
@@ -1043,14 +981,43 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                         })
                     }}
                     selectedItem={{ id: selectedItem }}
-                    loading={initialLoad}
+                    loading={false}
                     onHorizonChange={onHorizonChange}
                     resizable
                     mode="month"
                     links={timelineLinks}
-                    data={sortTimeline(timelineItems) || []}
+                    data={timelineItems || []}
                     date={date}
                     itemHeight={30}
+                    onUpdateTaskOrder={(task, newIx, finished) => {
+                        
+                        let newTasks = timelineItems?.slice();
+                        let ix = newTasks.findIndex((a) => a.id == task.id);
+
+                        newTasks = arrayMove(newTasks, ix, newIx);
+
+                        let prevTask = newTasks?.[newIx - 1];
+                        let nextTask = newTasks?.[newIx + 1];
+
+                        // setTimelineItems((tasks) => {                              
+                        //     let ix = tasks.findIndex((a) => a.id == task.id);
+
+                        //     return  arrayMove(tasks, ix, newIx);
+                        // })
+
+                        if(finished){
+                            updateTimelineItemOrder({
+                                variables: {
+                                    item: task.id,
+                                    prev: prevTask?.id,
+                                    next: nextTask?.id 
+                                }
+                            }).then(() => {
+                                refetchTimeline()
+                            })
+                        }
+
+                    }}
                     onUpdateTask={async (task: any, info: any) => {
                         console.log({ task, info });
 
