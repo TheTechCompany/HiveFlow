@@ -873,7 +873,10 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
                 <Timeline
                     onCreateTask={async (task) => {
-                        setSelected({ startDate: task.start, endDate: task.end })
+                        let startDate = moment(task.start).set('hours', 0).set('minutes', 0).toDate();
+                        let endDate = moment(task.end).set('hours', 23).set('minutes', 59).toDate();
+
+                        setSelected({ startDate, endDate })
                         openERP(true);
                     }}
                     dayInfo={(day) => {

@@ -211,8 +211,10 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
                                 onChange={(value) => {
                                     // let startDate = new Date(value.toLocaleString());
                                     // let v = moment(value).format('dd/mm/yyyy').toString()
+                                    let startDate = moment(value).set('hours', 0).set('minutes', 0).toLocaleString();
+
                                     try {
-                                        setPlan({ ...plan, startDate: value.toLocaleString() })
+                                        setPlan({ ...plan, startDate })
                                     } catch (e) {
 
                                     }
@@ -234,8 +236,10 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
                                 onChange={( value ) => {
                                     // let v = moment(value).format('dd/mm/yyyy')
                                     // console.log({value: value.toString(), d: new Date(value.toLocaleString()).toUTCString(), valueLocale: value.toLocaleString()})
+                                    let endDate = moment(value).set('hours', 23).set('minutes', 59).toLocaleString();
+                                    
                                     try {
-                                        setPlan({ ...plan, endDate: value.toLocaleString() })
+                                        setPlan({ ...plan, endDate })
                                     } catch (e) {
 
                                     }
