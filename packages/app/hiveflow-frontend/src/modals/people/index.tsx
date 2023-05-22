@@ -1,4 +1,5 @@
 import { BaseModal, FormInput } from '@hexhive/ui';
+import { Dialog, Button, DialogActions, DialogTitle, TextField, DialogContent } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 
 export interface Person {
@@ -14,28 +15,39 @@ export interface PeopleModalProps {
     onSubmit?: (person: Person) => void;
 }
 
-export const PeopleModal : React.FC<PeopleModalProps> = (props) => {
-    const [ person, setPerson ] = useState<Person>({})
+export const PeopleModal: React.FC<PeopleModalProps> = (props) => {
+    const [person, setPerson] = useState<Person>({})
 
     const submit = () => {
         props.onSubmit?.(person)
     }
 
     useEffect(() => {
-        setPerson({...props.selected})
+        setPerson({ ...props.selected })
     }, [props.selected])
 
     return (
-        <BaseModal 
+        <Dialog
             title='Create Person'
             onClose={props.onClose}
-            onDelete={props.selected && props.onDelete}
-            onSubmit={submit}
+            // onDelete={props.selected && props.onDelete}
             open={props.open}>
-            <FormInput 
-                value={person.name} 
-                onChange={(e) => setPerson({...person, name: e})} 
-                placeholder='Name' />
-        </BaseModal>
+            <DialogTitle>{props.selected ? 'Update' : 'Create'} Person</DialogTitle>
+            <DialogContent>
+                <TextField
+                    sx={{ marginTop: '6px' }}
+                    size="small"
+                    fullWidth
+                    value={person.name}
+                    onChange={(e) => setPerson({ ...person, name: e.target.value })}
+                    label='Name' />
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={props.onClose}>Cancel</Button>
+                <Button onClick={submit} variant="contained" color="primary">
+                    {props.selected ? "Save" : "Create"}
+                </Button>
+            </DialogActions>
+        </Dialog>
     )
 }

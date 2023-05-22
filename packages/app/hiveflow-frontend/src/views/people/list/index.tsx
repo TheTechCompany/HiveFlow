@@ -15,6 +15,8 @@ import { useTypeConfiguration } from '../../../context';
 import { PeopleModal, Person } from '../../../modals/people';
 import { Paper } from '@mui/material';
 
+// import { }
+
 
 export const PeopleList: React.FC<any> = (props) => {
    // const [employees, setEmployees] = useState<any[]>([])
@@ -49,49 +51,6 @@ export const PeopleList: React.FC<any> = (props) => {
       client.refetchQueries({include: ['GetPeople']})
    }
 
-   const [ createPeople ] = useMutation((mutation, args: {name: string}) => {
-      // const item = mutation.updateHiveOrganisations({
-      //   update: {
-      //     people: [{
-      //       create: [{
-      //         node: {
-      //           name: args.name
-      //         }
-      //       }]
-      //     }]
-      //   }
-      // })
-      // return {
-      //   item: {
-      //     ...item.hiveOrganisations?.[0]
-      //   }
-      // }
-    })
-  
-    const [ updatePeople ] = useMutation((mutation, args: {id: string, name: string}) => {
-      // if(!args.id) return;
-      // const item = mutation.updatePeople({
-      //   where: {id: args.id},
-      //   update: {
-      //     name: args.name,
-      //   }
-      // })
-      // return {
-      //   item: { 
-      //     ...item.people?.[0]
-      //   }
-      // }
-    })
-  
-    const [ deletePeople ] = useMutation((mutation, args: {id: string}) => {
-      // if(!args.id) return;
-      // const item = mutation.deletePeople({
-      //   where: {id: args.id}
-      // })
-      // return {
-      //   item: item.nodesDeleted
-      // }
-    })
   
    // componentWillMount(){
    //    utils.staff.getAll().then((res) => {
@@ -125,7 +84,7 @@ export const PeopleList: React.FC<any> = (props) => {
       <Box
          style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
-         <PeopleModal 
+         {/* <PeopleModal 
             open={modalOpen} 
             selected={selected}
             onDelete={() => {
@@ -160,11 +119,11 @@ export const PeopleList: React.FC<any> = (props) => {
             onClose={() => {
                openModal(false)
                setSelected(undefined)
-            }} />
+            }} /> */}
          <StaffSearchHeader
-            onCreate={configuration?.create != false && (() => {
-               openModal(true);
-            })}
+            // onCreate={configuration?.create != false && (() => {
+            //    openModal(true);
+            // })}
             filter={search}
             onFilterChange={(filter) => setSearch(filter)} />
 
