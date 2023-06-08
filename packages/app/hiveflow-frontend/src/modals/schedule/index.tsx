@@ -72,6 +72,8 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = (props) => {
     useEffect(() => {
         if (!props.open) {
             openCloneTab(false);
+            
+            setItem({})
         }
     }, [props.open]);
 
