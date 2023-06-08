@@ -140,12 +140,9 @@ export const TaskModal = (props) => {
                             format='DD/MM/yyyy'
                             value={task.startDate?.toISOString()}
                             onChange={(date) => {
-                                try{
-                                    console.log({date, old: '12'})
-                                    // setTask({...task, startDate: new Date(date)})
-                                }catch(e){
+                                    // console.log({date, old: '12'})
+                                    setTask({...task, startDate: new Date(date)})
 
-                                }
                             
                             }}
                             label='Start Date' />
