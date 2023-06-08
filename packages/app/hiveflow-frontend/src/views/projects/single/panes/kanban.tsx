@@ -78,7 +78,7 @@ export const KanbanPane = () => {
             }}
             renderCard={(item) => {
                 return (
-                    <Paper sx={{background: stringToColor(item.title), minHeight: '24px', color: 'white', flexDirection: 'column', display: 'flex', padding: '6px', marginTop: '6px'}}>
+                    <Paper sx={{ /* background: stringToColor(item.title), */ background: '#aaa', minHeight: '24px', color: 'black', flexDirection: 'column', display: 'flex', padding: '6px', marginTop: '6px'}}>
                         <Typography>
                             {item.name || item.title}
                         </Typography>

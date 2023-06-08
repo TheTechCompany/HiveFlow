@@ -1,5 +1,5 @@
 import { Timeline } from "@hexhive/ui";
-import { stringToColor } from "@hexhive/utils";
+// import { stringToColor } from "@hexhive/utils";
 import { refetch, useMutation } from "@hive-flow/api";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { ProjectSingleContext } from "../context";
@@ -73,7 +73,7 @@ export const TimelinePane = () => {
 
   const [ horizon, setHorizon ] = useState<{start?: Date, end?: Date}>({})
     return (
-        <Box sx={{flex: 1, display: 'flex'}} tabIndex={1} onKeyDown={keyHandler}>
+        <Box sx={{flex: 1, display: 'flex', '& .color-dot': {margin: '8px'}}} tabIndex={1} onKeyDown={keyHandler}>
           <Timeline
             onHorizonChange={(start, end) => {
               setHorizon({start, end})
@@ -87,7 +87,8 @@ export const TimelinePane = () => {
                   start: new Date(task.startDate),
                   end: new Date(task.endDate),
                   name: task.title,
-                  color: stringToColor(task.title),
+                  color: '#aaa',
+                  // color: stringToColor(task.title),
                   showLabel: true
               })).filter(filterTasks).sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
             }
@@ -99,7 +100,6 @@ export const TimelinePane = () => {
               links={links}
               selectedItem={selectedItem}
               onSelectItem={(task) => {
-                console.log("SELECT", {task})
 
                 if((task as any).source && (task as any).target){
                   console.log({task})
