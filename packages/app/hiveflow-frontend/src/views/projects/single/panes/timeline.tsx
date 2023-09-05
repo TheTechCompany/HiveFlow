@@ -4,7 +4,8 @@ import { refetch, useMutation } from "@hive-flow/api";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { ProjectSingleContext } from "../context";
 import { Box } from '@mui/material'
-
+import { arrayMove } from '@dnd-kit/sortable'
+import { useMutation as useApolloMutation, gql } from '@apollo/client'
 export const TimelinePane = () => {
     // const [ links, setLinks ] = useState([]);
 
@@ -27,6 +28,16 @@ export const TimelinePane = () => {
         ...item
       }
     }
+  })
+
+  const [ updateTimelineItemOrder ] = useApolloMutation(gql`
+    mutation UpdateTimelineOrder ($id: ID, $above: String, $below: String){
+      updateProjectTaskTimelineOrder(id: $id, above: $above, below: $below){
+        id
+      }
+    }
+  `, {
+    refetchQueries: ['GetProject']
   })
   
   const keyHandler = useCallback((e: any) => {
@@ -82,6 +93,7 @@ export const TimelinePane = () => {
               data={
                 timelineTasks.map((task) => ({
                   id: task.id,
+                  timelineRank: task.timelineRank,
                   status: task.status,
                   lastUpdated: task.lastUpdated,
                   start: new Date(task.startDate),
@@ -90,7 +102,7 @@ export const TimelinePane = () => {
                   color: '#aaa',
                   // color: stringToColor(task.title),
                   showLabel: true
-              })).filter(filterTasks).sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+              })).filter(filterTasks).sort((a, b) => a.timelineRank.localeCompare(b.timelineRank) )
             }
               onCreateTask={async (task) => {
                 // console.log({task})
@@ -107,6 +119,34 @@ export const TimelinePane = () => {
                 }else{
                   let origTask = timelineTasks.find((x) => x.id == task.id)
                   updateTask({...origTask, start: new Date(origTask.startDate), end: new Date(origTask.endDate)})
+                }
+              }}
+              onUpdateTaskOrder={(task, newIx, finished) => {
+                  
+                let newTasks = timelineTasks?.slice()?.sort((a,b) => a.timelineRank?.localeCompare(b.timelineRank));
+                let ix = newTasks.findIndex((a) => a.id == task.id);
+
+                newTasks = arrayMove(newTasks, ix, newIx);
+
+                let prevTask = newTasks?.[newIx - 1];
+                let nextTask = newTasks?.[newIx + 1];
+
+                // setTimelineItems((tasks) => {                              
+                //     let ix = tasks.findIndex((a) => a.id == task.id);
+
+                //     return  arrayMove(tasks, ix, newIx);
+                // })
+
+                if(finished){
+                    updateTimelineItemOrder({
+                        variables: {
+                            id: task.id,
+                            above: prevTask?.id,
+                            below: nextTask?.id 
+                        }
+                    }).then(() => {
+                        // refetchTimeline()
+                    })
                 }
               }}
               onUpdateTask={(task, position) => {

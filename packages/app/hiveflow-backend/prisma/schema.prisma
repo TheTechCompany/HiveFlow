@@ -44,6 +44,9 @@ model ProjectTask {
     startDate DateTime?
     endDate   DateTime?
 
+    timelineRank String?
+    columnRank String?
+
     members String[]
 
     createdBy String?

@@ -8,7 +8,7 @@ export interface IProjectSingle {
     refetch?: () => void;
     createTask?: any;
     updateTask?: any;
-    updateTaskStatus?: (taskId: string, status: string) => void;
+    updateTaskStatus?: (taskId: string, index: number, status: string) => void;
     deleteTask?: any;
     createDependency?: any;
     deleteDependency?: any;

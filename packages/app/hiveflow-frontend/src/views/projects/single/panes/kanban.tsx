@@ -40,9 +40,10 @@ export const KanbanPane = () => {
             onDrag={(result) => {
                 console.log({result})
 
+                // result.
                 const status = STATUS[parseInt(result.destination?.droppableId)]
 
-                updateTaskStatus(result.draggableId, status)
+                updateTaskStatus(result.draggableId, result.destination?.index, status)
 
                 let newTasks = kanbanTasks.slice()
 
@@ -95,7 +96,7 @@ export const KanbanPane = () => {
                 )
             }}
             columns={STATUS.map((x) => {
-                let rows = kanbanTasks.filter((a) => a.status == x)?.map((x) => ({...x, id: x.id, name: x.title})) //files.filter((a: any) => a.status == x).map((x) => ({ ...x }))
+                let rows = kanbanTasks.filter((a) => a.status == x)?.map((x) => ({...x, id: x.id, name: x.title}))?.sort((a, b) => a.columnRank?.localeCompare(b.columnRank)) //files.filter((a: any) => a.status == x).map((x) => ({ ...x }))
 
                 if(x == 'Backlog') {
                     rows = rows.filter((a) => a.dependencyOn?.length < 1 || a.dependencyOn?.map((x) => x.status == "Reviewing" || x.status == "Finished")?.indexOf(true) > -1)

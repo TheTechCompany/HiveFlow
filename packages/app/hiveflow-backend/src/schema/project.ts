@@ -8,6 +8,7 @@ import axios from 'axios';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core'
 import fetch from "cross-fetch";
 import { createUploadLink } from 'apollo-upload-client'
+import { LexoRank } from "lexorank";
 
 export default (prisma: PrismaClient) => {
 
@@ -125,6 +126,41 @@ export default (prisma: PrismaClient) => {
                 return await prisma.project.delete({where: {organisation_displayId: {organisation: context.jwt.organisation, displayId: args.id}}})
             },
             createProjectTask: async (root: any, args: any, context: any) => {
+
+                const {columnRank: lastColumnRank} = await prisma.projectTask.findFirst({
+                    where: {
+                        project: {
+                            organisation: context?.jwt?.organisation,
+                            id: args.input.projectId
+                        },
+                        status: args.input.status
+                    },
+                    orderBy: {
+                        columnRank: 'asc'
+                    }
+                }) || {};
+
+                const { timelineRank: lastTimelineRank } = await prisma.projectTask.findFirst({
+                    where: {
+                        project: {
+                            organisation: context?.jwt?.organisation,
+                            id: args.input.projectId
+                        },
+                    },
+                    orderBy: {
+                        timelineRank: 'asc'
+                    }
+                }) || {};
+
+
+
+                let aboveColumnRank = LexoRank.parse(lastColumnRank || LexoRank.min().toString())
+                let aboveTimelineRank = LexoRank.parse(lastTimelineRank || LexoRank.min().toString())
+                let belowRank = LexoRank.parse(LexoRank.max().toString())
+
+                let nextTimelineRank = aboveTimelineRank.between(belowRank).toString();
+                let nextColumnRank = aboveColumnRank.between(belowRank).toString();
+
                 return await prisma.project.update({
                     where: {
                         organisation_displayId: {
@@ -140,6 +176,8 @@ export default (prisma: PrismaClient) => {
                                 description: args.input.description,
                                 createdBy: context?.jwt?.id,
                                 members: args.input.members || [],
+                                columnRank: nextColumnRank,
+                                timelineRank: nextTimelineRank,
                                 startDate: args.input.startDate,
                                 endDate: args.input.endDate,
                                 status: args.input.status,
@@ -149,7 +187,69 @@ export default (prisma: PrismaClient) => {
                     }
                 })
             },
-            updateProjectTask: async (root: any, args: any) => {
+            updateProjectTaskTimelineOrder: async (root: any, args: any, context: any) => {
+
+                const projectRoot = await prisma.projectTask.findFirst({
+                    where: {
+                        id: args.id,
+                        project: {
+                            organisation: context?.jwt?.organisation
+                        }
+                    }
+                })
+                
+                if(!projectRoot) throw new Error("No projectTask found")
+
+                const { timelineRank: aboveTimelineRank } = await prisma.projectTask.findFirst({
+                    where: {
+                        id: args.above,
+                        projectId: projectRoot?.projectId
+                    }
+                }) || {}
+
+                const { timelineRank: belowTimelineRank } = await prisma.projectTask.findFirst({
+                    where: {
+                        id: args.below,
+                        projectId: projectRoot?.projectId
+                    }
+                }) || {}
+
+           
+
+                let aboveRank = LexoRank.parse(aboveTimelineRank || LexoRank.min().toString())
+                let belowRank = LexoRank.parse(belowTimelineRank || LexoRank.max().toString())
+
+                let nextTimelineRank = aboveRank.between(belowRank).toString();
+                console.log(aboveTimelineRank, belowTimelineRank, nextTimelineRank)
+
+
+                return await prisma.projectTask.update({
+                    where: {
+                        projectId_id: {
+                            id: args.id,
+                            projectId: projectRoot?.projectId
+                        }
+                    },
+                    data: {
+                        timelineRank: nextTimelineRank
+                    }
+                })
+
+
+            }, 
+            updateProjectTask: async (root: any, args: any, context: any) => {
+                
+                const rootTask = await prisma.projectTask.findFirst({
+                    where: {
+                        id: args.id,
+                        project: {
+                            organisation: context?.jwt?.organisation
+                        }
+                    }
+                })
+
+                if(!rootTask) throw new Error("No task found");
+
                 let projectId;
                 if(args.input.projectId) {
                     const p = await prisma.project.findFirst({
@@ -159,6 +259,47 @@ export default (prisma: PrismaClient) => {
                     })
                     projectId = p?.id
                 }
+
+
+                let nextRank;
+
+                if(args.input?.above || args.input?.below){
+
+                    const { columnRank: aboveColumnRank } = await prisma.projectTask.findFirst({
+                        where: {
+                            id: args.input?.above,
+                            projectId: rootTask?.projectId
+                        }
+                    }) || {}
+
+                    const { columnRank: belowColumnRank } = await prisma.projectTask.findFirst({
+                        where: {
+                            id: args.input?.below,
+                            projectId: rootTask?.projectId
+                        }
+                    }) || {}
+
+                    let aboveRank = LexoRank.parse(aboveColumnRank || LexoRank.min().toString())
+                    let belowRank = LexoRank.parse(belowColumnRank || LexoRank.max().toString())
+                     nextRank = aboveRank.between(belowRank).toString();
+                    
+                }else if(args.input?.status){
+                    const { columnRank } = await prisma.projectTask.findFirst({
+                        where: {
+                            projectId: rootTask?.projectId,
+                            status: args.input?.status
+                        },
+                        orderBy: {
+                            columnRank: 'asc'
+                        }
+                    }) || {}
+
+                    let aboveRank = LexoRank.parse(columnRank || LexoRank.min().toString())
+                    let belowRank = LexoRank.parse(LexoRank.max().toString())
+                     nextRank = aboveRank.between(belowRank).toString();
+            
+                }
+
 
                 return await prisma.projectTask.update({
                     where: {
@@ -170,6 +311,7 @@ export default (prisma: PrismaClient) => {
                         members: args.input.members || [],
                         startDate: args.input.startDate,
                         endDate: args.input.endDate,
+                        columnRank: nextRank,
                         status: args.input.status,
                         projectId: projectId,
                         lastUpdated: new Date()
@@ -441,6 +583,8 @@ export default (prisma: PrismaClient) => {
 
         createProjectTask(input: ProjectTaskInput): ProjectTask!
         updateProjectTask(id: ID, input: ProjectTaskInput): ProjectTask!
+        updateProjectTaskTimelineOrder(id: ID, above: String, below: String): ProjectTask!
+        updateProjectTaskColumn(id: ID, status: String, above: String, below: String): ProjectTask
         deleteProjectTask(id: ID): ProjectTask!
 
         createProjectTaskDependency(project: ID, source: ID, target: ID): ProjectTask!
@@ -500,6 +644,9 @@ export default (prisma: PrismaClient) => {
         endDate: DateTime
 
         status: String
+
+        above: String
+        below: String
         
         projectId: String!
     }
@@ -509,6 +656,9 @@ export default (prisma: PrismaClient) => {
 
         title: String
         description: String
+
+        timelineRank: String
+        columnRank: String
 
         startDate: DateTime
         endDate: DateTime

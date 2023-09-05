@@ -104,6 +104,9 @@ console.log({pathname})
           endDate
           status
 
+          timelineRank
+          columnRank
+
           members {
             id
             name
@@ -325,12 +328,21 @@ console.log({pathname})
       tasks: job?.tasks || [],
       finishTtl: (60 * 1000) * 60 * 12, //12 hours
       refetch,
-      updateTaskStatus: (taskId, status) => {
+      updateTaskStatus: (taskId, index, status) => {
+        let statusTasks = job?.tasks?.filter((a) => a.status == status)?.sort((a,b) => a.columnRank?.localeCompare(b.columnRank));
+
+        console.log(statusTasks)
+        
+        let above = statusTasks?.[index - 1]?.id
+        let below = statusTasks?.[index]?.id
+
           updateTask({
             args: {
               id: taskId,
               input: {
                 status,
+                above,
+                below,
                 projectId: job_id
               }
             }
