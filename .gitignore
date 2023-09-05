@@ -9,3 +9,11 @@ migration/
 patch-*
 task*
 last_dump*
+
+.yarn/*
+!.yarn/cache
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
