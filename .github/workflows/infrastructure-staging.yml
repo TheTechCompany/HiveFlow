@@ -123,8 +123,6 @@ jobs:
           node-version: 16.x
       - run: yarn
 
-      - run: lerna bootstrap --scope @hive-flow/${{ matrix.apps }} --include-dependencies
-
       - run: echo "REACT_APP_URL=" >> $GITHUB_ENV
 
       - name: Setup stack
