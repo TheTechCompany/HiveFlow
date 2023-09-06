@@ -11,6 +11,7 @@ export const HiveFlowContext = React.createContext<{
     config?: HiveFlowConfiguration[];
 }>({})
 
+
 export const HiveFlowProvider = HiveFlowContext.Provider
 
 export const useConfiguration = () => React.useContext(HiveFlowContext)
