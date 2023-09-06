@@ -31,7 +31,6 @@ const prisma = new PrismaClient();
 
   app.use(graphServer.middleware)
 
-  
 //   app.use("/graphql", (req, res, next) => {
 //     const hiveJwt = req.headers["x-hive-jwt"]?.toString();
 
