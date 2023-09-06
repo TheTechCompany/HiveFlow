@@ -10,6 +10,12 @@ COPY . .
 
 RUN yarn
 
+WORKDIR /app/packages/app/hiveflow-backend
+
+RUN npx prisma generate
+
+WORKDIR /app
+
 ENV NODE_ENV="production"
 
 RUN yarn build
