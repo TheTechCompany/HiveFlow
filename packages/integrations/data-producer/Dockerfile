@@ -18,4 +18,4 @@ COPY --from=build /runner/_node_modules /app/node_modules
 COPY --from=build /runner/package.json /app/package.json
 COPY --from=build /runner/dist/* /app/
 
-CMD [ "node", "index.js", "--tls-min-v1.0" ]
+CMD [ "node", "--tls-min-v1.0", "index.js"]
