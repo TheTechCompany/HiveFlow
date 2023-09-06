@@ -15367,15 +15367,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-resize-aware@npm:^3.1.1":
-  version: 3.1.2
-  resolution: "react-resize-aware@npm:3.1.2"
-  peerDependencies:
-    react: ^16.8.0 || 17.x || 18.x
-  checksum: 66859b4a324030a37644775c8463ab1b8f6c86ad3274797aa77a19d4ec1d2ee75b7acf328449eed18d2d970d06805a1760649848f49a8055236074d8d181418d
-  languageName: node
-  linkType: hard
-
 "react-resize-detector@npm:^8.0.4":
   version: 8.1.0
   resolution: "react-resize-detector@npm:8.1.0"
