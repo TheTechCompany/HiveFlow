@@ -102,7 +102,7 @@ export const TimelinePane = () => {
                   color: '#aaa',
                   // color: stringToColor(task.title),
                   showLabel: true
-              })).filter(filterTasks).sort((a, b) => a.timelineRank.localeCompare(b.timelineRank) )
+              })).filter(filterTasks).sort((a, b) => a.timelineRank?.localeCompare(b.timelineRank) )
             }
               onCreateTask={async (task) => {
                 // console.log({task})
