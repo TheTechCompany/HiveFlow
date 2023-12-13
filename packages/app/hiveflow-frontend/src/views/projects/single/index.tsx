@@ -326,7 +326,7 @@ console.log({pathname})
     <ProjectSingleProvider value={{
       projectId: job_id, 
       tasks: job?.tasks || [],
-      finishTtl: (60 * 1000) * 60 * 12, //12 hours
+      finishTtl: (60 * 1000) * 60 * 24 * 7, //7 days
       refetch,
       updateTaskStatus: (taskId, index, status) => {
         let statusTasks = job?.tasks?.filter((a) => a.status == status)?.sort((a,b) => a.columnRank?.localeCompare(b.columnRank));
