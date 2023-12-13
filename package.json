@@ -26,7 +26,8 @@
   },
   "resolutions": {
     "@mui/x-tree-view": "6.0.0-alpha.1",
-    "react-resize-aware": "3.1.1"
+    "react-resize-aware": "3.1.1",
+    "mssql": "8.0.2"
   },
   "packageManager": "yarn@3.6.0"
 }
