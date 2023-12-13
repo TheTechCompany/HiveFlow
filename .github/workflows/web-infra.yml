@@ -1,0 +1,81 @@
+name: HiveFlow Infrastructure
+
+on:
+  push:
+    branches:
+      - staging
+      - next
+      - master
+    paths: ["packages/app/hiveflow-frontend/**", ".github/workflows/web-infra.yml"]
+
+concurrency: hiveflow-web-infra-${{ github.ref }}
+
+jobs:
+
+  build_coreapps:
+    runs-on: ubuntu-latest
+    strategy: 
+      matrix:
+        apps: [ frontend ]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16.x
+      - run: yarn
+
+      - run: echo "REACT_APP_URL=" >> $GITHUB_ENV
+
+      - name: Setup stack
+        run: |
+          echo "PUBLIC_PATH=https://staging-apps.hexhive.io/${{matrix.apps}}/" >> $GITHUB_ENV
+          echo "REACT_APP_API=https://staging-api.hexhive.io" >> $GITHUB_ENV
+        if: ${{ github.ref == 'refs/heads/staging' }}
+
+      - name: Setup stack
+        run: |
+          echo "PUBLIC_PATH=https://next-apps.hexhive.io/${{matrix.apps}}/" >> $GITHUB_ENV
+          echo "REACT_APP_API=https://next-api.hexhive.io" >> $GITHUB_ENV       
+        if: ${{ github.ref == 'refs/heads/next' }}
+
+      - name: Setup stack
+        run: |
+          echo "PUBLIC_PATH=https://apps.hexhive.io/${{matrix.apps}}/" >> $GITHUB_ENV
+          echo "REACT_APP_API=https://api.hexhive.io" >> $GITHUB_ENV       
+        if: ${{ github.ref == 'refs/heads/master' }}
+        
+
+      - name: Build web
+        run: (export NODE_ENV=production CI=false; lerna run build --scope @hive-flow/${{ matrix.apps }} --include-dependencies)
+      
+      - name: Configure AWS Creds
+        uses: aws-actions/configure-aws-credentials@v1
+        with: 
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-2
+      
+      - name: Setup stack
+        run: |
+          echo "BUCKET_URL=${{ secrets.STAGING_APP_BUCKET }}" >> $GITHUB_ENV
+        if: ${{ github.ref == 'refs/heads/staging' }}
+
+      - name: Setup stack
+        run: |
+          echo "BUCKET_URL=${{ secrets.NEXT_APP_BUCKET }}" >> $GITHUB_ENV
+        if: ${{ github.ref == 'refs/heads/next' }}
+
+      - name: Setup stack
+        run: |
+          echo "BUCKET_URL=${{ secrets.PROD_APP_BUCKET }}" >> $GITHUB_ENV  
+        if: ${{ github.ref == 'refs/heads/master' }}
+  
+      - name: Upload new web-build
+        run: |
+          aws s3 sync packages/app/hiveflow-${{ matrix.apps }}/dist/ s3://${{ env.BUCKET_URL }}/hiveflow-${{matrix.apps}} --delete
+
+      - name: Clear cache
+        run: |
+          aws cloudfront create-invalidation --distribution-id=${{ secrets.CLOUDFRONT_DISTRO }} --paths /hiveflow-${{matrix.apps}}/*
+        if: ${{ github.ref == 'refs/heads/master' }}
