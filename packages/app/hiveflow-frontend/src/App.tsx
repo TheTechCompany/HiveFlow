@@ -34,7 +34,6 @@ const uploadLink = createUploadLink({
   }))
 })
 
-
 const authServer = process.env.REACT_APP_API
   ? `${process.env.REACT_APP_API}`
   : "http://localhost:7000"

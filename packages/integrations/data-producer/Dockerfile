@@ -4,7 +4,7 @@ WORKDIR /runner
 
 COPY . .
 
-RUN yarn
+RUN yarn install --immutable
 
 WORKDIR /runner/packages/integrations/data-producer
 
