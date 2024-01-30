@@ -63,7 +63,7 @@ export const DataTable: React.FC<DataTableProps> = (props) => {
                 ))}
              
             </Box>
-            <Box>
+            <Box sx={{overflowY: 'auto', flex: 1}}>
                 <List>
                     {props.data?.map((data) => (
                         <ListItem
