@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { Add } from '@mui/icons-material'
 import { Box, Button, CircularProgress, Collapse, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Paper, TextField, Typography } from '@mui/material'
-import { AvatarList, ColorDot, DateInput, FormControl } from '@hexhive/ui'
+import { FormControl } from '@hexhive/ui'
 import { MemberList } from './members'
+import { DatePicker } from '@mui/x-date-pickers'
+import moment from 'moment'
 
 export const TaskModal = (props) => {
 
@@ -136,20 +138,30 @@ export const TaskModal = (props) => {
                             />
 
                     <Box sx={{marginTop: '8px', marginBottom: '3px', display: 'flex'}}>
-                        <DateInput 
-                            format='DD/MM/yyyy'
-                            value={task.startDate?.toISOString()}
+                        <DatePicker 
+                            format='DD/MM/YYYY'
+                            value={task.startDate ? moment(task.startDate) : null}
                             onChange={(date) => {
                                     // console.log({date, old: '12'})
-                                    setTask({...task, startDate: new Date(date)})
+                                    setTask({...task, startDate: date.toDate() })
 
                             
                             }}
+                            slotProps={{
+                                textField: {
+                                    size: 'small'
+                                }
+                            }}
                             label='Start Date' />
-                        <DateInput 
-                            format='DD/MM/yyyy'
-                            value={task.endDate?.toISOString()}
-                            onChange={(date) => setTask({...task, endDate: new Date(date)})}
+                        <DatePicker 
+                            format='DD/MM/YYYY'
+                            value={task.endDate ? moment(task.endDate) : null}
+                            onChange={(date) => setTask({...task, endDate: date.toDate() })}
+                            slotProps={{
+                                textField: {
+                                    size: 'small'
+                                }
+                            }}
                             label="End Date" />
                     </Box>
 

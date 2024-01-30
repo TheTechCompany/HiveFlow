@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ReduceCapacity, Notes, Add, Close } from '@mui/icons-material'
 import moment from 'moment';
 import { useEffect } from 'react';
-import { ColorDot, DateInput } from '@hexhive/ui';
+import { ColorDot } from '@hexhive/ui';
 import { DatePicker } from '@mui/x-date-pickers';
 import { CapacityItem } from './CapacityItem';
 import { CapacityTab } from './tabs/capacity'
