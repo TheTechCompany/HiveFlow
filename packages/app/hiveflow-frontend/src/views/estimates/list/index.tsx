@@ -9,7 +9,7 @@ import { QuoteHeader } from './header';
 import { useTypeConfiguration } from '../../../context';
 import { Estimate, EstimateModal } from '../../../modals/estimate';
 import { useNavigate } from 'react-router-dom';
-import { Paper } from '@mui/material';
+import { Paper, setRef } from '@mui/material';
 
 var formatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -24,6 +24,8 @@ export const EstimateList: React.FC<any> = (props) => {
   const configuration = useTypeConfiguration('Estimate');
 
   const [ modalOpen, openModal ] = useState(false)
+  const [ modalError, setModalError ] = useState<any>({});
+
   const [ selected, setSelected ] = useState<Estimate>()
 
   const [filter, setFiler] = useState<any>({})
@@ -34,8 +36,8 @@ export const EstimateList: React.FC<any> = (props) => {
   // const [listData, setListData] = useState<any[]>([])
 
   const listKeys = [
-    { property: 'displayId', header: 'Quote ID', sortable: true, size: 'small'},
-    { property: 'name', header: 'Quote Name', sortable: true, size: 'large' },
+    { property: 'displayId', header: 'Quote ID', sortable: true, size: 'xsmall'},
+    { property: 'name', header: 'Quote Name', sortable: true, width: '50%' },
     { property: 'status', header: 'Status', sortable: true, size: 'small'},
     { property: 'price', header: 'Total Value',  render: (row) => formatter.format(row.price), sortable: true, size: 'small', align: 'left' }
   ]
@@ -47,13 +49,15 @@ export const EstimateList: React.FC<any> = (props) => {
 
   const listData = query.estimates();
 
-  const [ createEstimate ] = useMutation((mutation, args: {name: string}) => {
+  const statusList = Array.from(new Set((listData || []).map((x: any) => x.status || '')))?.filter((a) => a != '');
+
+  const [ createEstimate ] = useMutation((mutation, args: {displayId: string, name: string, status?: string}) => {
     const item = mutation.createEstimate({
       input: {
-       
-              name: args.name,
-              date: new Date().toISOString()
-        }
+          id: args.displayId,
+          name: args.name,
+          status: args.status,
+      }
         
     })
     return {
@@ -66,12 +70,13 @@ export const EstimateList: React.FC<any> = (props) => {
     refetchQueries: [query.estimates()]
   })
 
-  const [ updateEstimate ] = useMutation((mutation, args: {id: string, name: string}) => {
-    if(!args.id) return;
+  const [ updateEstimate ] = useMutation((mutation, args: {displayId: string, name: string, status?: string}) => {
+    if(!args.displayId) return;
     const item = mutation.updateEstimate({
-      id: args.id,
+      id: args.displayId,
       input: {
         name: args.name,
+        status: args.status
       }
     })
     return {
@@ -90,7 +95,7 @@ export const EstimateList: React.FC<any> = (props) => {
       id: args.id
     })
     return {
-      item: item
+      item: {...item}
     }
   }, {
     awaitRefetchQueries: true,
@@ -177,18 +182,22 @@ export const EstimateList: React.FC<any> = (props) => {
       flex>
       <EstimateModal 
         selected={selected}
+        statusList={statusList}
+        error={modalError}
         onDelete={() => {
-          deleteEstimate({args: {id: selected?.id}}).then(()=> {
+          deleteEstimate({args: {id: selected?.displayId}}).then(()=> {
             openModal(false)
             setSelected(undefined);
             // refetch()
           })
         }}
         onSubmit={(project) => {
+          setModalError({})
           if(project.id){
             updateEstimate({args: {
-              id: project.id,
+              displayId: project.displayId,
               name: project.name,
+              status: project.status
             }}).then(() => {
               openModal(false);
               setSelected(undefined)
@@ -197,12 +206,18 @@ export const EstimateList: React.FC<any> = (props) => {
           }else{
             createEstimate({
               args: {
+                displayId: project.displayId,
                 name: project.name,
+                status: project.status
               }
             }).then(() => {
               openModal(false);
               setSelected(undefined)
               // refetch();
+            }).catch((err) => {
+              if(err.message == "Duplicate estimate id"){
+                setModalError({displayId: project?.displayId})
+              }
             })
           }
         }}
@@ -216,6 +231,7 @@ export const EstimateList: React.FC<any> = (props) => {
             openModal(true);
         })}
         quotes={listData || []}
+        statusList={statusList}
         filter={filter}
         onFilterChange={(filter) => setFiler(filter)}
       />
@@ -236,6 +252,10 @@ export const EstimateList: React.FC<any> = (props) => {
               setProperty(_property)
               setDirection('asc')
             }
+          }}
+          onEditRow={(row) => {
+            setSelected(row);
+            openModal(true);
           }}
           onClickRow={(datum) => navigate(datum.displayId)}
           // sort={(property && direction) ? {property, external: true, direction} : undefined}

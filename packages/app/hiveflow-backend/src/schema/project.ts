@@ -9,6 +9,7 @@ import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core'
 import fetch from "cross-fetch";
 import { createUploadLink } from 'apollo-upload-client'
 import { LexoRank } from "lexorank";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 
 export default (prisma: PrismaClient) => {
 
@@ -57,11 +58,16 @@ export default (prisma: PrismaClient) => {
                     where['displayId'] = args.where.displayId
                 }
 
+                if(args.where?.archived){
+                    where['archived'] = true;
+                }else{
+                    where['archived'] = false;
+                }
+
 				const result = await prisma.project.findMany({
 					where: {
 						organisation: context.jwt.organisation,
-						...where,
-                        
+						...where  
 					},
                     include: {
                         tasks: {
@@ -86,31 +92,41 @@ export default (prisma: PrismaClient) => {
         },
         Mutation: {
 			createProject: async (root: any, args: {input: any}, context: any) => {
-                return await prisma.$transaction(
-					async (prisma) => {
-						const count = await prisma.project.count({ where: {organisation: context.jwt.organisation }})
+                try{
+                    return await prisma.$transaction(
+                        async (prisma) => {
+                            const count = await prisma.project.count({ where: {organisation: context.jwt.organisation }})
 
-						const project = prisma.project.create({
-							data: {
-                                id: nanoid(),
-								displayId: args.input.id || `${count + 1}`,
-								name: args.input.name,
-								organisation: context.jwt.organisation,
-								startDate: args.input.startDate || new Date(),
-								endDate: args.input.endDate || new Date(),
-								status: args.input.status || 'draft'
-							}
-						})
-						return project
-					}
-				)
+                            const project = prisma.project.create({
+                                data: {
+                                    id: nanoid(),
+                                    displayId: args.input.id || `${count + 1}`,
+                                    name: args.input.name,
+                                    organisation: context.jwt.organisation,
+                                    description: args.input.description,
+                                    startDate: args.input.startDate,
+                                    endDate: args.input.endDate,
+                                    status: args.input.status || 'draft'
+                                }
+                            })
+                            return project
+                        }
+                    )
+                }catch(e){
+                    if(e instanceof PrismaClientKnownRequestError){
+                        if(e.code == 'P2002'){
+
+                            throw new Error("Duplicate job id")
+                        }
+                    }
+                }
 
             },
             updateProject: async (root: any, args: any, context: any) => {
                 return await prisma.project.update({
                     where: {
                         organisation_displayId: {
-                            displayId: args.id,
+                            displayId: args.input.id,
                             organisation: context.jwt.organisation
                         }
                     },
@@ -118,12 +134,20 @@ export default (prisma: PrismaClient) => {
                         name: args.input.name,
                         startDate: args.input.startDate,
                         endDate: args.input.endDate,
+                        description: args.input.description,
                         status: args.input.status
                     }
                 })
             },
             deleteProject: async (root: any, args: any, context: any) => {
-                return await prisma.project.delete({where: {organisation_displayId: {organisation: context.jwt.organisation, displayId: args.id}}})
+                return await prisma.project.update({
+                    where: {
+                        organisation_displayId: {organisation: context.jwt.organisation, displayId: args.id}
+                    },
+                    data: {
+                        archived: true
+                    }
+                })
             },
             createProjectTask: async (root: any, args: any, context: any) => {
 
@@ -220,7 +244,6 @@ export default (prisma: PrismaClient) => {
                 let belowRank = LexoRank.parse(belowTimelineRank || LexoRank.max().toString())
 
                 let nextTimelineRank = aboveRank.between(belowRank).toString();
-                console.log(aboveTimelineRank, belowTimelineRank, nextTimelineRank)
 
 
                 return await prisma.projectTask.update({
@@ -489,7 +512,6 @@ export default (prisma: PrismaClient) => {
 
                     const data = resp.data;
 
-                    console.log({data})
                     // const data = await client.mutate({
                     //     mutation: fileQuery,
                     //     variables: {
@@ -602,12 +624,15 @@ export default (prisma: PrismaClient) => {
     input ProjectInput {
         id: ID
         name: String
+        description: String
         startDate: DateTime
         endDate: DateTime
         status: String
     }
 
     input ProjectWhere {
+        archived: Boolean
+    
         status: [String]
         start: DateTime
         end: DateTime
@@ -619,7 +644,8 @@ export default (prisma: PrismaClient) => {
 
         displayId: String
         name: String
-        
+        description: String
+
         organisation: HiveOrganisation
         
         schedule: [ScheduleItem!]! 

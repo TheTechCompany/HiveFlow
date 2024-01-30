@@ -163,7 +163,6 @@ export default (prisma: PrismaClient) => {
 
                 const canEdit = list.map((x: any) => x.id).indexOf(context.jwt.id) > -1;
 
-                console.log(root.id, {owner, canEdit, list, managers, context: context.jwt})
                 
                 return canEdit //list.map((x: {id: string}) => x.id).indexOf(context.jwt.id) > -1
             }
@@ -203,7 +202,6 @@ export default (prisma: PrismaClient) => {
                 // return await pri
                 let whereArg: any = {organisation: context.jwt.organisation}
                 if(args.where){
-                    console.log({where: args.where})
                     if(args.where.id) whereArg = {...whereArg, id: args.where.id};
                     if(args.where.timeline) whereArg = {...whereArg, timeline: args.where.timeline};
                     if(args.where.startDate_LTE) whereArg.startDate = {lte: args.where.startDate_LTE};
@@ -268,7 +266,6 @@ export default (prisma: PrismaClient) => {
                     let belowRank = LexoRank.parse(lead_rank || LexoRank.max().toString())
 
                     newRank = aboveRank.between(belowRank).toString()
-                    console.log("First channel ", result, rank, lead_rank, aboveRank, belowRank, newRank)
                 }else{
 
                     //Fallback to finding first item in previous history window
@@ -305,7 +302,6 @@ export default (prisma: PrismaClient) => {
 
                     newRank = aboveRank.between(belowRank).toString()
 
-                    console.log("Second channel ", aboveRank, belowRank, newRank)
 
                 }
 
@@ -363,7 +359,6 @@ export default (prisma: PrismaClient) => {
 
                 const newRank = belowRank.between(aboveRank)
 
-                console.log({newRank, belowRank, aboveRank, result});
 
                 return await prisma.timelineItem.update({
                     where: {

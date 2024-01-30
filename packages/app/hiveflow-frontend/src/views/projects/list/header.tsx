@@ -12,6 +12,8 @@ export interface HeaderProps {
     onCreate?: () => void;
     filter?: {search?: string, status?: string};
     onFilterChange?: (filter: {search?: string, status?: string}) => void;
+
+    statusList?: string[]
 }
 
 export const Header : React.FC<HeaderProps> = (props) => {
@@ -47,7 +49,7 @@ export const Header : React.FC<HeaderProps> = (props) => {
             value={props.filter?.status}
             onChange={({option}) => props.onFilterChange?.({search: props.filter?.search, status: option })}
             placeholder="Status"
-            options={["All"].concat(Array.from(new Set(props.jobs?.map((x: any) => x.status || '')))).map((x) => ({id: x, label: x}))} 
+            options={["All"].concat(props.statusList).map((x) => ({id: x, label: x}))} 
             />
         </Box>
         {props.onCreate && (

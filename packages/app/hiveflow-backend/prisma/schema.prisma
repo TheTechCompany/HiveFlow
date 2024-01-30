@@ -13,8 +13,10 @@ datasource db {
 
 model Project {
     id   String @id
+
     displayId String?
     name String?
+    description String?
 
     schedule ScheduleItem[]
     timeline TimelineItem[] @relation(name: "projectTimeline")
@@ -26,6 +28,8 @@ model Project {
     startDate DateTime?
     endDate   DateTime?
     status    String
+
+    archived Boolean @default(false)
 
     @@unique([organisation, displayId])
 }
@@ -83,6 +87,8 @@ model Estimate {
     organisation String
 
     timeline TimelineItem[] @relation(name: "estimateTimeline")
+
+    archived Boolean @default(false)
 
     @@unique([ displayId, organisation ])
 }

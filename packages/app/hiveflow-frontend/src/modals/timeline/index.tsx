@@ -5,6 +5,7 @@ import { ReduceCapacity, Notes, Add, Close } from '@mui/icons-material'
 import moment from 'moment';
 import { useEffect } from 'react';
 import { ColorDot, DateInput } from '@hexhive/ui';
+import { DatePicker } from '@mui/x-date-pickers';
 import { CapacityItem } from './CapacityItem';
 import { CapacityTab } from './tabs/capacity'
 import { NoteTab } from './tabs/notes'
@@ -204,10 +205,14 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
                             </Select> */}
                     </Box>}
                     <Box sx={{display: 'flex', marginTop: '6px', marginBottom: '6px', '&>*': {flex: 1}}}>
-                            <DateInput
+                            <DatePicker
                                 label="Start Date"
-                                value={plan.startDate}
-
+                                value={moment(plan.startDate)}
+                                slotProps={{
+                                    textField: {
+                                        size: 'small'
+                                    }
+                                }}
                                 onChange={(value) => {
                                     // let startDate = new Date(value.toLocaleString());
                                     // let v = moment(value).format('dd/mm/yyyy').toString()
@@ -219,7 +224,7 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
 
                                     }
                                 }}
-                                format="DD/MM/yyyy" />
+                                format="DD/MM/YYYY" />
 
                         {/*
                                    // (plan.startDate && !isNaN(+plan.startDate))? 
@@ -229,10 +234,14 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
 
                                      value instanceof Date ? value : new Date(value as string)
                             */}
-                            <DateInput
+                            <DatePicker
                                 label='End Date'
-                                value={plan.endDate}
-
+                                value={moment(plan.endDate)}
+                                slotProps={{
+                                    textField: {
+                                        size: 'small'
+                                    }
+                                }}
                                 onChange={( value ) => {
                                     // let v = moment(value).format('dd/mm/yyyy')
                                     // console.log({value: value.toString(), d: new Date(value.toLocaleString()).toUTCString(), valueLocale: value.toLocaleString()})
@@ -244,7 +253,7 @@ export const TimelineModal: React.FC<TimelineModalProps> = (props) => {
 
                                     }
                                 }}
-                                format="DD/MM/yyyy" />
+                                format="DD/MM/YYYY" />
                     </Box>
                     <Divider />
 

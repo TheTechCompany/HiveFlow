@@ -22,10 +22,10 @@ export const EquipmentList: React.FC<any> = (props) => {
   const [search, setSearch] = useState<string>('');
 
   const listKeys = [
-    { property: 'displayId', header: 'ID', size: 'small', sortable: true },
-    { property: 'name', header: 'Name', sortable: true },
-    { property: 'registration', header: 'Registration', sortable: true },
-    { property: 'status', header: 'Status', sortable: true },
+    { property: 'displayId', header: 'ID', size: 'xsmall', sortable: true },
+    { property: 'name', header: 'Name', size: 'large', sortable: true },
+    { property: 'registration', header: 'Registration', size: 'medium', sortable: true },
+    { property: 'status', header: 'Status', size: 'small', sortable: true },
   ]
 
   const query = useQuery({
@@ -110,7 +110,9 @@ export const EquipmentList: React.FC<any> = (props) => {
       id: args.id
     })
     return {
-      item: item
+      item: {
+        ...item
+      }
     }
   }, {
     awaitRefetchQueries: true,
@@ -225,6 +227,7 @@ export const EquipmentList: React.FC<any> = (props) => {
             }
           }}
           onClickRow={selectPlant}
+      
           columns={listKeys}
           data={listData?.filter(filterEquipment).sort(sortEquipment) || []} />
       </Paper>

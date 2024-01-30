@@ -9,7 +9,7 @@ export interface QuoteHeaderProps {
     quotes?: any[]
     filter?: {search?: string, status?: string};
     onFilterChange?: (filter: {search?: string, status?: string}) => void;
-
+  statusList?: string[];
     onCreate?: () => void;
 }
 
@@ -49,7 +49,7 @@ export const QuoteHeader : React.FC<QuoteHeaderProps> = (props) => {
             labelKey="label"
             valueKey='id'
             placeholder="Status"
-            options={["All"].concat(Array.from(new Set(props.quotes?.filter((a) => a != undefined).map((x: any) => x.status || '')))).map((status) => ({id: status, label: status}))} 
+            options={["All"].concat(props.statusList).map((status) => ({id: status, label: status}))} 
           />
         </Box>
 

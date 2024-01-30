@@ -19,6 +19,8 @@ export interface ProjectListProps {
 export const ProjectList : React.FC<ProjectListProps> = (props) => {
   
   const [ modalOpen, openModal ] = useState(false);
+  const [ modalError, setModalError ] = useState<any>({});
+
   const [ selected, setSelected ] = useState<Project>()
 
   const [ filter, setFiler ] = useState<any>({})
@@ -41,10 +43,23 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
     history(`${id}/tickets`)
   }
 
-  const [ createProject ] = useMutation((mutation, args: {name: string, status: string}) => {
+  const statusList = Array.from(new Set((projects || []).map((x: any) => x.status || '')))?.filter((a) => a != '');
+
+  const [ createProject ] = useMutation((mutation, args: {
+    displayId?: string, 
+    name?: string, 
+    description?: string,
+    status?: string,
+    startDate?: Date,
+    endDate?: Date,
+  }) => {
     const item = mutation.createProject({
       input: {
+        id: args.displayId,
         name: args.name,
+        description: args.description,
+        startDate: args.startDate?.toISOString(),
+        endDate: args.endDate?.toISOString(),
         status: args.status
       }
     })
@@ -58,12 +73,24 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
     refetchQueries: [query.projects({})]
   })
 
-  const [ updateProject ] = useMutation((mutation, args: {id: string, name: string, status: string}) => {
+  const [ updateProject ] = useMutation((mutation, args: {
+    id: string, 
+    displayId?: string, 
+    name?: string, 
+    description?: string,
+    status?: string,
+    startDate?: Date,
+    endDate?: Date,
+  }) => {
     if(!args.id) return;
     const item = mutation.updateProject({
       id: args.id,
       input: {
+        id: args.displayId,
         name: args.name,
+        description: args.description, 
+        startDate: args.startDate?.toISOString(),
+        endDate: args.endDate?.toISOString(),
         status: args.status
       }
     })
@@ -83,7 +110,9 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
       id: args.id
     })
     return {
-      item: item
+      item: {
+        ...item
+      }
     }
   }, {
     awaitRefetchQueries: true,
@@ -91,7 +120,15 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
   })
 
   const getJobs = () => {
-    let items = projects?.map((x) => ({id: x?.id, displayId: x?.displayId, name: x?.name, status: x?.status}))
+    let items = projects?.map((x) => ({
+      id: x?.id, 
+      displayId: x?.displayId, 
+      name: x?.name, 
+      status: x?.status,
+      description: x?.description,
+      startDate: x?.startDate,
+      endDate: x?.endDate
+    }))
 
     if(property && direction){
       items = items?.sort((first, last) => {
@@ -133,23 +170,26 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
 
           <ProjectModal 
             selected={selected}
+            error={modalError}
+            statusList={statusList}
             onClose={() => {
               openModal(false)
               setSelected(undefined)
             }}
             onDelete={() => {
-              deleteProject({args: {id: selected?.id}}).then(()=> {
+              deleteProject({args: {id: selected?.displayId}}).then(()=> {
                 openModal(false)
                 setSelected(undefined);
                 // refetch()
               })
             }}
             onSubmit={(project) => {
+              setModalError({});
+              
               if(project.id){
                 updateProject({args: {
-                  id: project.id,
-                  name: project.name,
-                  status: project.status
+                  id: project.displayId,
+                  ...project
                 }}).then(() => {
                   openModal(false);
                   setSelected(undefined)
@@ -157,14 +197,17 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
                 })
               }else{
                 createProject({
-                  args: {
-                    name: project.name,
-                    status: project.status
-                  }
+                  args: project
                 }).then(() => {
                   openModal(false);
                   setSelected(undefined)
                   // refetch();
+                }).catch((err) => {
+                  console.log({err})
+                  if(err.message == "Duplicate job id"){
+                      setModalError({displayId: project?.displayId})
+                  }
+
                 })
               }
             }}
@@ -175,6 +218,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
           console.log('create')
           openModal(true)
         })}
+        statusList={statusList}
         filter={filter}
         onFilterChange={(filter) => setFiler(filter)}
         jobs={projects || []} />
@@ -207,7 +251,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
             {
               property: 'name',
               header: 'Project name',
-              size: 'large',
+              width: '50%',
               sortable: true
             },
             {
@@ -218,6 +262,10 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
               align: 'center'
             }
           ]}
+          onEditRow={(editProject) => {
+            setSelected(editProject)
+            openModal(true);
+          }} 
           onClickRow={(datum) => datum.displayId && selectJob(datum?.displayId)}
           data={getJobs()} />
        {/* <SortedList 

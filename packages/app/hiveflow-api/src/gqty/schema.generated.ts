@@ -51,6 +51,7 @@ export interface EstimateInput {
 export interface EstimateLineItemInput {
   description?: InputMaybe<Scalars["String"]>;
   item?: InputMaybe<Scalars["String"]>;
+  order?: InputMaybe<Scalars["Int"]>;
   price?: InputMaybe<Scalars["Float"]>;
   quantity?: InputMaybe<Scalars["Float"]>;
 }
@@ -65,6 +66,7 @@ export interface EstimateWhere {
 }
 
 export interface ProjectInput {
+  description?: InputMaybe<Scalars["String"]>;
   endDate?: InputMaybe<Scalars["DateTime"]>;
   id?: InputMaybe<Scalars["ID"]>;
   name?: InputMaybe<Scalars["String"]>;
@@ -73,6 +75,8 @@ export interface ProjectInput {
 }
 
 export interface ProjectTaskInput {
+  above?: InputMaybe<Scalars["String"]>;
+  below?: InputMaybe<Scalars["String"]>;
   description?: InputMaybe<Scalars["String"]>;
   endDate?: InputMaybe<Scalars["DateTime"]>;
   members?: InputMaybe<Array<InputMaybe<Scalars["String"]>>>;
@@ -83,6 +87,7 @@ export interface ProjectTaskInput {
 }
 
 export interface ProjectWhere {
+  archived?: InputMaybe<Scalars["Boolean"]>;
   displayId?: InputMaybe<Scalars["String"]>;
   end?: InputMaybe<Scalars["DateTime"]>;
   start?: InputMaybe<Scalars["DateTime"]>;
@@ -144,6 +149,7 @@ export const scalarsEnumsHash: import("gqty").ScalarsEnumsHash = {
   Float: true,
   Hash: true,
   ID: true,
+  Int: true,
   String: true,
   Upload: true,
 };
@@ -190,12 +196,14 @@ export const generatedSchema = {
     description: { __type: "String" },
     id: { __type: "ID" },
     item: { __type: "String" },
+    order: { __type: "Int" },
     price: { __type: "Float" },
     quantity: { __type: "Float" },
   },
   EstimateLineItemInput: {
     description: { __type: "String" },
     item: { __type: "String" },
+    order: { __type: "Int" },
     price: { __type: "Float" },
     quantity: { __type: "Float" },
   },
@@ -228,6 +236,7 @@ export const generatedSchema = {
   },
   Project: {
     __typename: { __type: "String!" },
+    description: { __type: "String" },
     displayId: { __type: "String" },
     endDate: { __type: "DateTime" },
     files: { __type: "[File]", __args: { path: "String" } },
@@ -241,6 +250,7 @@ export const generatedSchema = {
     tasks: { __type: "[ProjectTask]" },
   },
   ProjectInput: {
+    description: { __type: "String" },
     endDate: { __type: "DateTime" },
     id: { __type: "ID" },
     name: { __type: "String" },
@@ -256,6 +266,7 @@ export const generatedSchema = {
   },
   ProjectTask: {
     __typename: { __type: "String!" },
+    columnRank: { __type: "String" },
     createdBy: { __type: "HiveUser" },
     dependencyOf: { __type: "[ProjectTask]" },
     dependencyOn: { __type: "[ProjectTask]" },
@@ -267,9 +278,12 @@ export const generatedSchema = {
     project: { __type: "Project" },
     startDate: { __type: "DateTime" },
     status: { __type: "String" },
+    timelineRank: { __type: "String" },
     title: { __type: "String" },
   },
   ProjectTaskInput: {
+    above: { __type: "String" },
+    below: { __type: "String" },
     description: { __type: "String" },
     endDate: { __type: "DateTime" },
     members: { __type: "[String]" },
@@ -279,6 +293,7 @@ export const generatedSchema = {
     title: { __type: "String" },
   },
   ProjectWhere: {
+    archived: { __type: "Boolean" },
     displayId: { __type: "String" },
     end: { __type: "DateTime" },
     start: { __type: "DateTime" },
@@ -330,6 +345,7 @@ export const generatedSchema = {
   TimelineInput: { name: { __type: "String" } },
   TimelineItem: {
     __typename: { __type: "String!" },
+    blocks: { __type: "[TimelineItem]" },
     data: { __type: "[TimelineItemData]" },
     endDate: { __type: "DateTime" },
     estimate: { __type: "Estimate" },
@@ -338,6 +354,8 @@ export const generatedSchema = {
     notes: { __type: "String" },
     organisation: { __type: "HiveOrganisation" },
     project: { __type: "Project" },
+    rank: { __type: "String" },
+    requires: { __type: "[TimelineItem]" },
     startDate: { __type: "DateTime" },
     timeline: { __type: "String" },
   },
@@ -422,7 +440,11 @@ export const generatedSchema = {
     createTimeline: { __type: "Timeline", __args: { input: "TimelineInput" } },
     createTimelineItem: {
       __type: "TimelineItem",
-      __args: { input: "TimelineItemInput" },
+      __args: { input: "TimelineItemInput", prev: "ID" },
+    },
+    createTimelineItemDependency: {
+      __type: "TimelineItem",
+      __args: { source: "ID", target: "ID" },
     },
     deleteEquipment: { __type: "Equipment", __args: { id: "ID!" } },
     deleteEstimate: { __type: "Estimate", __args: { id: "ID!" } },
@@ -443,6 +465,10 @@ export const generatedSchema = {
     deleteScheduleItem: { __type: "ScheduleItem", __args: { id: "ID" } },
     deleteTimeline: { __type: "Timeline", __args: { id: "ID" } },
     deleteTimelineItem: { __type: "TimelineItem", __args: { id: "ID" } },
+    deleteTimelineItemDependency: {
+      __type: "TimelineItem",
+      __args: { source: "ID", target: "ID" },
+    },
     empty: { __type: "String" },
     joinScheduleItem: { __type: "ScheduleItem", __args: { id: "ID" } },
     leaveScheduleItem: { __type: "ScheduleItem", __args: { id: "ID" } },
@@ -478,6 +504,14 @@ export const generatedSchema = {
       __type: "ProjectTask!",
       __args: { id: "ID", input: "ProjectTaskInput" },
     },
+    updateProjectTaskColumn: {
+      __type: "ProjectTask",
+      __args: { above: "String", below: "String", id: "ID", status: "String" },
+    },
+    updateProjectTaskTimelineOrder: {
+      __type: "ProjectTask!",
+      __args: { above: "String", below: "String", id: "ID" },
+    },
     updateScheduleItem: {
       __type: "ScheduleItem",
       __args: { id: "ID", input: "ScheduleItemInput" },
@@ -489,6 +523,10 @@ export const generatedSchema = {
     updateTimelineItem: {
       __type: "TimelineItem",
       __args: { id: "ID", input: "TimelineItemInput" },
+    },
+    updateTimelineItemOrder: {
+      __type: "TimelineItem",
+      __args: { id: "ID", next: "ID", prev: "ID" },
     },
     uploadProjectFiles: {
       __type: "[File!]!",
@@ -552,6 +590,7 @@ export interface EstimateLineItem {
   description?: Maybe<ScalarsEnums["String"]>;
   id?: Maybe<ScalarsEnums["ID"]>;
   item?: Maybe<ScalarsEnums["String"]>;
+  order?: Maybe<ScalarsEnums["Int"]>;
   price?: Maybe<ScalarsEnums["Float"]>;
   quantity?: Maybe<ScalarsEnums["Float"]>;
 }
@@ -587,6 +626,7 @@ export interface People {
 
 export interface Project {
   __typename?: "Project";
+  description?: Maybe<ScalarsEnums["String"]>;
   displayId?: Maybe<ScalarsEnums["String"]>;
   endDate?: Maybe<ScalarsEnums["DateTime"]>;
   files: (args?: {
@@ -612,6 +652,7 @@ export interface ProjectResult {
 
 export interface ProjectTask {
   __typename?: "ProjectTask";
+  columnRank?: Maybe<ScalarsEnums["String"]>;
   createdBy?: Maybe<HiveUser>;
   dependencyOf?: Maybe<Array<Maybe<ProjectTask>>>;
   dependencyOn?: Maybe<Array<Maybe<ProjectTask>>>;
@@ -623,6 +664,7 @@ export interface ProjectTask {
   project?: Maybe<Project>;
   startDate?: Maybe<ScalarsEnums["DateTime"]>;
   status?: Maybe<ScalarsEnums["String"]>;
+  timelineRank?: Maybe<ScalarsEnums["String"]>;
   title?: Maybe<ScalarsEnums["String"]>;
 }
 
@@ -664,6 +706,7 @@ export interface Timeline {
 
 export interface TimelineItem {
   __typename?: "TimelineItem";
+  blocks?: Maybe<Array<Maybe<TimelineItem>>>;
   data?: Maybe<Array<Maybe<TimelineItemData>>>;
   endDate?: Maybe<ScalarsEnums["DateTime"]>;
   estimate?: Maybe<Estimate>;
@@ -672,6 +715,8 @@ export interface TimelineItem {
   notes?: Maybe<ScalarsEnums["String"]>;
   organisation?: Maybe<HiveOrganisation>;
   project?: Maybe<Project>;
+  rank?: Maybe<ScalarsEnums["String"]>;
+  requires?: Maybe<Array<Maybe<TimelineItem>>>;
   startDate?: Maybe<ScalarsEnums["DateTime"]>;
   timeline?: Maybe<ScalarsEnums["String"]>;
 }
@@ -738,6 +783,11 @@ export interface Mutation {
   createTimeline: (args?: { input?: Maybe<TimelineInput> }) => Maybe<Timeline>;
   createTimelineItem: (args?: {
     input?: Maybe<TimelineItemInput>;
+    prev?: Maybe<Scalars["ID"]>;
+  }) => Maybe<TimelineItem>;
+  createTimelineItemDependency: (args?: {
+    source?: Maybe<Scalars["ID"]>;
+    target?: Maybe<Scalars["ID"]>;
   }) => Maybe<TimelineItem>;
   deleteEquipment: (args: { id: Scalars["ID"] }) => Maybe<Equipment>;
   deleteEstimate: (args: { id: Scalars["ID"] }) => Maybe<Estimate>;
@@ -762,6 +812,10 @@ export interface Mutation {
   deleteTimeline: (args?: { id?: Maybe<Scalars["ID"]> }) => Maybe<Timeline>;
   deleteTimelineItem: (args?: {
     id?: Maybe<Scalars["ID"]>;
+  }) => Maybe<TimelineItem>;
+  deleteTimelineItemDependency: (args?: {
+    source?: Maybe<Scalars["ID"]>;
+    target?: Maybe<Scalars["ID"]>;
   }) => Maybe<TimelineItem>;
   empty?: Maybe<ScalarsEnums["String"]>;
   joinScheduleItem: (args?: {
@@ -805,6 +859,17 @@ export interface Mutation {
     id?: Maybe<Scalars["ID"]>;
     input?: Maybe<ProjectTaskInput>;
   }) => ProjectTask;
+  updateProjectTaskColumn: (args?: {
+    above?: Maybe<Scalars["String"]>;
+    below?: Maybe<Scalars["String"]>;
+    id?: Maybe<Scalars["ID"]>;
+    status?: Maybe<Scalars["String"]>;
+  }) => Maybe<ProjectTask>;
+  updateProjectTaskTimelineOrder: (args?: {
+    above?: Maybe<Scalars["String"]>;
+    below?: Maybe<Scalars["String"]>;
+    id?: Maybe<Scalars["ID"]>;
+  }) => ProjectTask;
   updateScheduleItem: (args?: {
     id?: Maybe<Scalars["ID"]>;
     input?: Maybe<ScheduleItemInput>;
@@ -816,6 +881,11 @@ export interface Mutation {
   updateTimelineItem: (args?: {
     id?: Maybe<Scalars["ID"]>;
     input?: Maybe<TimelineItemInput>;
+  }) => Maybe<TimelineItem>;
+  updateTimelineItemOrder: (args?: {
+    id?: Maybe<Scalars["ID"]>;
+    next?: Maybe<Scalars["ID"]>;
+    prev?: Maybe<Scalars["ID"]>;
   }) => Maybe<TimelineItem>;
   uploadProjectFiles: (args: {
     files?: Maybe<Array<Maybe<Scalars["Upload"]>>>;

@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client"
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { nanoid } from "nanoid";
 
 export default (prisma: PrismaClient) => {
@@ -23,6 +24,8 @@ export default (prisma: PrismaClient) => {
             displayId: String
             name: String
             status: [String]
+
+            archived: Boolean
 
             date_GTE: DateTime
             date_LTE: DateTime
@@ -99,6 +102,9 @@ export default (prisma: PrismaClient) => {
                     if(args.where.displayId) whereArg['displayId'] = args.where.displayId;
                     if(args.where.date_GTE) whereArg['date'] = {...whereArg['date'], gte: args.where.date_GTE};
                     if(args.where.date_LTE) whereArg['date'] = {...whereArg['date'], lte: args.where.date_LTE};
+
+                    if(args.where.archived) whereArg['archived'] = true;
+                    else whereArg['archived'] = false;
                 }
                 return await prisma.estimate.findMany({where: whereArg, include: {lineItems: true}})
             }
@@ -189,21 +195,30 @@ export default (prisma: PrismaClient) => {
                 return item?.lineItems?.find((a) => a.id == args.id)
             },
             createEstimate: async  (root: any, args: any, context: any) => {
-                const count = await prisma.estimate.count({ where: {organisation: context.jwt.organisation }})
+                try{
+                    const count = await prisma.estimate.count({ where: {organisation: context.jwt.organisation }})
 
-                return await prisma.estimate.create({
-                    data: {
-                        id: nanoid(),
-                        displayId: args.input.id || `${count + 1}`,
-                        name: args.input.name,
-                        companyName: args.input.companyName,
-                        date: args.input.date || new Date(),
-                        expiry: args.input.expiry,
-                        status: args.input.status,
-                        price: args.input.price,
-                        organisation: context.jwt.organisation
-                    }
-                })
+                    return await prisma.estimate.create({
+                        data: {
+                            id: nanoid(),
+                            displayId: args.input.id || `${count + 1}`,
+                            name: args.input.name,
+                            companyName: args.input.companyName,
+                            date: args.input.date,
+                            expiry: args.input.expiry,
+                            status: args.input.status,
+                            price: args.input.price,
+                            organisation: context.jwt.organisation
+                        }
+                    })
+                }catch(e){
+                        if(e instanceof PrismaClientKnownRequestError){
+                            if(e.code == 'P2002'){
+    
+                                throw new Error("Duplicate estimate id")
+                            }
+                        }
+                }
             },
             updateEstimate: async  (root: any, args: any, context: any) => {
                 return await prisma.estimate.update({
@@ -221,8 +236,11 @@ export default (prisma: PrismaClient) => {
                 })
             },
             deleteEstimate: async  (root: any, args: any, context: any) => {
-                return await prisma.estimate.delete({
-                    where: { displayId_organisation: {displayId: args.id, organisation: context.jwt.organisation} }
+                return await prisma.estimate.update({
+                    where: { displayId_organisation: {displayId: args.id, organisation: context.jwt.organisation} },
+                    data: {
+                        archived: true
+                    }
                 })
             } 
         }

@@ -1,4 +1,4 @@
-name: HiveFlow Infrastructure
+name: HiveFlow Web App
 
 on:
   push:
