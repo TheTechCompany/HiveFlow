@@ -29,14 +29,13 @@ const main = (async () => {
 
     const deployment = await rootServer.apply(async (url) => await Deployment(provider, url, dbUrl, dbPass));
 
-    const integrationCron = await rootServer.apply(async (url) => await IntegrationDeployment(provider, url, dbUrl, dbPass))
+    // const integrationCron = await rootServer.apply(async (url) => await IntegrationDeployment(provider, url, dbUrl, dbPass))
 
     const service = await Service(provider)
 
     return {
         service,
-        deployment,
-        integrationCron
+        deployment
     }
 })()
 
