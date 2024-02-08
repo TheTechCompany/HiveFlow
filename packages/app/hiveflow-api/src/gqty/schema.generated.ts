@@ -56,7 +56,20 @@ export interface EstimateLineItemInput {
   quantity?: InputMaybe<Scalars["Float"]>;
 }
 
+export interface EstimateTaskInput {
+  above?: InputMaybe<Scalars["String"]>;
+  below?: InputMaybe<Scalars["String"]>;
+  description?: InputMaybe<Scalars["String"]>;
+  endDate?: InputMaybe<Scalars["DateTime"]>;
+  members?: InputMaybe<Array<InputMaybe<Scalars["String"]>>>;
+  projectId: Scalars["String"];
+  startDate?: InputMaybe<Scalars["DateTime"]>;
+  status?: InputMaybe<Scalars["String"]>;
+  title?: InputMaybe<Scalars["String"]>;
+}
+
 export interface EstimateWhere {
+  archived?: InputMaybe<Scalars["Boolean"]>;
   date_GTE?: InputMaybe<Scalars["DateTime"]>;
   date_LTE?: InputMaybe<Scalars["DateTime"]>;
   displayId?: InputMaybe<Scalars["String"]>;
@@ -179,6 +192,7 @@ export const generatedSchema = {
     organisation: { __type: "HiveOrganisation" },
     price: { __type: "Float" },
     status: { __type: "String" },
+    tasks: { __type: "[EstimateTask]" },
   },
   EstimateInput: {
     companyName: { __type: "String" },
@@ -207,7 +221,36 @@ export const generatedSchema = {
     price: { __type: "Float" },
     quantity: { __type: "Float" },
   },
+  EstimateTask: {
+    __typename: { __type: "String!" },
+    columnRank: { __type: "String" },
+    createdBy: { __type: "HiveUser" },
+    dependencyOf: { __type: "[EstimateTask]" },
+    dependencyOn: { __type: "[EstimateTask]" },
+    description: { __type: "String" },
+    endDate: { __type: "DateTime" },
+    estimate: { __type: "Estimate" },
+    id: { __type: "ID!" },
+    lastUpdated: { __type: "DateTime" },
+    members: { __type: "[HiveUser]" },
+    startDate: { __type: "DateTime" },
+    status: { __type: "String" },
+    timelineRank: { __type: "String" },
+    title: { __type: "String" },
+  },
+  EstimateTaskInput: {
+    above: { __type: "String" },
+    below: { __type: "String" },
+    description: { __type: "String" },
+    endDate: { __type: "DateTime" },
+    members: { __type: "[String]" },
+    projectId: { __type: "String!" },
+    startDate: { __type: "DateTime" },
+    status: { __type: "String" },
+    title: { __type: "String" },
+  },
   EstimateWhere: {
+    archived: { __type: "Boolean" },
     date_GTE: { __type: "DateTime" },
     date_LTE: { __type: "DateTime" },
     displayId: { __type: "String" },
@@ -420,6 +463,10 @@ export const generatedSchema = {
       __type: "EstimateLineItem",
       __args: { estimate: "ID", input: "EstimateLineItemInput" },
     },
+    createEstimateTask: {
+      __type: "EstimateTask!",
+      __args: { input: "EstimateTaskInput" },
+    },
     createProject: { __type: "Project!", __args: { input: "ProjectInput" } },
     createProjectFolder: {
       __type: "File",
@@ -452,6 +499,7 @@ export const generatedSchema = {
       __type: "EstimateLineItem",
       __args: { estimate: "ID", id: "ID" },
     },
+    deleteEstimateTask: { __type: "EstimateTask!", __args: { id: "ID" } },
     deleteProject: { __type: "Project!", __args: { id: "ID!" } },
     deleteProjectFile: {
       __type: "File",
@@ -491,6 +539,14 @@ export const generatedSchema = {
     updateEstimateLineItem: {
       __type: "EstimateLineItem",
       __args: { estimate: "ID", id: "ID", input: "EstimateLineItemInput" },
+    },
+    updateEstimateTask: {
+      __type: "EstimateTask!",
+      __args: { id: "ID", input: "EstimateTaskInput" },
+    },
+    updateEstimateTaskTimelineOrder: {
+      __type: "EstimateTask!",
+      __args: { above: "String", below: "String", id: "ID" },
     },
     updateProject: {
       __type: "Project!",
@@ -582,6 +638,7 @@ export interface Estimate {
   organisation?: Maybe<HiveOrganisation>;
   price?: Maybe<ScalarsEnums["Float"]>;
   status?: Maybe<ScalarsEnums["String"]>;
+  tasks?: Maybe<Array<Maybe<EstimateTask>>>;
 }
 
 export interface EstimateLineItem {
@@ -593,6 +650,24 @@ export interface EstimateLineItem {
   order?: Maybe<ScalarsEnums["Int"]>;
   price?: Maybe<ScalarsEnums["Float"]>;
   quantity?: Maybe<ScalarsEnums["Float"]>;
+}
+
+export interface EstimateTask {
+  __typename?: "EstimateTask";
+  columnRank?: Maybe<ScalarsEnums["String"]>;
+  createdBy?: Maybe<HiveUser>;
+  dependencyOf?: Maybe<Array<Maybe<EstimateTask>>>;
+  dependencyOn?: Maybe<Array<Maybe<EstimateTask>>>;
+  description?: Maybe<ScalarsEnums["String"]>;
+  endDate?: Maybe<ScalarsEnums["DateTime"]>;
+  estimate?: Maybe<Estimate>;
+  id: ScalarsEnums["ID"];
+  lastUpdated?: Maybe<ScalarsEnums["DateTime"]>;
+  members?: Maybe<Array<Maybe<HiveUser>>>;
+  startDate?: Maybe<ScalarsEnums["DateTime"]>;
+  status?: Maybe<ScalarsEnums["String"]>;
+  timelineRank?: Maybe<ScalarsEnums["String"]>;
+  title?: Maybe<ScalarsEnums["String"]>;
 }
 
 export interface File {
@@ -764,6 +839,9 @@ export interface Mutation {
     estimate?: Maybe<Scalars["ID"]>;
     input?: Maybe<EstimateLineItemInput>;
   }) => Maybe<EstimateLineItem>;
+  createEstimateTask: (args?: {
+    input?: Maybe<EstimateTaskInput>;
+  }) => EstimateTask;
   createProject: (args?: { input?: Maybe<ProjectInput> }) => Project;
   createProjectFolder: (args: {
     path?: Maybe<Scalars["String"]>;
@@ -795,6 +873,7 @@ export interface Mutation {
     estimate?: Maybe<Scalars["ID"]>;
     id?: Maybe<Scalars["ID"]>;
   }) => Maybe<EstimateLineItem>;
+  deleteEstimateTask: (args?: { id?: Maybe<Scalars["ID"]> }) => EstimateTask;
   deleteProject: (args: { id: Scalars["ID"] }) => Project;
   deleteProjectFile: (args: {
     path?: Maybe<Scalars["String"]>;
@@ -847,6 +926,15 @@ export interface Mutation {
     id?: Maybe<Scalars["ID"]>;
     input?: Maybe<EstimateLineItemInput>;
   }) => Maybe<EstimateLineItem>;
+  updateEstimateTask: (args?: {
+    id?: Maybe<Scalars["ID"]>;
+    input?: Maybe<EstimateTaskInput>;
+  }) => EstimateTask;
+  updateEstimateTaskTimelineOrder: (args?: {
+    above?: Maybe<Scalars["String"]>;
+    below?: Maybe<Scalars["String"]>;
+    id?: Maybe<Scalars["ID"]>;
+  }) => EstimateTask;
   updateProject: (args: {
     id: Scalars["ID"];
     input?: Maybe<ProjectInput>;
@@ -925,6 +1013,7 @@ export interface SchemaObjectTypes {
   Equipment: Equipment;
   Estimate: Estimate;
   EstimateLineItem: EstimateLineItem;
+  EstimateTask: EstimateTask;
   File: File;
   HiveOrganisation: HiveOrganisation;
   HiveUser: HiveUser;
@@ -948,6 +1037,7 @@ export type SchemaObjectTypesNames =
   | "Equipment"
   | "Estimate"
   | "EstimateLineItem"
+  | "EstimateTask"
   | "File"
   | "HiveOrganisation"
   | "HiveUser"

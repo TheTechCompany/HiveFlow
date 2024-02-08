@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client"
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import { LexoRank } from "lexorank";
 import { nanoid } from "nanoid";
 
 export default (prisma: PrismaClient) => {
@@ -13,6 +14,11 @@ export default (prisma: PrismaClient) => {
             createEstimate(input: EstimateInput): Estimate
             updateEstimate(id: ID!, input: EstimateInput): Estimate
             deleteEstimate(id: ID!): Estimate
+
+            createEstimateTask(input: EstimateTaskInput): EstimateTask!
+            updateEstimateTask(id: ID, input: EstimateTaskInput): EstimateTask!
+            updateEstimateTaskTimelineOrder(id: ID, above: String, below: String): EstimateTask!
+            deleteEstimateTask(id: ID): EstimateTask!
 
             createEstimateLineItem(estimate: ID, input: EstimateLineItemInput): EstimateLineItem
             updateEstimateLineItem(estimate: ID, id: ID, input: EstimateLineItemInput): EstimateLineItem
@@ -58,8 +64,54 @@ export default (prisma: PrismaClient) => {
 
             lineItems: [EstimateLineItem]
 
+            tasks : [EstimateTask]
+
             organisation: HiveOrganisation
         }
+
+       
+    input EstimateTaskInput {
+        title: String
+        description: String
+
+        members: [String]
+
+        startDate: DateTime
+        endDate: DateTime
+
+        status: String
+
+        above: String
+        below: String
+        
+        projectId: String!
+    }
+
+    type EstimateTask {
+        id: ID!
+
+        title: String
+        description: String
+
+        timelineRank: String
+        columnRank: String
+
+        startDate: DateTime
+        endDate: DateTime
+
+        status: String
+
+        estimate: Estimate
+
+        members: [HiveUser]
+
+        createdBy: HiveUser
+
+        lastUpdated: DateTime
+
+        dependencyOf: [EstimateTask]
+        dependencyOn: [EstimateTask]
+    }
 
         input EstimateLineItemInput {
             order: Int
@@ -106,7 +158,7 @@ export default (prisma: PrismaClient) => {
                     if(args.where.archived) whereArg['archived'] = true;
                     else whereArg['archived'] = false;
                 }
-                return await prisma.estimate.findMany({where: whereArg, include: {lineItems: true}})
+                return await prisma.estimate.findMany({where: whereArg, include: {lineItems: true, tasks: true}})
             }
         },
         Mutation: {
@@ -242,7 +294,202 @@ export default (prisma: PrismaClient) => {
                         archived: true
                     }
                 })
-            } 
+            },
+            createEstimateTask: async (root: any, args: any, context: any) => {
+
+                const {columnRank: lastColumnRank} = await prisma.estimateTask.findFirst({
+                    where: {
+                        estimate: {
+                            organisation: context?.jwt?.organisation,
+                            id: args.input.projectId
+                        },
+                        status: args.input.status
+                    },
+                    orderBy: {
+                        columnRank: 'asc'
+                    }
+                }) || {};
+
+                const { timelineRank: lastTimelineRank } = await prisma.estimateTask.findFirst({
+                    where: {
+                        estimate: {
+                            organisation: context?.jwt?.organisation,
+                            id: args.input.projectId
+                        },
+                    },
+                    orderBy: {
+                        timelineRank: 'asc'
+                    }
+                }) || {};
+
+
+
+                let aboveColumnRank = LexoRank.parse(lastColumnRank || LexoRank.min().toString())
+                let aboveTimelineRank = LexoRank.parse(lastTimelineRank || LexoRank.min().toString())
+                let belowRank = LexoRank.parse(LexoRank.max().toString())
+
+                let nextTimelineRank = aboveTimelineRank.between(belowRank).toString();
+                let nextColumnRank = aboveColumnRank.between(belowRank).toString();
+
+                return await prisma.estimate.update({
+                    where: {
+                        displayId_organisation: {
+                            organisation: context?.jwt?.organisation,
+                            displayId: args.input.projectId
+                        }
+                    },
+                    data: {
+                        tasks: {
+                            create: {
+                                id: nanoid(),
+                                title: args.input.title,
+                                description: args.input.description,
+                                createdBy: context?.jwt?.id,
+                                members: args.input.members || [],
+                                columnRank: nextColumnRank,
+                                timelineRank: nextTimelineRank,
+                                startDate: args.input.startDate,
+                                endDate: args.input.endDate,
+                                status: args.input.status,
+                                lastUpdated: new Date()
+                            }
+                        }
+                    }
+                })
+            },
+            updateEstimateTaskTimelineOrder: async (root: any, args: any, context: any) => {
+
+                const projectRoot = await prisma.estimateTask.findFirst({
+                    where: {
+                        id: args.id,
+                        estimate: {
+                            organisation: context?.jwt?.organisation
+                        }
+                    }
+                })
+                
+                if(!projectRoot) throw new Error("No estimateTask found")
+
+                const { timelineRank: aboveTimelineRank } = await prisma.estimateTask.findFirst({
+                    where: {
+                        id: args.above,
+                        estimateId: projectRoot?.estimateId
+                    }
+                }) || {}
+
+                const { timelineRank: belowTimelineRank } = await prisma.estimateTask.findFirst({
+                    where: {
+                        id: args.below,
+                        estimateId: projectRoot?.estimateId
+                    }
+                }) || {}
+
+           
+
+                let aboveRank = LexoRank.parse(aboveTimelineRank || LexoRank.min().toString())
+                let belowRank = LexoRank.parse(belowTimelineRank || LexoRank.max().toString())
+
+                let nextTimelineRank = aboveRank.between(belowRank).toString();
+
+
+                return await prisma.estimateTask.update({
+                    where: {
+                        estimateId_id: {
+                            id: args.id,
+                            estimateId: projectRoot?.estimateId
+                        }
+                    },
+                    data: {
+                        timelineRank: nextTimelineRank
+                    }
+                })
+
+
+            }, 
+            updateEstimateTask: async (root: any, args: any, context: any) => {
+                
+                const rootTask = await prisma.estimateTask.findFirst({
+                    where: {
+                        id: args.id,
+                        estimate: {
+                            organisation: context?.jwt?.organisation
+                        }
+                    }
+                })
+
+                if(!rootTask) throw new Error("No task found");
+
+                let estimateId;
+                if(args.input.projectId) {
+                    const p = await prisma.estimate.findFirst({
+                        where: {
+                            displayId: args.input.projectId
+                        }
+                    })
+                    estimateId = p?.id
+                }
+
+
+                let nextRank;
+
+                if(args.input?.above || args.input?.below){
+
+                    const { columnRank: aboveColumnRank } = await prisma.estimateTask.findFirst({
+                        where: {
+                            id: args.input?.above,
+                            estimateId: rootTask?.estimateId
+                        }
+                    }) || {}
+
+                    const { columnRank: belowColumnRank } = await prisma.estimateTask.findFirst({
+                        where: {
+                            id: args.input?.below,
+                            estimateId: rootTask?.estimateId
+                        }
+                    }) || {}
+
+                    let aboveRank = LexoRank.parse(aboveColumnRank || LexoRank.min().toString())
+                    let belowRank = LexoRank.parse(belowColumnRank || LexoRank.max().toString())
+                     nextRank = aboveRank.between(belowRank).toString();
+                    
+                }else if(args.input?.status){
+                    const { columnRank } = await prisma.estimateTask.findFirst({
+                        where: {
+                            estimateId: rootTask?.estimateId,
+                            status: args.input?.status
+                        },
+                        orderBy: {
+                            columnRank: 'asc'
+                        }
+                    }) || {}
+
+                    let aboveRank = LexoRank.parse(columnRank || LexoRank.min().toString())
+                    let belowRank = LexoRank.parse(LexoRank.max().toString())
+                     nextRank = aboveRank.between(belowRank).toString();
+            
+                }
+
+
+                return await prisma.estimateTask.update({
+                    where: {
+                        id: args.id
+                    },
+                    data: {
+                        title: args.input.title,
+                        description: args.input.description,
+                        members: args.input.members || [],
+                        startDate: args.input.startDate,
+                        endDate: args.input.endDate,
+                        columnRank: nextRank,
+                        status: args.input.status,
+                        estimateId: estimateId,
+                        lastUpdated: new Date()
+                    }
+                })
+            },
+            deleteEstimateTask: async (root: any, args: any) => {
+                return await prisma.estimateTask.delete({where: {id: args.id}})
+            },
         }
     };
 

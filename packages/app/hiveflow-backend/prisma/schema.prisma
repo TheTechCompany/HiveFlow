@@ -42,7 +42,7 @@ model ProjectTask {
 
     status String?
 
-    project Project @relation(name: "projectTasks", fields: [projectId], references: [id])
+    project Project @relation(name: "projectTasks", fields: [projectId], references: [id], onDelete: Cascade)
     projectId String
 
     startDate DateTime?
@@ -86,11 +86,44 @@ model Estimate {
     
     organisation String
 
+    tasks EstimateTask[] @relation(name: "estimateTasks")
+
     timeline TimelineItem[] @relation(name: "estimateTimeline")
 
     archived Boolean @default(false)
 
     @@unique([ displayId, organisation ])
+}
+
+
+
+model EstimateTask {
+    id String @id
+
+    title String
+    description String?
+
+    status String?
+
+    estimate Estimate @relation(name: "estimateTasks", fields: [estimateId], references: [id], onDelete: Cascade)
+    estimateId String
+
+    startDate DateTime?
+    endDate   DateTime?
+
+    timelineRank String?
+    columnRank String?
+
+    members String[]
+
+    createdBy String?
+
+    dependencyOf EstimateTask[] @relation(name: "dependencyOfEstimateTask")
+    dependencyOn EstimateTask[] @relation(name: "dependencyOfEstimateTask")
+
+    lastUpdated DateTime?
+
+    @@unique([estimateId, id])
 }
 
 model EstimateLineItem {

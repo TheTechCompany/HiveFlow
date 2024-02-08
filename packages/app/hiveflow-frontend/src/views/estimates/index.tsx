@@ -8,7 +8,7 @@ export const EstimateView = () => {
         <Routes>
             <Route path="" element={<Outlet />} >
                 <Route path="" element={<EstimateList />} />
-                <Route path=":id" element={<EstimateSingle />} />
+                <Route path=":id/*" element={<EstimateSingle />} />
             </Route>
         </Routes>
     )
