@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { EstimateTask, PrismaClient } from "@prisma/client"
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { LexoRank } from "lexorank";
 import { nanoid } from "nanoid";
@@ -19,6 +19,9 @@ export default (prisma: PrismaClient) => {
             updateEstimateTask(id: ID, input: EstimateTaskInput): EstimateTask!
             updateEstimateTaskTimelineOrder(id: ID, above: String, below: String): EstimateTask!
             deleteEstimateTask(id: ID): EstimateTask!
+
+            createEstimateTaskDependency(estimate: ID, source: ID, target: ID): EstimateTask!
+            deleteEstimateTaskDependency(estimate: ID, source: ID, target: ID): EstimateTask!    
 
             createEstimateLineItem(estimate: ID, input: EstimateLineItemInput): EstimateLineItem
             updateEstimateLineItem(estimate: ID, id: ID, input: EstimateLineItemInput): EstimateLineItem
@@ -84,7 +87,7 @@ export default (prisma: PrismaClient) => {
         above: String
         below: String
         
-        projectId: String!
+        estimateId: String!
     }
 
     type EstimateTask {
@@ -158,7 +161,18 @@ export default (prisma: PrismaClient) => {
                     if(args.where.archived) whereArg['archived'] = true;
                     else whereArg['archived'] = false;
                 }
-                return await prisma.estimate.findMany({where: whereArg, include: {lineItems: true, tasks: true}})
+                return await prisma.estimate.findMany({
+                    where: whereArg, 
+                    include: {
+                        lineItems: true, 
+                        tasks: {
+                            include: {
+                                dependencyOf: true,
+                                dependencyOn: true
+                            }
+                        }
+                    }
+                })
             }
         },
         Mutation: {
@@ -301,12 +315,12 @@ export default (prisma: PrismaClient) => {
                     where: {
                         estimate: {
                             organisation: context?.jwt?.organisation,
-                            id: args.input.projectId
+                            displayId: args.input.estimateId
                         },
                         status: args.input.status
                     },
                     orderBy: {
-                        columnRank: 'asc'
+                        columnRank: 'desc'
                     }
                 }) || {};
 
@@ -314,11 +328,11 @@ export default (prisma: PrismaClient) => {
                     where: {
                         estimate: {
                             organisation: context?.jwt?.organisation,
-                            id: args.input.projectId
+                            displayId: args.input.estimateId
                         },
                     },
                     orderBy: {
-                        timelineRank: 'asc'
+                        timelineRank: 'desc'
                     }
                 }) || {};
 
@@ -331,11 +345,12 @@ export default (prisma: PrismaClient) => {
                 let nextTimelineRank = aboveTimelineRank.between(belowRank).toString();
                 let nextColumnRank = aboveColumnRank.between(belowRank).toString();
 
+                
                 return await prisma.estimate.update({
                     where: {
                         displayId_organisation: {
                             organisation: context?.jwt?.organisation,
-                            displayId: args.input.projectId
+                            displayId: args.input.estimateId
                         }
                     },
                     data: {
@@ -370,27 +385,36 @@ export default (prisma: PrismaClient) => {
                 
                 if(!projectRoot) throw new Error("No estimateTask found")
 
-                const { timelineRank: aboveTimelineRank } = await prisma.estimateTask.findFirst({
-                    where: {
-                        id: args.above,
-                        estimateId: projectRoot?.estimateId
-                    }
-                }) || {}
+                let aboveTask: EstimateTask | null, belowTask : EstimateTask | null;
 
-                const { timelineRank: belowTimelineRank } = await prisma.estimateTask.findFirst({
-                    where: {
-                        id: args.below,
-                        estimateId: projectRoot?.estimateId
-                    }
-                }) || {}
+                let aboveTimelineRank, belowTimelineRank;
 
-           
+                if(args.above){
+                    aboveTask = await prisma.estimateTask.findFirst({
+                        where: {
+                            id: args.above,
+                            estimateId: projectRoot?.estimateId
+                        }
+                    });
+                    aboveTimelineRank = aboveTask?.timelineRank;
+                }
+
+                if(args.below){
+                    belowTask = await prisma.estimateTask.findFirst({
+                        where: {
+                            id: args.below,
+                            estimateId: projectRoot?.estimateId
+                        }
+                    })
+
+                    belowTimelineRank = belowTask?.timelineRank;
+                }
+
 
                 let aboveRank = LexoRank.parse(aboveTimelineRank || LexoRank.min().toString())
                 let belowRank = LexoRank.parse(belowTimelineRank || LexoRank.max().toString())
 
                 let nextTimelineRank = aboveRank.between(belowRank).toString();
-
 
                 return await prisma.estimateTask.update({
                     where: {
@@ -420,10 +444,10 @@ export default (prisma: PrismaClient) => {
                 if(!rootTask) throw new Error("No task found");
 
                 let estimateId;
-                if(args.input.projectId) {
+                if(args.input.estimateId) {
                     const p = await prisma.estimate.findFirst({
                         where: {
-                            displayId: args.input.projectId
+                            displayId: args.input.estimateId
                         }
                     })
                     estimateId = p?.id
@@ -434,24 +458,32 @@ export default (prisma: PrismaClient) => {
 
                 if(args.input?.above || args.input?.below){
 
-                    const { columnRank: aboveColumnRank } = await prisma.estimateTask.findFirst({
-                        where: {
-                            id: args.input?.above,
-                            estimateId: rootTask?.estimateId
-                        }
-                    }) || {}
+                    let aboveColumnRank, belowColumnRank;
 
-                    const { columnRank: belowColumnRank } = await prisma.estimateTask.findFirst({
-                        where: {
-                            id: args.input?.below,
-                            estimateId: rootTask?.estimateId
-                        }
-                    }) || {}
+                    if(args.input.above){
+                        const aboveTask = await prisma.estimateTask.findFirst({
+                            where: {
+                                id: args.input?.above,
+                                estimateId: rootTask?.estimateId
+                            }
+                        })
+                        aboveColumnRank = aboveTask?.columnRank;
+                    }
+
+                    if(args.input.below){
+                        const belowTask = await prisma.estimateTask.findFirst({
+                            where: {
+                                id: args.input?.below,
+                                estimateId: rootTask?.estimateId
+                            }
+                        })
+                        belowColumnRank = belowTask?.columnRank;
+                    }
 
                     let aboveRank = LexoRank.parse(aboveColumnRank || LexoRank.min().toString())
                     let belowRank = LexoRank.parse(belowColumnRank || LexoRank.max().toString())
                      nextRank = aboveRank.between(belowRank).toString();
-                    
+
                 }else if(args.input?.status){
                     const { columnRank } = await prisma.estimateTask.findFirst({
                         where: {
@@ -489,6 +521,61 @@ export default (prisma: PrismaClient) => {
             },
             deleteEstimateTask: async (root: any, args: any) => {
                 return await prisma.estimateTask.delete({where: {id: args.id}})
+            },
+            createEstimateTaskDependency: async (root: any, args: any, context: any) => {
+
+                return await prisma.estimate.update({
+                    where: {
+                        displayId_organisation: {
+                            organisation: context?.jwt?.organisation,
+                            displayId: args.estimate
+                        }
+                    },
+                    data: {
+                        tasks: {
+                            update: [{
+                                where: {
+                                    id: args.source,
+                                },
+                                data: {
+                                    dependencyOf: {
+                                        connect: {
+                                            id: args.target
+                                        }
+                                    }
+                                }
+                            
+                            }]
+                        }
+                    }
+                })
+            },
+            deleteEstimateTaskDependency: async (root: any, args: any, context: any) => {
+                return await prisma.estimate.update({
+                    where: {
+                        displayId_organisation: {
+                            organisation: context?.jwt?.organisation,
+                            displayId: args.estimate
+                        }
+                    },
+                    data: {
+                        tasks: {
+                            update: [{
+                                where: {
+                                    id: args.source,
+                                },
+                                data: {
+                                    dependencyOf: {
+                                        disconnect: {
+                                            id: args.target
+                                        }
+                                    }
+                                }
+                            
+                            }]
+                        }
+                    }
+                })
             },
         }
     };

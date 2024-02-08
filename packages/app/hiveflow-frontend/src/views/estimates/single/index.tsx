@@ -10,6 +10,7 @@ import { debounce, throttle } from 'lodash';
 import { KanbanPane, TimelinePane } from './panes';
 import { EstimateSingleProvider } from './context';
 import { TaskModal } from '../../../modals/new-task';
+import { arrayMove } from '@dnd-kit/sortable';
 
 export const EstimateSingle = (props) => {
     
@@ -180,6 +181,26 @@ export const EstimateSingle = (props) => {
         }
     })
 
+
+    const [ createTaskDependency ] = useMutation((mutation, args: any) => {
+        const item = mutation.createEstimateTaskDependency({estimate: id, source: args.source, target: args.target});
+        return {
+        item: {
+            ...item
+        }
+        }
+    })
+
+
+    const [ deleteTaskDependency ] = useMutation((mutation, args: any) => {
+        const item = mutation.deleteEstimateTaskDependency({estimate: id, source: args.source, target: args.target});
+        return {
+        item: {
+            ...item
+        }
+        }
+  })
+
     const refetch = () => {
         client.refetchQueries({ include: ['EstimateSingle'] })
     }
@@ -206,7 +227,9 @@ export const EstimateSingle = (props) => {
 
     return (
         <EstimateSingleProvider value={{
+            estimateId: id,
             tasks: _estimate?.tasks || [],
+            refetch,
             createTask: (task: any) => {
                 console.log({ task })
 
@@ -217,11 +240,116 @@ export const EstimateSingle = (props) => {
                 setSelectedTask({ ...task, startDate: task.start, endDate: task.end })
                 openTaskModal(true)
             },
-            deleteTask: () => {
+            updateTaskStatus: (taskId, index, status) => {
+                let statusTasks = _estimate?.tasks?.filter((a) => a.status == status)?.sort((a,b) => a.columnRank?.localeCompare(b.columnRank));
+                        
+                let ix = statusTasks.map((x) => x.id).indexOf(taskId);
 
+                statusTasks = arrayMove(statusTasks, ix, index)
+
+                let above = statusTasks?.[index - 1]?.id;
+                let below = statusTasks?.[index + 1]?.id
+        
+                  updateTask({
+                    args: {
+                      id: taskId,
+                      input: {
+                        status,
+                        above: above != taskId ? above : undefined,
+                        below: below != taskId ? below : undefined,
+                        estimateId: id
+                      }
+                    }
+                  }).then(() => {
+                    refetch()
+        
+                  })
+            },
+            deleteTask,
+            deleteDependency: (source: string, target: string) => {
+              deleteTaskDependency({
+                args: {
+                  source,
+                  target
+                }
+              }).then(() => {
+                refetch();
+              })
+            },
+            createDependency: (source: string, target: string) => {
+              createTaskDependency({
+                args: {
+                  source,
+                  target
+                }
+              }).then(() => {
+                refetch();
+              })
             }
         }}>
-            <TaskModal open={taskModalOpen} onClose={() => openTaskModal(false)} />
+            <TaskModal 
+                users={users}
+                open={taskModalOpen} 
+                onClose={() => {
+                    openTaskModal(false)
+                    setSelectedTask(null)
+                  }}
+                  onDelete={async () => {
+                    if(!selectedTask) return;
+          
+                    await deleteTask({
+                      args: {
+                        id: selectedTask?.id
+                      }
+                    })
+                    refetch();
+          
+                    setSelectedTask(null)
+                    openTaskModal(false)
+                    
+                  }}
+                  selected={selectedTask}
+                  onSubmit={async (task) => {
+                    if(task.id){
+                      //Update
+                      await updateTask({
+                        args: { 
+                          id: task.id, 
+                          input: {
+                             title: task.title,
+                             members: task.members,
+                             description: task.description, 
+                             startDate: task.startDate,
+                             endDate: task.endDate,
+                             status: task.status,
+                             id: undefined, 
+                             estimateId: id 
+                          }
+                       }
+                      })
+                    }else{
+                      //Create
+                      await createTask({
+                        args: {
+                           input: {
+                            title: task.title,
+                            members: task.members,
+                            description: task.description, 
+                            startDate: task.startDate,
+                            endDate: task.endDate,
+                            status: task.status,
+                            id: undefined, 
+                            estimateId: id 
+                          } 
+                        }
+                      })
+                    }
+                    refetch();
+          
+                    setSelectedTask(null)
+                    openTaskModal(false)
+                  }}
+                onClose={() => openTaskModal(false)} />
             <Paper
                 sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
@@ -245,15 +373,12 @@ export const EstimateSingle = (props) => {
                             ))}
 
                         </Tabs>
-                        <IconButton sx={{ color: 'navigation.main' }}>
-                            <Download />
-                        </IconButton>
                     </Box>
                 </Box>
                 <Box
                     sx={{ flex: 1, overflow: 'auto', maxHeight: 'calc(100% - 36px)', display: 'flex' }}>
                     <Routes>
-                        <Route path="" element={<QuoteBuilder
+                        {/* <Route path="" element={<QuoteBuilder
                             items={_estimate?.lineItems || []}
                             quoteId={_estimate?.displayId}
                             onUpdateRow={(id, key, value) => {
@@ -314,7 +439,7 @@ export const EstimateSingle = (props) => {
                                     lineItems: [...lineItems, {}]
                                 })
                             }}
-                        />} />
+                        />} /> */}
                         {_tabs.map((tab) => <Route path={tab.path} element={tab.element} />)}
                     </Routes>
 

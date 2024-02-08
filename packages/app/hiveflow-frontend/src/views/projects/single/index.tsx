@@ -24,6 +24,7 @@ import { TimelinePane, FilePane, KanbanPane } from './panes';
 import { ProjectSingleProvider } from './context';
 import { TaskModal } from '../../../modals/new-task';
 
+import { arrayMove } from '@dnd-kit/sortable'
 // const FileExplorer = lazy(() => {
 //   //@ts-ignore
 //   return import('hexhive_hivefiles/Explorer').then((r) => {
@@ -330,19 +331,21 @@ console.log({pathname})
       refetch,
       updateTaskStatus: (taskId, index, status) => {
         let statusTasks = job?.tasks?.filter((a) => a.status == status)?.sort((a,b) => a.columnRank?.localeCompare(b.columnRank));
+                
+        const ix = statusTasks.map((x) => x.id).indexOf(taskId);
 
-        console.log(statusTasks)
-        
-        let above = statusTasks?.[index - 1]?.id
-        let below = statusTasks?.[index]?.id
+        statusTasks = arrayMove(statusTasks, ix, index);
+
+        let above = statusTasks?.[index -1]?.id;
+        let below = statusTasks?.[index + 1]?.id
 
           updateTask({
             args: {
               id: taskId,
               input: {
                 status,
-                above,
-                below,
+                above: above != taskId ? above : undefined,
+                below: below != taskId ? below : undefined,
                 projectId: job_id
               }
             }

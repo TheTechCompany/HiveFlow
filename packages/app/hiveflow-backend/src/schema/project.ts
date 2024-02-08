@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient, ProjectTask } from "@prisma/client"
 import { nanoid } from "nanoid";
 import { request } from 'graphql-request'
 import path from 'path'
@@ -155,12 +155,12 @@ export default (prisma: PrismaClient) => {
                     where: {
                         project: {
                             organisation: context?.jwt?.organisation,
-                            id: args.input.projectId
+                            displayId: args.input.projectId
                         },
                         status: args.input.status
                     },
                     orderBy: {
-                        columnRank: 'asc'
+                        columnRank: 'desc'
                     }
                 }) || {};
 
@@ -168,11 +168,11 @@ export default (prisma: PrismaClient) => {
                     where: {
                         project: {
                             organisation: context?.jwt?.organisation,
-                            id: args.input.projectId
+                            displayId: args.input.projectId
                         },
                     },
                     orderBy: {
-                        timelineRank: 'asc'
+                        timelineRank: 'desc'
                     }
                 }) || {};
 
@@ -213,6 +213,7 @@ export default (prisma: PrismaClient) => {
             },
             updateProjectTaskTimelineOrder: async (root: any, args: any, context: any) => {
 
+             
                 const projectRoot = await prisma.projectTask.findFirst({
                     where: {
                         id: args.id,
@@ -224,27 +225,36 @@ export default (prisma: PrismaClient) => {
                 
                 if(!projectRoot) throw new Error("No projectTask found")
 
-                const { timelineRank: aboveTimelineRank } = await prisma.projectTask.findFirst({
-                    where: {
-                        id: args.above,
-                        projectId: projectRoot?.projectId
-                    }
-                }) || {}
+                let aboveTask: ProjectTask | null, belowTask : ProjectTask | null;
 
-                const { timelineRank: belowTimelineRank } = await prisma.projectTask.findFirst({
-                    where: {
-                        id: args.below,
-                        projectId: projectRoot?.projectId
-                    }
-                }) || {}
+                let aboveTimelineRank, belowTimelineRank;
 
-           
+                if(args.above){
+                    aboveTask = await prisma.projectTask.findFirst({
+                        where: {
+                            id: args.above,
+                            projectId: projectRoot?.projectId
+                        }
+                    });
+                    aboveTimelineRank = aboveTask?.timelineRank;
+                }
+
+                if(args.below){
+                    belowTask = await prisma.projectTask.findFirst({
+                        where: {
+                            id: args.below,
+                            projectId: projectRoot?.projectId
+                        }
+                    })
+
+                    belowTimelineRank = belowTask?.timelineRank;
+                }
+
 
                 let aboveRank = LexoRank.parse(aboveTimelineRank || LexoRank.min().toString())
                 let belowRank = LexoRank.parse(belowTimelineRank || LexoRank.max().toString())
 
                 let nextTimelineRank = aboveRank.between(belowRank).toString();
-
 
                 return await prisma.projectTask.update({
                     where: {
@@ -288,24 +298,32 @@ export default (prisma: PrismaClient) => {
 
                 if(args.input?.above || args.input?.below){
 
-                    const { columnRank: aboveColumnRank } = await prisma.projectTask.findFirst({
-                        where: {
-                            id: args.input?.above,
-                            projectId: rootTask?.projectId
-                        }
-                    }) || {}
+                    let aboveColumnRank, belowColumnRank;
 
-                    const { columnRank: belowColumnRank } = await prisma.projectTask.findFirst({
-                        where: {
-                            id: args.input?.below,
-                            projectId: rootTask?.projectId
-                        }
-                    }) || {}
+                    if(args.input.above){
+                        const aboveTask = await prisma.projectTask.findFirst({
+                            where: {
+                                id: args.input?.above,
+                                projectId: rootTask?.projectId
+                            }
+                        })
+                        aboveColumnRank = aboveTask?.columnRank;
+                    }
+
+                    if(args.input.below){
+                        const belowTask = await prisma.projectTask.findFirst({
+                            where: {
+                                id: args.input?.below,
+                                projectId: rootTask?.projectId
+                            }
+                        })
+                        belowColumnRank = belowTask?.columnRank;
+                    }
 
                     let aboveRank = LexoRank.parse(aboveColumnRank || LexoRank.min().toString())
                     let belowRank = LexoRank.parse(belowColumnRank || LexoRank.max().toString())
                      nextRank = aboveRank.between(belowRank).toString();
-                    
+
                 }else if(args.input?.status){
                     const { columnRank } = await prisma.projectTask.findFirst({
                         where: {

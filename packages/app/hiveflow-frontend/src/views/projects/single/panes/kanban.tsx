@@ -98,14 +98,14 @@ export const KanbanPane = () => {
             columns={STATUS.map((x) => {
                 let rows = kanbanTasks.filter((a) => a.status == x)?.map((x) => ({...x, id: x.id, name: x.title}))?.sort((a, b) => a.columnRank?.localeCompare(b.columnRank)) //files.filter((a: any) => a.status == x).map((x) => ({ ...x }))
 
-                if(x == 'Backlog') {
-                    rows = rows.filter((a) => a.dependencyOn?.length < 1 || a.dependencyOn?.map((x) => x.status == "Reviewing" || x.status == "Finished")?.indexOf(true) > -1)
-                }
+                // if(x == 'Backlog') {
+                //     rows = rows.filter((a) => a.dependencyOn?.length < 1 || a.dependencyOn?.map((x) => x.status == "Reviewing" || x.status == "Finished")?.indexOf(true) > -1)
+                // }
 
                 return {
                     id: x,
                     title: x,
-                    ttl: x == "Finished" ? finishTtl : undefined,
+                    // ttl: x == "Finished" ? finishTtl : undefined,
                     menu: [
                         { label: "Archive all cards", onClick: () => { } },
                         {

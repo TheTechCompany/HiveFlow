@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 
 export interface IEstimateSingle {
-    projectId?: string;
+    estimateId?: string;
     finishTtl?: number;
     
     tasks?: any[];

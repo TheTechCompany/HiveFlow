@@ -61,8 +61,8 @@ export interface EstimateTaskInput {
   below?: InputMaybe<Scalars["String"]>;
   description?: InputMaybe<Scalars["String"]>;
   endDate?: InputMaybe<Scalars["DateTime"]>;
+  estimateId: Scalars["String"];
   members?: InputMaybe<Array<InputMaybe<Scalars["String"]>>>;
-  projectId: Scalars["String"];
   startDate?: InputMaybe<Scalars["DateTime"]>;
   status?: InputMaybe<Scalars["String"]>;
   title?: InputMaybe<Scalars["String"]>;
@@ -243,8 +243,8 @@ export const generatedSchema = {
     below: { __type: "String" },
     description: { __type: "String" },
     endDate: { __type: "DateTime" },
+    estimateId: { __type: "String!" },
     members: { __type: "[String]" },
-    projectId: { __type: "String!" },
     startDate: { __type: "DateTime" },
     status: { __type: "String" },
     title: { __type: "String" },
@@ -467,6 +467,10 @@ export const generatedSchema = {
       __type: "EstimateTask!",
       __args: { input: "EstimateTaskInput" },
     },
+    createEstimateTaskDependency: {
+      __type: "EstimateTask!",
+      __args: { estimate: "ID", source: "ID", target: "ID" },
+    },
     createProject: { __type: "Project!", __args: { input: "ProjectInput" } },
     createProjectFolder: {
       __type: "File",
@@ -500,6 +504,10 @@ export const generatedSchema = {
       __args: { estimate: "ID", id: "ID" },
     },
     deleteEstimateTask: { __type: "EstimateTask!", __args: { id: "ID" } },
+    deleteEstimateTaskDependency: {
+      __type: "EstimateTask!",
+      __args: { estimate: "ID", source: "ID", target: "ID" },
+    },
     deleteProject: { __type: "Project!", __args: { id: "ID!" } },
     deleteProjectFile: {
       __type: "File",
@@ -842,6 +850,11 @@ export interface Mutation {
   createEstimateTask: (args?: {
     input?: Maybe<EstimateTaskInput>;
   }) => EstimateTask;
+  createEstimateTaskDependency: (args?: {
+    estimate?: Maybe<Scalars["ID"]>;
+    source?: Maybe<Scalars["ID"]>;
+    target?: Maybe<Scalars["ID"]>;
+  }) => EstimateTask;
   createProject: (args?: { input?: Maybe<ProjectInput> }) => Project;
   createProjectFolder: (args: {
     path?: Maybe<Scalars["String"]>;
@@ -874,6 +887,11 @@ export interface Mutation {
     id?: Maybe<Scalars["ID"]>;
   }) => Maybe<EstimateLineItem>;
   deleteEstimateTask: (args?: { id?: Maybe<Scalars["ID"]> }) => EstimateTask;
+  deleteEstimateTaskDependency: (args?: {
+    estimate?: Maybe<Scalars["ID"]>;
+    source?: Maybe<Scalars["ID"]>;
+    target?: Maybe<Scalars["ID"]>;
+  }) => EstimateTask;
   deleteProject: (args: { id: Scalars["ID"] }) => Project;
   deleteProjectFile: (args: {
     path?: Maybe<Scalars["String"]>;

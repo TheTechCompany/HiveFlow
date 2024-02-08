@@ -257,7 +257,7 @@ export const EstimateList: React.FC<any> = (props) => {
             setSelected(row);
             openModal(true);
           }}
-          onClickRow={(datum) => navigate(datum.displayId)}
+          onClickRow={(datum) => navigate(`${datum.displayId}/tickets`)}
           // sort={(property && direction) ? {property, external: true, direction} : undefined}
           columns={listKeys}
           data={listData?.filter(filterQuotes).sort(sortQuotes).map(formatQuote)} />

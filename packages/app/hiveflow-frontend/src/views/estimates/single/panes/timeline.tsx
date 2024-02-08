@@ -9,7 +9,7 @@ import { useMutation as useApolloMutation, gql } from '@apollo/client'
 export const TimelinePane = () => {
     // const [ links, setLinks ] = useState([]);
 
-  const {  projectId, tasks, createTask, createDependency, finishTtl, deleteDependency, refetch, updateTask, deleteTask } = useContext(EstimateSingleContext);
+  const {  estimateId, tasks, createTask, createDependency, finishTtl, deleteDependency, refetch, updateTask, deleteTask } = useContext(EstimateSingleContext);
 
   const links = tasks.filter((a) => a.status !== "Finished")?.map((task) => task.dependencyOf.map((dep) => ({id: `${task.id}-${dep.id}`, source: task.id, target: dep.id}))).reduce((prev, curr) => [...prev, ...curr], [])
 
@@ -22,7 +22,7 @@ export const TimelinePane = () => {
   }, [JSON.stringify(tasks)])
 
   const [ updateTaskDirect ] = useMutation((mutation, args: any) => {
-    const item = mutation.updateProjectTask({id: args.id, input: args.input})
+    const item = mutation.updateEstimateTask({id: args.id, input: args.input})
     return {
       item: {
         ...item
@@ -32,7 +32,7 @@ export const TimelinePane = () => {
 
   const [ updateTimelineItemOrder ] = useApolloMutation(gql`
     mutation UpdateTimelineOrder ($id: ID, $above: String, $below: String){
-      updateProjectTaskTimelineOrder(id: $id, above: $above, below: $below){
+      updateEstimateTaskTimelineOrder(id: $id, above: $above, below: $below){
         id
       }
     }
@@ -51,7 +51,6 @@ export const TimelinePane = () => {
     }
   }, [selectedItem])
 
-  console.log({selectedItem})
 
   const filterTasks = (task: {
     status: string,
@@ -82,6 +81,7 @@ export const TimelinePane = () => {
   //   }
   // }, [selectedItem])
 
+  
   const [ horizon, setHorizon ] = useState<{start?: Date, end?: Date}>({})
     return (
         <Box sx={{flex: 1, display: 'flex', '& .color-dot': {margin: '8px'}}} tabIndex={1} onKeyDown={keyHandler}>
@@ -145,7 +145,7 @@ export const TimelinePane = () => {
                             below: nextTask?.id 
                         }
                     }).then(() => {
-                        // refetchTimeline()
+                        refetch()
                     })
                 }
               }}
@@ -162,7 +162,7 @@ export const TimelinePane = () => {
                   return newTasks
                 })
 
-                updateTaskDirect({args: {id: task.id, input: {startDate: position.start, endDate: position.end, projectId } }}).then(() => {
+                updateTaskDirect({args: {id: task.id, input: {startDate: position.start, endDate: position.end, estimateId } }}).then(() => {
                   refetch()
                 })
               }}

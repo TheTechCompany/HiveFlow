@@ -39,24 +39,34 @@ export const TaskModal = (props) => {
 
     const onDelete = async () => {
         setDeleteLoading(true);
-        await props.onDelete?.();
-        setTask({
-            status: 'Backlog',
-            startDate: new Date(),
-            endDate: new Date()
-        })
-        setDeleteLoading(false);
+        try{
+            await props.onDelete?.();
+            setTask({
+                status: 'Backlog',
+                startDate: new Date(),
+                endDate: new Date()
+            })
+            setDeleteLoading(false);
+        }catch(err){
+            setDeleteLoading(false);
+            //setError(true);
+        }
     }
 
     const submit = async () => {
         setLoading(true);
-        await props.onSubmit?.(task);
-        setTask({
-            status: 'Backlog',
-            startDate: new Date(),
-            endDate: new Date()
-        });
-        setLoading(false)
+        try{
+            await props.onSubmit?.(task);
+            setTask({
+                status: 'Backlog',
+                startDate: new Date(),
+                endDate: new Date()
+            });
+            setLoading(false)
+        }catch(err){
+            setLoading(false);
+            //setError(true);
+        }
     }
 
     return (
