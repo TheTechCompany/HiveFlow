@@ -348,8 +348,7 @@ export const EstimateSingle = (props) => {
           
                     setSelectedTask(null)
                     openTaskModal(false)
-                  }}
-                onClose={() => openTaskModal(false)} />
+                  }} />
             <Paper
                 sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
