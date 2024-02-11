@@ -161,7 +161,7 @@ export default (prisma: PrismaClient) => {
                     if(args.where.archived) whereArg['archived'] = true;
                     else whereArg['archived'] = false;
                 }
-                return await prisma.estimate.findMany({
+                const estimates = await prisma.estimate.findMany({
                     where: whereArg, 
                     include: {
                         lineItems: true, 
@@ -173,6 +173,15 @@ export default (prisma: PrismaClient) => {
                         }
                     }
                 })
+
+                return estimates.map((estimate) => ({
+                    ...estimate,
+                    tasks: estimate.tasks.map((task) => ({
+                        ...task,
+                        createdBy: task.createdBy ? {id: task.createdBy} : undefined,
+                        members: task.members?.map((member) => ({id: member}))
+                    }))
+                }))
             }
         },
         Mutation: {
