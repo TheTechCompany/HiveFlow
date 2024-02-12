@@ -87,7 +87,7 @@ export default (prisma: PrismaClient) => {
         above: String
         below: String
         
-        estimateId: String!
+        estimateId: String
     }
 
     type EstimateTask {
@@ -518,7 +518,7 @@ export default (prisma: PrismaClient) => {
                     data: {
                         title: args.input.title,
                         description: args.input.description,
-                        members: args.input.members || [],
+                        members: args.input.members,
                         startDate: args.input.startDate,
                         endDate: args.input.endDate,
                         columnRank: nextRank,

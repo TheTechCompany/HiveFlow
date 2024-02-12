@@ -16,7 +16,8 @@ import {
   Estimates,
   Projects,
   Equipment,
-  Hiveflow
+  Hiveflow,
+  Assigned
 } from '../../assets'
 
 import { Box } from '@mui/material'
@@ -32,6 +33,7 @@ import {EstimateView} from '../estimates';
 import Timeline from '../timeline/Timeline'
 import { ProjectView } from '../projects';
 import { PeopleView } from '../people';
+import { Assignments } from '../assignments';
 
 // const Schedule = React.lazy(() => import('../schedule'))
 // const Quotes = React.lazy(() => import('../quotes'))
@@ -152,6 +154,12 @@ export const Dashboard = (props: any) => {
   //  }
       
   const menu = [
+    {
+      path: 'assignments',
+      label: "Assignments",
+      icon: <Assigned filter="invert(1)" />,
+      component: <Assignments />
+    },
     {
       path: '',
       label: 'Schedule',

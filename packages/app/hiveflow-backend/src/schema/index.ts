@@ -7,14 +7,17 @@ import estimate from './estimate';
 import schedule from './schedule';
 import equipment from './equipment';
 import reports from './reports';
+import assignment from './assignment';
 
 export default (prisma: PrismaClient) => {
 	
+	const { typeDefs: assignmentTypeDefs, resolvers: assignmentResolvers } = assignment(prisma);
 	const { typeDefs: projectTypeDefs, resolvers: projectResolvers } = project(prisma);
 	const { typeDefs: estimateTypeDefs, resolvers: estimateResolvers } = estimate(prisma);
 	const { typeDefs: scheduleTypeDefs, resolvers: scheduleResolvers } = schedule(prisma);
 	const { typeDefs: equipmentTypeDefs, resolvers: equipmentResolvers } = equipment(prisma);
 	const { typeDefs: reportTypeDefs, resolvers: reportResolvers } = reports(prisma);
+
 
 	const resolvers = {
 		HiveOrganisation: {
@@ -82,6 +85,7 @@ export default (prisma: PrismaClient) => {
 `
 	return {
 		typeDefs: mergeTypeDefs([
+			assignmentTypeDefs,
 			typeDefs, 
 			projectTypeDefs,
 			estimateTypeDefs,
@@ -90,6 +94,7 @@ export default (prisma: PrismaClient) => {
 			scheduleTypeDefs
 		]),
 		resolvers: mergeResolvers([
+			assignmentResolvers,
 			resolvers, 
 			projectResolvers,
 			equipmentResolvers,

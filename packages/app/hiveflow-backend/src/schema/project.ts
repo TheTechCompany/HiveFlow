@@ -349,7 +349,7 @@ export default (prisma: PrismaClient) => {
                     data: {
                         title: args.input.title,
                         description: args.input.description,
-                        members: args.input.members || [],
+                        members: args.input.members,
                         startDate: args.input.startDate,
                         endDate: args.input.endDate,
                         columnRank: nextRank,
@@ -692,7 +692,7 @@ export default (prisma: PrismaClient) => {
         above: String
         below: String
         
-        projectId: String!
+        projectId: String
     }
 
     type ProjectTask {
