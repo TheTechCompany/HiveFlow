@@ -26,7 +26,7 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
 
     const { activeTool } = useTool();
 
-    const { headerHeight } = useRowHeights();
+    const { headerHeight, setScrollTop } = useRowHeights();
 
     const baseFormat = useMemo(() => {
         let baseFormat = 'DD/MM/yyyy';
@@ -61,15 +61,17 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
     }, [props.horizon, props.step, props.stepCount])
 
     const rows = useMemo(() => {
-        let count = timelineSize?.height / 40;
+        let count = (timelineSize?.height / 30) + props.rows.length;
         let outputRows = [];
 
+
         for (var i = 0; i < count; i++) {
+
             outputRows.push(
                 <Row
                     filled={props.rows[i] != undefined}
-                    expanded={props.expanded?.indexOf(i as any) > -1}
-                    row={{...props.rows?.[i], id: i, index: i}}
+                    expanded={props.expanded?.indexOf(props.rows?.[i]?.id || i) > -1}
+                    row={{...props.rows?.[i], id: props.rows?.[i]?.id || i, index: i}}
                     events={props.rows[i]?.events || []} 
                     renderItem={props.renderItem}/>
             )
@@ -99,9 +101,16 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
                     </Box>
               
                     <Box
+                        onScroll={(event) => {
+                            const top = event.currentTarget.scrollTop;
+                            console.log({top})
+                            setScrollTop(top)
+                        }}
                         sx={{
                             position: 'absolute',
-                            paddingTop: headerHeight + 'px',
+                            marginTop: headerHeight + 'px',
+                            overflowY: 'auto',
+                            overflowX: 'hidden',
                             width: '100%',
                             height: '100%'
                         }}>

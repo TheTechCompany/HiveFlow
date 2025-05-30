@@ -2,15 +2,14 @@ import { Box } from "@mui/material";
 import { useDateToScreen, useScreenToDate } from "./utils";
 import { useRowHeights, useSchedule, useTool } from "./context";
 import useResizeAware from "react-resize-aware";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export const ROW_ITEM_CONTAINER = '30px';
-export const ROW_ITEM_HEIGHT = '80%';
 export const ROW_ITEM_RADIUS = '12px';
 
 export interface RowProps {
     filled?: boolean;
-    
+
     row?: any;
 
     events?: any[];
@@ -27,14 +26,17 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
 
     const dateToScreen = useDateToScreen();
     const { activeTool } = useTool();
-    const { updateRowHeight } = useRowHeights();
+    const { updateRowHeight, rowHeights } = useRowHeights();
     const { selected } = useSchedule();
 
-    const [ resizeListeners, sizes ] = useResizeAware();
+    const [sizes, setSizes] = useState<any>(null)
+    const [ allSizes, setAllSizes ] = useState<any>({});
 
     useEffect(() => {
-        updateRowHeight(rowTemplate?.id, sizes.height)
-    }, [rowTemplate, sizes])
+        if(rowHeights[rowTemplate?.id] != sizes?.height){
+            updateRowHeight(rowTemplate?.id, sizes?.height)
+        }
+    }, [rowTemplate, JSON.stringify(rowHeights), JSON.stringify(sizes)])
 
     return (
         <Box
@@ -44,11 +46,10 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
                 borderBottom: filled ? '1px solid black' : '1px solid #dfdfdf',
                 display: 'flex',
                 alignItems: 'center',
-                height: expanded ? '100px' : ROW_ITEM_CONTAINER,
+                height: rowHeights[rowTemplate?.id] || ROW_ITEM_CONTAINER, //expanded ? undefined : ROW_ITEM_CONTAINER,
                 width: '100%',
-                
             }}
-            
+
             onMouseEnter={(e) => {
                 activeTool?.listeners?.onMouseEnter?.('row', e, rowTemplate)
             }}
@@ -64,8 +65,7 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
             onMouseUp={(e) => {
                 activeTool?.listeners?.onMouseUp?.('row', e, rowTemplate);
             }}
-            >
-            {resizeListeners}
+        >
 
             {activeTool?.component?.(rowTemplate)}
 
@@ -79,8 +79,21 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
                     left={x}
                     width={width}
                     selected={selected.indexOf(event.id) > -1}
+                    onResize={(itemSize) => {
+                        setAllSizes((allSizes) => {
+                            let newSizes = {...allSizes, [event.id]: itemSize?.height}
+                            setSizes({height: Math.max(...Object.keys(newSizes).map((x) => newSizes[x])) })
+                            
+                            return newSizes
+                        });
+
+                        // if (!sizes?.height || itemSize?.height > sizes?.height || (event.id == sizes.id && itemSize?.height != sizes?.height)) {
+                        //     setSizes({ height: itemSize.height, id: event.id })
+                        // }
+                    }}
                     item={event}
-                    renderItem={() => renderItem(event)} />
+                    expanded={expanded}
+                    renderItem={() => renderItem({ ...event, expanded })} />
             })}
 
 
@@ -91,11 +104,17 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
 
 export const PlanItem = (props: any) => {
 
+    const [listeners, sizes] = useResizeAware()
+
     const screenToDate = useScreenToDate();
     const dateToScreen = useDateToScreen();
 
-    const { updateEvent } = useSchedule();
+    const { updateEvent, onClickEvent, onDoubleClickEvent } = useSchedule();
     const { activeTool } = useTool();
+
+    useEffect(() => {
+        props.onResize?.(sizes);
+    }, [sizes])
 
     const dragEnd = (position: string) => {
         return (e: any) => {
@@ -140,6 +159,8 @@ export const PlanItem = (props: any) => {
 
     return (
         <div
+            onClick={() => onClickEvent?.(props.item)}
+            onDoubleClick={() => onDoubleClickEvent?.(props.item)}
             onMouseDown={(e) => {
                 activeTool?.listeners?.onMouseDown?.('item', e, props.item);
             }}
@@ -159,11 +180,13 @@ export const PlanItem = (props: any) => {
                 pointerEvents: 'all',
                 left: props.left,
                 width: props.width,
-                height: ROW_ITEM_HEIGHT,
+                minHeight: props.expanded ? '100%' : undefined,
+                // height: '100%',
                 // background: '#bbb',
                 // borderRadius: ROW_ITEM_RADIUS,
                 // border: props.selected ? '1px solid blue' : undefined
             }}>
+
             <div
                 onMouseDown={dragEnd('w')}
                 style={{
@@ -172,10 +195,14 @@ export const PlanItem = (props: any) => {
                     width: '10px',
                     maxWidth: '100%',
                     height: '100%',
-                    cursor: 'w-resize'
+                    cursor: 'w-resize',
+                    zIndex: 99
                 }}></div>
-            
-            {props.renderItem?.()}
+            <div style={{ flex: 1, display: 'flex', position: 'relative' }}>
+                {listeners}
+                {props.renderItem?.()}
+
+            </div>
 
             <div
                 onMouseDown={dragEnd('e')}
@@ -185,7 +212,8 @@ export const PlanItem = (props: any) => {
                     maxWidth: '100%',
                     width: '10px',
                     height: '100%',
-                    cursor: 'e-resize'
+                    cursor: 'e-resize',
+                    zIndex: 99
                 }}></div>
         </div>
     )

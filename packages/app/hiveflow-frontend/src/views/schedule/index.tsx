@@ -1,7 +1,7 @@
 import React, {
   Component, useState
 } from 'react';
-import { Box, Button, Collapsible } from 'grommet'
+import { Button, Collapsible } from 'grommet'
 // import { ScheduleView } from '@hexhive/ui';
 import { mutation, useRefetch, useMutation, useQuery, resolved } from '@hive-flow/api';
 import moment from 'moment';
@@ -9,13 +9,14 @@ import { schedule as scheduleActions } from '../../actions'
 import { useContext } from 'react';
 import { AuthContext, useAuth } from '@hexhive/auth-ui';
 import { useEffect } from 'react';
-import { Menu, ChevronLeft as Previous, ChevronRight as Next } from '@mui/icons-material';
+import { Menu, ChevronLeft as Previous, ChevronRight as Next, X } from '@mui/icons-material';
 import { DraftPane } from './draft-pane';
 import { useQuery as useApollo, useMutation as useApolloMutation, gql, useApolloClient } from '@apollo/client';
 import { ScheduleItem, ScheduleModal } from '../../modals/schedule';
 import { Schedule as ScheduleView } from '../../components/Schedule';
 import { SchedulingModal } from './modal';
 import { mergeDateRanges } from './utils';
+import { Collapse, Typography, Box } from '@mui/material';
 export const Schedule: React.FC<any> = (props) => {
 
   //User
@@ -56,8 +57,11 @@ export const Schedule: React.FC<any> = (props) => {
         id
         displayId
         name
+        colour
 
         tasks {
+          title
+
           startDate
           endDate
         }
@@ -77,6 +81,7 @@ export const Schedule: React.FC<any> = (props) => {
        project{
           id
           displayId
+          colour
           name
        }
 
@@ -150,8 +155,10 @@ export const Schedule: React.FC<any> = (props) => {
     })
   }
 
-  const [ expanded, setExpanded ] = useState<any>([]);
   
+
+  const [ tasks, setTasks ] = useState<any[]>([]);
+
   const draftSchedule = data?.timelineItems || []
   const schedule: any[] = data?.scheduleItems || []//query.scheduleItems({where: {date_GT: horizon.start?.toISOString(), date_LT: horizon.end?.toISOString()}})
 
@@ -160,6 +167,18 @@ export const Schedule: React.FC<any> = (props) => {
     
     return {...project, draftSchedule: mergeDateRanges(tasks)};
   }); // query.projects({})?.map((x) => ({...x})) || [];
+
+  const [ expanded, setExpanded ] = useState<any>(projects?.map((x, ix) => x.id) || []);
+
+  useEffect(() => {
+    console.log({horizon, date: moment(horizon.end).diff(moment(horizon.start), 'days')})
+    if(moment(horizon.end).diff(moment(horizon.start), 'days') < 10){
+      setExpanded(projects.map((x, ix) => x.id))
+    }else{
+      setExpanded([])
+    }
+  }, [JSON.stringify(projects), JSON.stringify(horizon)])
+
   const people = slowData?.users || []// query.people({})?.map((x) => ({...x})) || [];
   const equipment = slowData?.equipment || [] //query.equipment({})?.map((x) => ({...x})) || []
 
@@ -422,16 +441,14 @@ export const Schedule: React.FC<any> = (props) => {
 
 
   const [draftsOpen, openDrafts] = useState<boolean>(false);
-console.log(
-  "DRAFTS",
-  projects.map((x) => x.draftSchedule).reduce((prev, curr) => prev.concat(curr), [])
 
-)
 
   return (
     <Box
-      direction="row"
-      flex className="schedule-container">
+      sx={{
+        flex:1,
+        display: 'flex'
+      }} className="schedule-container">
 
       {/* <DraftPane  
             open={draftsOpen}
@@ -442,11 +459,12 @@ console.log(
         open={modalOpen}
         selected={selected}
         projects={projects}
+        people={people}
+        tasks={tasks}
         onSubmit={(schedule) => {
           let promise: any;
 
           if (!schedule.id) {
-            console.log("Create Calendar Item", {schedule})
 
             promise = createCalendarItem({
               variables: {
@@ -455,12 +473,13 @@ console.log(
                   end: schedule.end,
                   groupBy: schedule.groupBy,
                   data: {
+                    people: schedule.people,
+                    tasks: schedule.tasks,
                   }
                 }
               }
             })
           } else {
-            console.log("Update Calendar Item", {schedule})
             promise = updateCalendarItem({
               variables: {
                 id: schedule.id,
@@ -469,6 +488,8 @@ console.log(
                   end: schedule.end,
                   groupBy: schedule.groupBy,
                   data: {
+                    people: schedule.people,
+                    tasks: schedule.tasks,
                   }
                 }
               }
@@ -490,24 +511,32 @@ console.log(
 
       <ScheduleView
         createEvent={(event) => {
-          console.log({ event })
-          if(event?.groupBy){
-            createCalendarItem({
-              variables: {
-                input: {
-                  start: event.start,
-                  end: event.end,
-                  groupBy: event.groupBy,
-                  data: {
-                  }
-                }
-              }
-            })
-          }else{
+
+          let tasks = projects.reduce((prev, curr) => prev.concat(curr.tasks.map((task) => ({...task, startDate: new Date(task.startDate), endDate: new Date(task.endDate), project: curr}))), [])
+          tasks = tasks.filter((task) => {
+            console.log( task.endDate?.getTime() > event.start?.getTime(), task.startDate?.getTime() < event.end?.getTime(), task, event)
+            return task.endDate?.getTime() > event.start?.getTime() && task.startDate?.getTime() < event.end?.getTime();
+            // return task.start.getTime() < event.start.getTime() && task.end.getTime() > event.end.getTime()
+          })
+          console.log({ event, tasks })
+          // if(event?.groupBy){
+          //   createCalendarItem({
+          //     variables: {
+          //       input: {
+          //         start: event.start,
+          //         end: event.end,
+          //         groupBy: event.groupBy,
+          //         data: {
+          //         }
+          //       }
+          //     }
+          //   })
+          // }else{
             setModalDate(event.start)
+            setTasks(tasks);
             setSelected(event);
             openModal(true);
-          }
+          // }
         }}
         updateEvent={(event) => {
           console.log("Update", {event})
@@ -521,35 +550,52 @@ console.log(
             }
           })
 
-          // updateItem({
-          //   args: {
-          //     id: event.id,
-          //     item: {
-          //       date: event.start
-          //     }
-          //   }
-          // }).then(() => {
-          //   refetchSchedule();
-          // })
         }}
         horizon={horizon.start}
         onHorizonChanged={(start, end) => {
           setHorizon({ start, end })
         }}
+        onDoubleClickEvent={(event) => {
+          setSelected(event)
+          openModal(true);
+        }}
         expanded={expanded}
         renderItem={(item) => {
-          console.log("RNDR", {item})
+
+          let project = projects?.find((a) => a.id == item.groupBy?.id);
+
+          let eventPeople = (item.data?.people || []).map((x) => {
+            return people?.find((a) => a.id == x)
+          })
+
           return (
             <div style={{
+              marginTop: '4px',
+              marginBottom: '4px',
               flex: 1,
+              // height: item.draft ? '80%' : undefined,
               borderRadius: '12px',
-              zIndex: item.draft ? 0 : 1,
-              background: item?.draft ? 'rgba(127, 127, 127, 0.2)' : 'rgb(255, 0, 0)'
-            }}></div>
+              zIndex: item.draft ? 0 : 99,
+              background: item?.draft ? 'rgba(127, 127, 127, 0.4)' : (project?.colour || 'rgb(127, 127, 0, 1)')
+            }}>
+              {!item.expanded && <div style={{height: '30px'}} />}
+              <Collapse in={item.expanded}>
+                <Box sx={{display: 'flex', padding: '4px', flexDirection: 'column'}}>
+                  <Box>
+                    <Typography textAlign={'center'}>{project?.displayId} - {project?.name}</Typography>
+                  </Box>
+                  <Box>
+                    {eventPeople.map((person) => (
+                      <Typography>{person?.name}</Typography>
+                    ))}
+                  </Box>
+                  
+                </Box>
+              </Collapse>
+            </div>
           )
         }}
         getRowGroup={(event) => {
-          console.log({event})
           const group = projects?.find((a) => a.id == event.groupBy?.id);
           return `${group?.displayId} - ${group?.name}`;
         }}

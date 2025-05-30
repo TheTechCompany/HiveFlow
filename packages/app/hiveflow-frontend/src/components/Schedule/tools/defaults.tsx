@@ -3,7 +3,7 @@ import { useSchedule } from "../context";
 import { ContentCut, Navigation, ViewTimeline } from '@mui/icons-material';
 import { useDateToScreen, useScreenToDate } from "../utils";
 import { isEqual } from "lodash";
-import { ROW_ITEM_HEIGHT, ROW_ITEM_RADIUS } from "../row";
+import { ROW_ITEM_RADIUS } from "../row";
 export const DEFAULT_TOOLS = [
     {
         name: 'select',
@@ -120,7 +120,7 @@ export const DEFAULT_TOOLS = [
                                 position: 'absolute',
                                 left: activeDrag?.start - timelinePosition?.x,
                                 width: (hoverPos?.x - activeDrag?.start) + 'px',
-                                height: ROW_ITEM_HEIGHT,
+                                height: '100%',
                                 borderRadius: ROW_ITEM_RADIUS,
                                 background: 'rgba(127, 127, 127, 0.5)'
                             }}>

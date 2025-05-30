@@ -28,6 +28,9 @@ export interface ScheduleProps {
     expanded?: string[];
 
     onSelectMenuItem?: (item: any) => void;
+    
+    onClickEvent?: (event: any) => void;
+    onDoubleClickEvent?: (event: any) => void;
     // get
 }
 
@@ -58,7 +61,7 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
 
         return groups.map((g, ix) => {
             return {
-                id: ix,
+                id: groupedEvents?.[0]?.groupBy?.id,
                 name: g,
                 events: groupedEvents?.filter((a) => a.group == g)
             }
@@ -67,12 +70,25 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
 
     const changeHorizon = (dir: number) => {
         return () => {
-            
             let start = moment(props.horizon).add(stepCount * dir, step as any).toDate()
             let end = moment(props.horizon).add(stepCount * dir * 2, step as any).toDate()
             props.onHorizonChanged(start, end)
         }
     }
+
+    const timelineRows = useMemo(() => {
+        let count = (sizes?.height / 30) + rows.length;
+        let outputRows = [];
+
+        for (var i = 0; i < count; i++) {
+            outputRows.push({
+                ...rows?.[i],
+                index: i
+            })
+        }
+
+        return outputRows;
+    }, [rows, sizes]);
 
 
     return (
@@ -87,6 +103,8 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
             changeTool,
             step,
             stepCount,
+            onClickEvent: props.onClickEvent,
+            onDoubleClickEvent: props.onDoubleClickEvent,
             createEvent: props.createEvent,
             updateEvent: (event: any, uiUpdate: boolean = false) => {
                 if (!uiUpdate) props.updateEvent(event);
@@ -164,6 +182,12 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
                                             setStep('month')
                                             setStepCount(Math.floor(horizonSize / 28));
                                         }
+
+                                        setTimeout(() => {
+                                            let start = moment(props.horizon).toDate()
+                                            let end = moment(props.horizon).add(stepCount, step as any).toDate()
+                                            props.onHorizonChanged(start, end)
+                                        }, 0)
                                         // setStep()
                                     }}
                                     sx={{ width: '50%' }}
@@ -176,17 +200,22 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
                         </Paper>
                         <div style={{
                             display: 'flex',
+                            minHeight: 0,
                             flex: 1
                         }}>
                             <Paper sx={{
-                                minWidth: '200px'
+                                minWidth: '200px',
+                                display: 'flex'
                             }}>
                                 <Sidebar 
                                     onExpand={props.onSelectMenuItem}
                                     
-                                    rows={rows} />
+                                    rows={timelineRows} />
                             </Paper>
-                            <div style={{ position: 'relative', display: 'flex', flex: 1 }} ref={controlRef}>
+                            <div style={{ 
+                                overflow: 'auto',
+                                
+                                position: 'relative', display: 'flex', flex: 1 }} ref={controlRef}>
                                 {resizeListener}
                                 <Timeline
                                     renderItem={props.renderItem}

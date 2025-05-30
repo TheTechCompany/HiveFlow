@@ -17,6 +17,10 @@ export const ScheduleContext = createContext<{
 
     createEvent?: (event: any) => void;
     updateEvent?: (event: any, uiUpdate?: boolean) => void;
+
+
+    onClickEvent?: (event: any) => void;
+    onDoubleClickEvent?: (event: any) => void;
 }>({
 
 })
@@ -56,14 +60,17 @@ export const RowHeightContext = createContext<{
     updateRowHeight?: (row: string, height: number) => void,
     headerHeight?: number,
     updateHeaderHeight?: (height: number) => void;
+    scrollTop?: number;
+    setScrollTop?: (top: number) => void;
 }>({
 
 })
 
 export const RowHeightProivder : any = (props: any) => {
 
-    const [rowHeights, setRowHeights] = useState<any>({});
+    const [ rowHeights, setRowHeights ] = useState<any>({});
     const [ headerHeight, setHeaderHeight ] = useState<any>(0);
+    const [ scrollTop, setScrollTop ] = useState(0);
 
     const updateRowHeight = (rowId, height) => {
       setRowHeights((prev) => ({ ...prev, [rowId]: height }));
@@ -74,7 +81,9 @@ export const RowHeightProivder : any = (props: any) => {
         rowHeights,
         updateRowHeight,
         headerHeight,
-        updateHeaderHeight: setHeaderHeight
+        updateHeaderHeight: setHeaderHeight,
+        scrollTop,
+        setScrollTop
     }}>
         {props.children}
     </Provider>

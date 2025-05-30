@@ -49,6 +49,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
     displayId?: string, 
     name?: string, 
     description?: string,
+    colour?: string,
     status?: string,
     startDate?: Date,
     endDate?: Date,
@@ -58,6 +59,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
         id: args.displayId,
         name: args.name,
         description: args.description,
+        colour: args.colour,
         startDate: args.startDate?.toISOString(),
         endDate: args.endDate?.toISOString(),
         status: args.status
@@ -79,6 +81,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
     name?: string, 
     description?: string,
     status?: string,
+    colour?: string,
     startDate?: Date,
     endDate?: Date,
   }) => {
@@ -88,6 +91,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
       input: {
         id: args.displayId,
         name: args.name,
+        colour: args.colour,
         description: args.description, 
         startDate: args.startDate?.toISOString(),
         endDate: args.endDate?.toISOString(),

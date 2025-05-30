@@ -56,6 +56,8 @@ model ProjectTask {
 
     members String[]
 
+    requiredSkills Json?
+
     createdBy String?
 
     dependencyOf ProjectTask[] @relation(name: "dependencyOf")
@@ -268,3 +270,19 @@ model CalendarItem {
 // model CalendarAnnotation {
 //     id String @id
 // }
+
+model SkillAssignment {
+    id String @id
+
+    user String
+
+    skill String
+
+    skillData Json?
+
+    organisation String
+
+    created DateTime @default(now())
+
+    @@unique([user, skill])
+}

@@ -1,4 +1,5 @@
 import { PrismaClient, ProjectTask } from "@prisma/client"
+import { nanoid } from "nanoid";
 
 export default (prisma: PrismaClient) => {
 
@@ -9,7 +10,59 @@ export default (prisma: PrismaClient) => {
                 if(root.estimateId) return 'EstimateTask';
             }
         },
+        Mutation: {
+            updateSkillAssignment: async (root: any, args: any, context: any) => {
+                await prisma.skillAssignment.upsert({
+                    where: {
+                        user_skill: {
+                            user: args.user,
+                            skill: args.skill
+                        }
+
+                    },
+                    create: {
+                        id: nanoid(),
+                        user: args.user,
+                        skill: args.skill,
+                        skillData: args.skillData,
+                        organisation: context?.jwt?.organisation
+                    },
+                    update: {
+                        skill: args.skill,
+                        skillData: args.skillData,
+                        organisation: context?.jwt?.organisation
+
+                    }
+                })
+            },
+            deleteSkillAssignment: async (root: any, args: any) => {
+                await prisma.skillAssignment.delete({
+                    where: {
+                        id: args.id
+                    }
+                })
+            }
+        },
         Query: {
+            skills: async (root: any, args: any) => {
+                let where : any = {};
+                if(args.user){
+                    where.user = args.user;
+                }
+                const skills = await prisma.skillAssignment.findMany({
+                    where: {
+                        ...where
+                    }
+                })
+
+                if(args.user){
+                    return skills;
+                }else{
+                    const unique = [...new Set(skills.map((x) => x.skill))]
+                    return unique.map((x) => ({skill: x}))
+                }
+            },
+        
             assignments: async (root: any, args: any, context: any)=> {
                 let where : any = {};
 				if(args.where?.start){
@@ -84,9 +137,21 @@ export default (prisma: PrismaClient) => {
     union AssignedTask = ProjectTask | EstimateTask
 
     type Query {
+        skills(user: ID): [SkillAssignment]
         assignments(ids: [ID], where: AssignedWhere): [AssignedTask!]!
     }
 
+    type Mutation {
+        updateSkillAssignment(skill: String, skillData: JSON, user: String): SkillAssignment
+        deleteSkillAssignment(id: ID): SkillAssignment
+    }
+
+    type SkillAssignment {
+        id: ID
+        user: HiveUser
+        skill: String
+        skillData: JSON
+    }
 
     input AssignedWhere {
         archived: Boolean

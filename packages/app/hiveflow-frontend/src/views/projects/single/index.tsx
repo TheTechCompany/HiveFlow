@@ -89,6 +89,10 @@ console.log({pathname})
         name
       }
 
+      skills{
+        skill
+      }
+
       projects(where: {displayId: $id}){
         id
         displayId
@@ -112,6 +116,8 @@ console.log({pathname})
             id
             name
           }
+
+          requiredSkills
 
           lastUpdated
 
@@ -137,6 +143,9 @@ console.log({pathname})
   })
 
   
+
+  const allSkills = data?.skills || [];
+
   const refetch = () => {
     client.refetchQueries({include: ['GetProject']})
   }
@@ -395,6 +404,7 @@ console.log({pathname})
       
       <TaskModal 
         users={users}
+        skills={allSkills}
         onClose={() => {
           openTaskModal(false)
           setSelectedTask(null)
@@ -423,6 +433,7 @@ console.log({pathname})
                 input: {
                    title: task.title,
                     members: task.members,
+                    requiredSkills: task.requiredSkills,
                    description: task.description, 
                    startDate: task.startDate,
                    endDate: task.endDate,
@@ -439,6 +450,7 @@ console.log({pathname})
                  input: {
                   title: task.title,
                   members: task.members,
+                  requiredSkills: task.requiredSkills,
                   description: task.description, 
                   startDate: task.startDate,
                   endDate: task.endDate,
