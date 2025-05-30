@@ -15,6 +15,9 @@ model Project {
     id   String @id
 
     displayId String?
+
+    colour String?
+
     name String?
     description String?
 
@@ -246,4 +249,22 @@ model TimelineItem {
 //   timelineItem TimelineItem @relation(fields: [timelineItemId], references: [id])
 //   timelineItemId String
 //   organisation String
+// }
+
+
+model CalendarItem {
+    id String @id
+
+    start DateTime
+    end DateTime
+
+    groupBy Json?
+
+    data Json?
+
+    organisation String
+}
+
+// model CalendarAnnotation {
+//     id String @id
 // }

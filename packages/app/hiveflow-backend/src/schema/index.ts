@@ -9,6 +9,8 @@ import equipment from './equipment';
 import reports from './reports';
 import assignment from './assignment';
 
+import { JSONDefinition, JSONResolver } from 'graphql-scalars';
+
 export default (prisma: PrismaClient) => {
 	
 	const { typeDefs: assignmentTypeDefs, resolvers: assignmentResolvers } = assignment(prisma);
@@ -85,6 +87,7 @@ export default (prisma: PrismaClient) => {
 `
 	return {
 		typeDefs: mergeTypeDefs([
+			JSONDefinition,
 			assignmentTypeDefs,
 			typeDefs, 
 			projectTypeDefs,
@@ -94,6 +97,7 @@ export default (prisma: PrismaClient) => {
 			scheduleTypeDefs
 		]),
 		resolvers: mergeResolvers([
+			{JSON: JSONResolver},
 			assignmentResolvers,
 			resolvers, 
 			projectResolvers,

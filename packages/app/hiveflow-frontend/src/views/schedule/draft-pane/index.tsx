@@ -2,8 +2,10 @@ import React from  'react';
 import { Box, Text, Collapsible } from 'grommet'
 import { useQuery } from '@hive-flow/api';
 import { stringToColor } from "@hexhive/utils"
+import { useNavigate } from 'react-router';
 export const DraftPane = (props: any) => {
-console.log(props)
+
+	const navigate = useNavigate();
 
 	const getHours = (item: any) => {
 		return (item?.data || []).reduce((prev: any, curr: any) => {
@@ -36,6 +38,9 @@ console.log(props)
 			background={stringToColor(`${x.project?.id} - ${props.projects.find((a: any) => a?.id == x.project?.id)?.name}`)}
 			pad={{vertical: '4px', horizontal: '4px'}} direction="row">
 				<Box
+					onDoubleClick={() => {
+						navigate(`/projects/${x.project?.displayId}`)
+					}}
 					flex
 					align={props.open ? 'start': 'center'} 
 					direction="column" 

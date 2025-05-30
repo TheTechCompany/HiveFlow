@@ -7,11 +7,16 @@ export default (prisma: PrismaClient) => {
     const typeDefs = `
 
         type Query {
+            calendarItems(where: CalendarWhere): [CalendarItem]
             scheduleItems(where: ScheduleWhere): [ScheduleItem]
             timelineItems(where: TimelineItemWhere): [TimelineItem]
         }
 
         type Mutation {
+            createCalendarItem(input: CalendarItemInput): CalendarItem
+            updateCalendarItem(id: ID, input: CalendarItemInput): CalendarItem
+            deleteCalendarItem(id: ID): CalendarItem
+
             createTimeline(input: TimelineInput): Timeline
             updateTimeline(id: ID, input: TimelineInput): Timeline
             deleteTimeline(id: ID): Timeline
@@ -32,6 +37,29 @@ export default (prisma: PrismaClient) => {
             cloneScheduleItem(id: ID, dates: [DateTime]): [ScheduleItem]
             joinScheduleItem(id: ID): ScheduleItem
             leaveScheduleItem(id: ID): ScheduleItem
+        }
+        
+        input CalendarWhere {
+            start_LTE: DateTime
+            end_GTE: DateTime
+        }
+
+        input CalendarItemInput {
+            start: DateTime
+            end: DateTime
+
+            data: JSON
+            groupBy: JSON
+        }
+
+        type CalendarItem {
+            id: ID
+
+            data: JSON
+            groupBy: JSON
+
+            start: DateTime
+            end: DateTime
         }
 
         type TimelineItemItems {
@@ -168,6 +196,18 @@ export default (prisma: PrismaClient) => {
             }
         },
         Query: {
+            calendarItems: async (root: any, args: any) => {
+                let query : any = {};
+
+                if(args.where?.end_GTE) query['end'] = {...query['end'], gte: args.where.end_GTE};
+                if(args.where?.start_LTE) query['start'] = {...query['start'], lte: args.where.start_LTE};
+
+                return await prisma.calendarItem.findMany({
+                    where: {
+                        ...query
+                    }
+                })
+            },
             scheduleItems: async (root: any, args: any, context: any) => {
 
                 let query : any = {};
@@ -222,6 +262,38 @@ export default (prisma: PrismaClient) => {
             }
         },
         Mutation: {
+            createCalendarItem: async (root: any, args: any, context: any) => {
+                return await prisma.calendarItem.create({
+                    data: {
+                        id: nanoid(),
+                        data: args.input.data,
+                        groupBy: args.input.groupBy,
+                        start: args.input.start,
+                        end: args.input.end,
+                        organisation: context?.jwt?.organisation
+                    }
+                })
+            },
+            updateCalendarItem: async (root: any, args: any, context: any) => {
+                return await prisma.calendarItem.update({
+                    where: {
+                        id: args.id,
+                    },
+                    data: {
+                        data: args.input.data,
+                        groupBy: args.input.groupBy,
+                        start: args.input.start,
+                        end: args.input.end,
+                    }
+                })
+            },
+            deleteCalendarItem: async (root: any, args: any, context: any) => {
+                return await prisma.calendarItem.delete({
+                    where: {
+                        id: args.id,
+                    },
+                })
+            },
             // createTimeline: async (root: any, args: {input: any}, context: any) => {
             //     return await prisma.timeline.create({
             //         data: {
@@ -460,15 +532,15 @@ export default (prisma: PrismaClient) => {
                     data: {
                         date: args.input.date,
                         notes: args.input.notes || [],
-                        people: {
+                        people: args.input.people ? {
                             set: args.input.people || []
-                        },
-                        equipment: {
+                        } : undefined,
+                        equipment: args.input.equipment ? {
                             set: args.input.equipment?.map((x: any) => ({id: x})) || []
-                        },
-                        project: {
+                        } : undefined,
+                        project: args.input.project ? {
                             connect: {id: args.input.project}
-                        }
+                        } : undefined
                     }
                 })
             },

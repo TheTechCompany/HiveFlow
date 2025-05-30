@@ -18,7 +18,7 @@ export interface Project {
     endDate?: Date;
 }
 
-export interface ProjectStatusOption {
+interface ProjectStatusOption {
     text: string;
     inputValue?: string;
 }
@@ -47,8 +47,6 @@ export const ProjectModal: React.FC<ProjectModalProps> = (props) => {
             Array.from(new Set([  ...props.statusList ])).map((x) => ({text: x}))
         )
     }, [props.statusList])
-
-    console.log(props.statusList, projectStatusList)
 
     const submit = () => {
         props.onSubmit({
