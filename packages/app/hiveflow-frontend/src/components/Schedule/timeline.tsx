@@ -1,6 +1,6 @@
 import { Box, Button, Divider, IconButton, Paper, Typography } from "@mui/material";
 import moment from "moment";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Row } from "./row";
 import { RowHeightProivder, useRowHeights, useSchedule, useTool } from "./context";
 import { Header } from "./header";
@@ -18,23 +18,32 @@ export interface TimelineProps {
     stepCount: number;
 
     renderItem?: (event: any) => any;
+    renderHeader?: (header: any) => any;
+
+    onDeleteItem?: () => void;
+    onCopyItem?: () => void;
+    onPasteItem?: () => void;
 }
 
 export const Timeline: React.FC<TimelineProps> = (props) => {
 
-    const { timelineSize } = useSchedule();
+    const { timelineSize, changeSelection, setPasteItems } = useSchedule();
 
     const { activeTool } = useTool();
 
     const { headerHeight, setScrollTop } = useRowHeights();
 
-    const baseFormat = useMemo(() => {
+    const {baseFormat, } = useMemo(() => {
+        let aboveFormat;
         let baseFormat = 'DD/MM/yyyy';
+        let belowFormat;
 
         if (props.step == 'hour') {
             baseFormat = 'hh:mm'
         }
-        return baseFormat
+        return {
+            baseFormat
+        }
     }, [props.step]);
     
     const columns = useMemo(() => {
@@ -64,9 +73,7 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
         let count = (timelineSize?.height / 30) + props.rows.length;
         let outputRows = [];
 
-
         for (var i = 0; i < count; i++) {
-
             outputRows.push(
                 <Row
                     filled={props.rows[i] != undefined}
@@ -79,6 +86,12 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
         return outputRows;
     }, [timelineSize, props.renderItem, props.rows, props.expanded])
 
+    useEffect(() => {
+        window.addEventListener('keydown', (e) => {
+            console.log(e.target, e.key)
+        })
+    }, [])
+
     return (
         <div style={{ flex: 1, display: 'flex', gap: '8px' }}>
                 <Paper style={{
@@ -89,18 +102,47 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
                 }}>
                     <Header 
                         format={baseFormat}
-                        columns={columns} />
+                        columns={columns}
+                        renderHeader={props.renderHeader} />
                     <Box sx={{
                         pointerEvents: 'none',
                         display: 'flex',
                         flex: 1,
-                        justifyContent: 'space-between'
+                        justifyContent: 'space-between',
+                        background: 'rgb(239, 239, 239)'
                     }}>
                         {columnDividers}
 
                     </Box>
               
                     <Box
+                        tabIndex={0}
+                        onMouseDown={() => {
+                            changeSelection?.([])
+                        }}
+                        onKeyDown={(e) => {
+                            if(e.key == 'Escape'){
+                                changeSelection?.([]);
+                                setPasteItems([])
+                            }
+
+                            if(e.key == 'Delete' || e.key == 'Backspace'){
+                                //Delete selected 
+                                props.onDeleteItem?.();
+                            }
+                            
+                            if((e.ctrlKey || e.metaKey) && e.key == 'c'){
+                                //Copy
+                                props.onCopyItem?.();
+
+                            }
+
+                            if((e.ctrlKey || e.metaKey) && e.key == 'v'){
+                                //Paste
+                                props.onPasteItem?.();
+
+                            }
+                        }}
                         onScroll={(event) => {
                             const top = event.currentTarget.scrollTop;
                             console.log({top})

@@ -36,7 +36,7 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
         if(rowHeights[rowTemplate?.id] != sizes?.height){
             updateRowHeight(rowTemplate?.id, sizes?.height)
         }
-    }, [rowTemplate, JSON.stringify(rowHeights), JSON.stringify(sizes)])
+    }, [JSON.stringify(rowTemplate), JSON.stringify(rowHeights), JSON.stringify(sizes)])
 
     return (
         <Box
@@ -93,7 +93,7 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
                     }}
                     item={event}
                     expanded={expanded}
-                    renderItem={() => renderItem({ ...event, expanded })} />
+                    renderItem={() => renderItem({ ...event, expanded, selected: selected.indexOf(event.id) > -1 })} />
             })}
 
 
@@ -173,6 +173,11 @@ export const PlanItem = (props: any) => {
             onMouseMove={(e) => {
                 activeTool?.listeners?.onMouseMove?.('item', e, props.item)
             }}
+            onKeyDown={(e) => {
+                if(e.key == 'Escape'){
+                    alert("Escape in plan row")
+                }
+            }}
             style={{
                 position: 'absolute',
                 display: 'flex',
@@ -181,6 +186,7 @@ export const PlanItem = (props: any) => {
                 left: props.left,
                 width: props.width,
                 minHeight: props.expanded ? '100%' : undefined,
+                userSelect: 'none'
                 // height: '100%',
                 // background: '#bbb',
                 // borderRadius: ROW_ITEM_RADIUS,

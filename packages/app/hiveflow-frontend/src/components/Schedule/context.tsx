@@ -1,26 +1,35 @@
 import { createContext, useContext, useState } from "react";
 
 export const ScheduleContext = createContext<{
+
+    copyItems?: any[];
+    pasteItems?: any[];
+    setPasteItems?: any;
+
     timelineSize?: any;
     timelinePosition?: any;
 
     tool?: any,
     changeTool?: (tool: any) => void;
 
+    events?: any[];
     horizon?: Date;
 
     step?: string;
     stepCount?: number;
 
     selected?: any[];
+    expanded?: any[];
     changeSelection?: (selected: any[]) => void;
 
-    createEvent?: (event: any) => void;
+    createEvent?: (event: any, autocreate?: boolean) => void;
     updateEvent?: (event: any, uiUpdate?: boolean) => void;
 
 
     onClickEvent?: (event: any) => void;
     onDoubleClickEvent?: (event: any) => void;
+
+    renderItem?: (item: any) => any;
 }>({
 
 })

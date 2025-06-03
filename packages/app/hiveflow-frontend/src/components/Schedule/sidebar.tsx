@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { ROW_ITEM_CONTAINER } from "./row";
 
 export interface SidebarProps {
+    header?: any;
+
     rows?: any[];
     setHoverRow?: (row: any) => void;
 
@@ -29,11 +31,8 @@ export const Sidebar : React.FC<SidebarProps> = (props) => {
             <Box sx={{
                 height: headerHeight + 'px', 
             }}>
-                <Button 
-                    fullWidth
-                    style={{ textTransform: 'none', height: '100%', textAlign: 'center' }}>
-                    3 unscheduled
-                </Button>
+              
+                {props.header}
                 <Divider />
             </Box>
             <Box ref={menuRef} sx={{
