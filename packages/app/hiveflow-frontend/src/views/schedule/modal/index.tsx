@@ -6,10 +6,13 @@ import { Add, Close } from '@mui/icons-material'
 import { TasksView } from "./view/tasks";
 import { PeopleView } from "./view/people";
 import { SkillView } from "./view/skills";
+import { gql, useMutation, useQuery } from "@apollo/client";
+import { AvatarList } from "@hexhive/ui";
+import { useAPIFunctions } from "../api";
 
 export const SchedulingModal = (props: any) => {
 
-    const [ commentInput, setCommentInput ] = useState<any>('');
+    const [commentInput, setCommentInput] = useState<any>('');
 
     const [schedule, setSchedule] = useState<any>({});
 
@@ -28,22 +31,67 @@ export const SchedulingModal = (props: any) => {
 
     const [view, setView] = useState(0);
 
+    const { data } = useQuery(gql`
+        query CommentQuery($id: ID){
+            calendarItems(where: {ids: [$id]}){
+                canEdit
+                isOwner
+                
+                comments {
+                    message
+                    user {
+                        name
+                    }
+                    createdAt
+                }
+
+                permissions {
+                    user {
+                        name
+                    }
+                }
+                
+                createdBy {
+                    name
+                }
+            }
+        }
+    `, {
+        variables: {
+            id: schedule?.id
+        }
+    })
+
+    const createdBy = data?.calendarItems?.[0]?.createdBy;
+    const comments = data?.calendarItems?.[0]?.comments || [];
+
+    const permissions = data?.calendarItems?.[0]?.permissions || [];
+
+
+    const { commentOnCalendar, removeCommentOnCalendar, leaveCalendarItem, joinCalendarItem } = useAPIFunctions();
+    
+
     const writeComment = () => {
-        
-        setSchedule({
-            ...schedule,
-            comments: [...(schedule.comments || []), commentInput]
+        commentOnCalendar({
+            variables: {
+                id: schedule.id,
+                message: commentInput
+            }
         })
+        // setSchedule({
+        //     ...schedule,
+        //     comments: [...(schedule.comments || []), commentInput]
+        // })
 
         setCommentInput('')
     }
 
     const deleteComment = (ix: number) => {
-        let comments = schedule.comments.slice() || [];
-        comments.splice(ix, 1);
-        setSchedule({
-            ...schedule,
-            comments
+        removeCommentOnCalendar({
+            variables: {
+                id: schedule?.id,
+                comment: comments?.[ix]?.id
+            }
         })
     }
 
@@ -54,12 +102,20 @@ export const SchedulingModal = (props: any) => {
         let skills = skillKeys?.map((x) => {
             return {
                 skill: x,
-                hours: parseFloat(prev.find((a) => a.skill ==  x)?.hours || 0) + parseFloat(curr?.requiredSkills?.find((a) => a.skill.skill == x).hours || 0)
+                hours: parseFloat(prev.find((a) => a.skill == x)?.hours || 0) + parseFloat(curr?.requiredSkills?.find((a) => a.skill.skill == x).hours || 0)
             }
         })
 
         return skills
     }, [])
+
+    const rowOptions = props.projects.map((x) => ({ ...x, project: true })).concat(
+        props.estimates.map((x) => ({ ...x, project: false }))
+    )
+
+    const canEdit = () => {
+        return data?.calendarItems?.[0]?.canEdit;
+    }
 
     return (
         <Dialog
@@ -68,12 +124,33 @@ export const SchedulingModal = (props: any) => {
             onClose={props.onClose}>
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Typography>
-                    {props.selected?.id ? "Update" : "Create"} schedule
+                    {!canEdit() ? "View" : (props.selected?.id ? "Update" : "Create")} schedule
                 </Typography>
-                {/* <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography>Plan</Typography>
-                    <Switch size="small" color="info" />
-                </Box> */}
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <AvatarList
+                        size={20}
+                        users={permissions.map((x) => x.user).concat(createdBy ? [createdBy] : [])}
+                    />
+                    {!data?.calendarItems?.[0]?.isOwner && 
+                        <Button onClick={() => {
+                            if(canEdit()){
+                                leaveCalendarItem({
+                                    variables: {
+                                        id: schedule?.id
+                                    }
+                                })
+                            }else{
+                                joinCalendarItem({
+                                    variables: {
+                                        id: schedule?.id
+                                    }
+                                })
+                            }
+                        }} sx={{color: 'navigation.main'}} size="small">
+                            {canEdit() ? "Leave" : "Join"}
+                        </Button>
+                    }
+                </Box>
             </DialogTitle>
             <DialogContent sx={{
                 display: 'flex',
@@ -97,9 +174,10 @@ export const SchedulingModal = (props: any) => {
                     display: 'flex'
                 }}>
                     <Autocomplete
-                        options={props.projects || []}
-                        value={props.projects?.find((a) => a.id == schedule.groupBy?.id) || null}
+                        options={rowOptions || []}
+                        value={rowOptions?.find((a) => a.id == schedule.groupBy?.id) || null}
                         onChange={(e, newValue) => setSchedule({ ...schedule, groupBy: newValue })}
+                        groupBy={(option) => option.project ? 'Project' : 'Estimate'}
                         getOptionLabel={(option: any) => typeof (option) == 'string' ? option : option.name}
                         renderInput={(params) => <TextField {...params} label="Row" size="small" />} />
                     <Box sx={{ display: 'flex', gap: '8px' }}>
@@ -126,7 +204,7 @@ export const SchedulingModal = (props: any) => {
                         </Tabs>
                     </Box>
 
-                    <Box sx={{minHeight: '30vh'}}>
+                    <Box sx={{ minHeight: '30vh' }}>
                         {/* <Typography>Schedule</Typography>     */}
                         {view == 0 ? <PeopleView
                             selected={schedule.people || []}
@@ -136,7 +214,7 @@ export const SchedulingModal = (props: any) => {
                                     people: people
                                 })
                             }}
-                            people={props.people} /> : view == 1 ? 
+                            people={props.people} /> : view == 1 ?
                             <TasksView
                                 selected={schedule.tasks || []}
                                 onSelect={(selected) => {
@@ -145,7 +223,7 @@ export const SchedulingModal = (props: any) => {
                                         tasks: selected
                                     })
                                 }}
-                                tasks={props.tasks} /> : 
+                                tasks={props.tasks} /> :
                             <SkillView tasks={props.tasks} />}
                         {/* 
                         <Autocomplete
@@ -164,41 +242,51 @@ export const SchedulingModal = (props: any) => {
 
                     </Box>
                     <Divider />
-                    <Typography fontWeight={"bold"}>Comments</Typography>
+                    {schedule?.id && <>
+                        <Typography fontWeight={"bold"}>Comments</Typography>
 
 
-                    <TextField  
-                        size="small"
-                        value={commentInput || ''}
-                        onChange={(e) => setCommentInput(e.target.value)}
-                        onKeyDown={(e) => {
-                            if(!e.shiftKey && e.key == 'Enter') {
-                                e.preventDefault();
-                                writeComment()
-                                e.stopPropagation();
-                            }
-                        }}
-                        placeholder="Write a comment"
-                        multiline/>
+                        <TextField
+                            size="small"
+                            value={commentInput || ''}
+                            onChange={(e) => setCommentInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (!e.shiftKey && e.key == 'Enter') {
+                                    e.preventDefault();
+                                    writeComment()
+                                    e.stopPropagation();
+                                }
+                            }}
+                            placeholder="Write a comment"
+                            multiline />
 
-                    <Box sx={{ display: 'flex' }}>
-                        <Button onClick={writeComment} variant="contained" color="primary">Comment</Button>
-                    </Box>
-
+                        <Box sx={{ display: 'flex' }}>
+                            <Button onClick={writeComment} variant="contained" color="primary">Comment</Button>
+                        </Box>
+                    </>
+                    }
                     <Divider />
                     <Box sx={{
+                        paddingBottom: '12px',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '8px'
                     }}>
-                        {schedule?.comments?.map((comment, ix) => (
-                            <Paper sx={{
-                                padding: '4px',
-                                display: 'flex',
-                                alignItems: 'center'
-                            }}>
-                                <Box sx={{flex: 1}}>
-                                    <Typography>{comment}</Typography>
+                        {comments?.map((comment, ix) => (
+                            <Paper
+                                elevation={3}
+                                sx={{
+                                    padding: '4px',
+                                    display: 'flex',
+                                    alignItems: 'center'
+                                }}>
+                                <Box sx={{ flex: 1, flexDirection: 'column' }}>
+                                    <Typography>{comment.message}</Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                        <Typography fontSize={12}>{comment.user?.name} - {moment(comment.createdAt).format('hh:mma DD/MM')}</Typography>
+                                        {/* <Typography fontSize={12}></Typography> */}
+
+                                    </Box>
                                 </Box>
                                 <IconButton onClick={() => deleteComment(ix)}><Close /></IconButton>
                             </Paper>
@@ -208,9 +296,15 @@ export const SchedulingModal = (props: any) => {
 
                 </Box>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={props.onClose}>Cancel</Button>
-                <Button onClick={submit} variant="contained">Save</Button>
+            <DialogActions sx={{
+                display: 'flex',
+                justifyContent: props.selected?.id ? "space-between" : 'flex-end'
+            }}>
+                {props.selected?.id && canEdit() && <Button variant="contained" color="error" onClick={props.onDelete}>Delete</Button>}
+                <Box sx={{display: 'flex'}}>
+                    <Button onClick={props.onClose}>Cancel</Button>
+                    {canEdit() && <Button onClick={submit} variant="contained">Save</Button>}
+                </Box>
             </DialogActions>
         </Dialog>
     )

@@ -264,12 +264,53 @@ model CalendarItem {
 
     data Json?
 
+    comments CalendarItemComment[] @relation(name: "hasComment")
+
+    permissions CalendarItemPermissions[] @relation(name: "hasPermissions")
+
+    createdBy String?
+
     organisation String
+}
+
+model CalendarItemPermissions {
+    id String @id
+
+    user String
+
+    permissions String[]
+
+    item CalendarItem @relation(name: "hasPermissions", references: [id], fields: [itemId])
+    itemId String
+
+    createdAt DateTime @default(now())    
+}
+
+model CalendarItemComment {
+    id String @id
+    message String
+    user String
+    createdAt DateTime @default(now())
+
+    item CalendarItem @relation(name: "hasComment", references: [id], fields: [itemId])
+    itemId String
 }
 
 // model CalendarAnnotation {
 //     id String @id
 // }
+
+model LeaveAssignment {
+    id String @id
+
+    user String
+
+    start DateTime
+    end DateTime
+
+    createdAt DateTime @default(now())
+    createdBy String
+}
 
 model SkillAssignment {
     id String @id

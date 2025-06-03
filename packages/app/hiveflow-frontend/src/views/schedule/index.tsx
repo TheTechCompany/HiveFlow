@@ -18,6 +18,8 @@ import { mergeDateRanges } from './utils';
 import { Collapse, Typography, Button, Box, Paper, Popover, Menu as UIMenu, MenuItem } from '@mui/material';
 import { head } from 'lodash';
 import { ConfirmModal } from '../../modals/confirm';
+import { useAPIFunctions } from './api';
+import { AvatarList } from '@hexhive/ui';
 export const Schedule: React.FC<any> = (props) => {
 
   //User
@@ -47,6 +49,26 @@ export const Schedule: React.FC<any> = (props) => {
       users(active: true){
         id
         name
+      }
+
+      estimates {
+        id
+        displayId
+        name
+
+
+        tasks {
+          id
+          
+
+          title
+
+          startDate
+          endDate
+
+
+        }
+
       }
       projects{
         id
@@ -146,6 +168,18 @@ export const Schedule: React.FC<any> = (props) => {
 
         data
         groupBy
+
+        permissions {
+
+          user {
+            id
+            name
+          }
+        }
+
+        createdBy {
+          name
+        }
       }
     }  
   `, {
@@ -169,6 +203,12 @@ export const Schedule: React.FC<any> = (props) => {
   const draftSchedule = data?.timelineItems || []
   const schedule: any[] = data?.scheduleItems || []//query.scheduleItems({where: {date_GT: horizon.start?.toISOString(), date_LT: horizon.end?.toISOString()}})
 
+  const estimates = (slowData?.estimates || []).map((estimate) => {
+    let tasks = estimate.tasks?.map((x) => ({ ...x, start: x.startDate, end: x.endDate }))
+
+    return { ...estimate, draftSchedule: mergeDateRanges(tasks) };
+  });;
+
   const projects = (slowData?.projects || []).map((project) => {
     let tasks = project.tasks.map((x) => ({ ...x, start: x.startDate, end: x.endDate }))
 
@@ -181,117 +221,37 @@ export const Schedule: React.FC<any> = (props) => {
 
   const [unscheduledElem, setUnscheduleElem] = useState<any>(null)
 
-  const [expanded, setExpanded] = useState<any>(projects?.map((x, ix) => x.id) || []);
+  const rowOptions = projects.map((x) => ({ ...x, project: true })).concat(
+    estimates.map((x) => ({ ...x, project: false }))
+  )
+
+  const [expanded, setExpanded] = useState<any>(rowOptions?.map((x, ix) => x.id) || []);
 
   useEffect(() => {
     if (moment(horizon.end).diff(moment(horizon.start), 'days') < 10) {
-      setExpanded(projects.map((x, ix) => x.id))
+      setExpanded(rowOptions.map((x, ix) => x.id))
     } else {
       setExpanded([])
     }
-  }, [JSON.stringify(projects), JSON.stringify(horizon)])
+  }, [JSON.stringify(rowOptions), JSON.stringify(horizon)])
 
   const people = slowData?.users || []// query.people({})?.map((x) => ({...x})) || [];
   const equipment = slowData?.equipment || [] //query.equipment({})?.map((x) => ({...x})) || []
 
   const users = slowData?.hiveUsers || [] //query.hiveUsers({})?.map((x) => ({...x})) || []
 
-  const [createCalendarItem] = useApolloMutation(gql`
-    mutation CreateCalendarItem ($input: CalendarItemInput) {
-      createCalendarItem(input: $input){
-        id
-      }
-    }  
-  `, {
-    refetchQueries: ['CalendarItems']
-  })
 
-  const [updateCalendarItem] = useApolloMutation(gql`
-    mutation UpdateCalendarItem ($id: ID, $input: CalendarItemInput) {
-      updateCalendarItem(id: $id, input: $input){
-        id
-      }
-    }  
-  `, {
-    refetchQueries: ['CalendarItems']
-  })
+  const { createCalendarItem, updateCalendarItem, deleteCalendarItem } = useAPIFunctions();
 
-  const [deleteCalendarItem] = useApolloMutation(gql`
-    mutation UpdateCalendarItem ($id: ID) {
-      deleteCalendarItem(id: $id){
-        id
-      }
-    }  
-  `, {
-    refetchQueries: ['CalendarItems']
-  })
-
-
-
-
-  const [joinCard, joinInfo] = useMutation((mutation, args: { id: string }) => {
-    if (!activeUser?.id) return;
-
-    const result = mutation.joinScheduleItem({
-      id: args.id
-    })
-    return {
-      item: {
-        ...result
-      },
-      error: null
-    }
-  }, {
-    onCompleted(data) { },
-    onError(error) { },
-    refetchQueries: [],
-    awaitRefetchQueries: true,
-    suspense: false,
-  })
-
-
-  const [leaveCard, leaveInfo] = useMutation((mutation, args: { id: string }) => {
-    if (!activeUser?.id) return;
-    const result = mutation.leaveScheduleItem({
-      id: args.id
-    })
-    return {
-      item: { ...result },
-      error: null
-    }
-  }, {
-    onCompleted(data) { },
-    onError(error) { },
-    refetchQueries: [],
-    awaitRefetchQueries: true,
-    suspense: false,
-  })
-
-  const [cloneItem, cloenInfo] = useMutation((mutation, args: { id: string, dates: Date[] }) => {
-
-    const items = mutation.cloneScheduleItem({
-      id: args.id,
-      dates: args.dates.map((x) => x.toISOString())
-    })
-
-    return {
-      item: [...items]
-    }
-  }, {
-    onCompleted(data) { },
-    onError(error) { },
-    refetchQueries: [],
-    awaitRefetchQueries: true,
-    suspense: false,
-  })
 
   const [confirmCallback, setConfirmCallback] = useState<any>(null);
 
   const raiseConfirm = (message: string, cb: any) => {
-    setConfirmCallback({message, cb});
+    setConfirmCallback({ message, cb });
   }
 
   const [headerCapacity, setHeaderCapacity] = useState<any>({});
+
 
   return (
     <Box
@@ -318,8 +278,21 @@ export const Schedule: React.FC<any> = (props) => {
         open={modalOpen}
         selected={selected}
         projects={projects}
+        estimates={estimates}
         people={people}
         tasks={tasks}
+        onDelete={() => {
+          deleteCalendarItem({
+            variables: {
+              id: selected?.id
+            }
+          }).then(() => {
+
+            openModal(false)
+            setModalDate(undefined)
+            setSelected(undefined)
+          })
+        }}
         onSubmit={(schedule) => {
           let promise: any;
 
@@ -373,7 +346,7 @@ export const Schedule: React.FC<any> = (props) => {
       <ScheduleView
         createEvent={(event, autocreate) => {
 
-          if(autocreate){
+          if (autocreate) {
             createCalendarItem({
               variables: {
                 input: {
@@ -390,7 +363,7 @@ export const Schedule: React.FC<any> = (props) => {
             })
             return;
           }
-          let tasks = projects.reduce((prev, curr) => prev.concat(curr.tasks.map((task) => ({ ...task, startDate: new Date(task.startDate), endDate: new Date(task.endDate), project: curr }))), [])
+          let tasks = rowOptions.reduce((prev, curr) => prev.concat(curr.tasks.map((task) => ({ ...task, startDate: new Date(task.startDate), endDate: new Date(task.endDate), project: curr }))), [])
           tasks = tasks.filter((task) => {
             console.log(task.endDate?.getTime() > event.start?.getTime(), task.startDate?.getTime() < event.end?.getTime(), task, event)
             return task.endDate?.getTime() > event.start?.getTime() && task.startDate?.getTime() < event.end?.getTime();
@@ -426,7 +399,7 @@ export const Schedule: React.FC<any> = (props) => {
           client.refetchQueries({ include: ['CalendarItems', 'Slow'] })
         }}
         onDoubleClickEvent={(event) => {
-          let tasks = projects.reduce((prev, curr) => prev.concat(curr.tasks.map((task) => ({ ...task, startDate: new Date(task.startDate), endDate: new Date(task.endDate), project: curr }))), [])
+          let tasks = rowOptions.reduce((prev, curr) => prev.concat(curr.tasks.map((task) => ({ ...task, startDate: new Date(task.startDate), endDate: new Date(task.endDate), project: curr }))), [])
           tasks = tasks.filter((task) => {
             return task.endDate?.getTime() > new Date(event.start)?.getTime() && task.startDate?.getTime() < new Date(event.end)?.getTime();
           })
@@ -462,7 +435,7 @@ export const Schedule: React.FC<any> = (props) => {
             return new Date(item.start)?.getTime() < header.end?.getTime() && new Date(item.end) > header.start?.getTime();
           }).length
 
-          let project_options = projects.filter((project) => {
+          let project_options = rowOptions.filter((project) => {
             return project.tasks.filter((task) => {
               return new Date(task.endDate)?.getTime() > header.start?.getTime() && new Date(task.startDate)?.getTime() < header.end?.getTime();
             }).length > 0;
@@ -585,7 +558,7 @@ export const Schedule: React.FC<any> = (props) => {
         }}
         renderItem={(item) => {
 
-          let project = projects?.find((a) => a.id == item.groupBy?.id);
+          let project = rowOptions?.find((a) => a.id == item.groupBy?.id);
 
           let eventPeople = (item.data?.people || []).map((x) => {
             return people?.find((a) => a.id == x)
@@ -632,7 +605,11 @@ export const Schedule: React.FC<any> = (props) => {
                             <Typography>{person?.name}</Typography>
                           ))}
                         </Box>
-
+                        <Box sx={{padding: '8px'}}>
+                          <AvatarList 
+                            size={20}
+                            users={item.permissions?.map((x) => x.user)?.concat(item.createdBy ? [item.createdBy] : [])} />
+                        </Box>
                       </Box>
                     )}
                   </Box> : <div style={{
@@ -643,7 +620,7 @@ export const Schedule: React.FC<any> = (props) => {
           )
         }}
         getRowGroup={(event) => {
-          const group = projects?.find((a) => a.id == event.groupBy?.id);
+          const group = rowOptions?.find((a) => a.id == event.groupBy?.id);
           return `${group?.displayId} - ${group?.name}`;
         }}
         onDelete={(items) => {
@@ -653,11 +630,11 @@ export const Schedule: React.FC<any> = (props) => {
               deleteCalendarItem?.({ variables: { id: item } })
             }))
 
-           });
+          });
 
         }}
         events={
-          projects.map((x) =>
+          rowOptions.map((x) =>
             x.draftSchedule.map((sched, ix) => ({ ...sched, id: `${x.name}-${ix}`, draft: true, groupBy: { ...x } }))
           ).reduce((prev, curr) => prev.concat(curr), []).filter((x) => {
             return (x.start.getTime() < horizon.end.getTime()) && (x.end.getTime() > horizon.start.getTime())

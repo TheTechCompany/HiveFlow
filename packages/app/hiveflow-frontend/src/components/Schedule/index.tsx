@@ -57,7 +57,7 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
 
     const [ _selected, setSelected ] = useState<any[]>([])
     const selected = _selected.filter((a) => events.findIndex((b) => b.id == a) > -1)
-    
+
     useEffect(() => {
         setEvents(props.events)
     }, [JSON.stringify(props.events)])
@@ -151,14 +151,11 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
                     }}>
                         <Paper style={{ display: 'flex', paddingLeft: '8px', justifyContent: 'space-between' }}>
                             <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                                <IconButton>
+                                {/* <IconButton>
                                     <FilterList />
                                 </IconButton>
-                                <Typography>Filter</Typography>
-                                {/* <Autocomplete
-                                    sx={{ minWidth: '200px' }}
-                                    renderInput={(params) => <TextField {...params} label="View" size="small" />}
-                                    options={[]} /> */}
+                                <Typography>Filter</Typography> */}
+                              
                             </div>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1, padding: '8px', justifyContent: 'center' }}>
                                 <IconButton 

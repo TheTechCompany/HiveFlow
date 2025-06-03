@@ -11,6 +11,24 @@ export default (prisma: PrismaClient) => {
             }
         },
         Mutation: {
+            assignLeave: async (root: any, args: any, context: any) => {
+                return await prisma.leaveAssignment.create({
+                    data: {
+                        id: nanoid(),
+                        start: args.start,
+                        end: args.end,
+                        user: args.id,
+                        createdBy: context?.jwt?.id
+                    }
+                })
+            },
+            removeLeave: async (root: any, args: any, context: any) => {
+                return await prisma.leaveAssignment.delete({
+                    where: {
+                        id: args.leave
+                    }
+                })
+            },
             updateSkillAssignment: async (root: any, args: any, context: any) => {
                 await prisma.skillAssignment.upsert({
                     where: {
@@ -41,6 +59,11 @@ export default (prisma: PrismaClient) => {
                         id: args.id
                     }
                 })
+            }
+        },
+        HiveUser: {
+            leave: () => {
+                console.log("LEAVE")
             }
         },
         Query: {
@@ -144,6 +167,25 @@ export default (prisma: PrismaClient) => {
     type Mutation {
         updateSkillAssignment(skill: String, skillData: JSON, user: String): SkillAssignment
         deleteSkillAssignment(id: ID): SkillAssignment
+
+        assignLeave(id: ID, start: DateTime, end: DateTime): LeaveAssignment
+        removeLeave(id: ID, leave: ID): LeaveAssignment
+    }
+
+    type HiveUser {
+        leave: [LeaveAssignment]
+    }
+
+    type LeaveAssignment {
+        id: ID
+        
+        start: DateTime
+        end: DateTime
+
+        user: HiveUser
+
+        createdAt: DateTime
+        createdBy: HiveUser
     }
 
     type SkillAssignment {

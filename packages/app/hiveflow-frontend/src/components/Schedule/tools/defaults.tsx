@@ -249,7 +249,8 @@ export const DEFAULT_TOOLS = [
                                 width: (hoverPos?.x - activeDrag?.start) + 'px',
                                 height: '100%',
                                 borderRadius: ROW_ITEM_RADIUS,
-                                background: 'rgba(127, 127, 127, 0.5)'
+                                background: 'rgba(127, 127, 127, 0.5)',
+                                zIndex: 99
                             }}>
 
                             </div>
