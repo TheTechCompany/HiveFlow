@@ -67,10 +67,8 @@ export const SchedulingModal = (props: any) => {
 
     const permissions = data?.calendarItems?.[0]?.permissions || [];
 
-
     const { commentOnCalendar, removeCommentOnCalendar, leaveCalendarItem, joinCalendarItem } = useAPIFunctions();
     
-
     const writeComment = () => {
         commentOnCalendar({
             variables: {
@@ -207,6 +205,10 @@ export const SchedulingModal = (props: any) => {
                     <Box sx={{ minHeight: '30vh' }}>
                         {/* <Typography>Schedule</Typography>     */}
                         {view == 0 ? <PeopleView
+                            horizon={{
+                                start: schedule?.start,
+                                end: schedule?.end
+                            }}
                             selected={schedule.people || []}
                             onSelect={(people) => {
                                 setSchedule({

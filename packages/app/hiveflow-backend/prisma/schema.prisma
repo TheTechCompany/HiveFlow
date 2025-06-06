@@ -310,6 +310,8 @@ model LeaveAssignment {
 
     createdAt DateTime @default(now())
     createdBy String
+
+    organisation String?
 }
 
 model SkillAssignment {

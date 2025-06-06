@@ -1,4 +1,4 @@
-import { gql, useMutation } from "@apollo/client"
+import { gql, useMutation, useQuery } from "@apollo/client"
 
 export const useAPIFunctions = () => {
 
@@ -32,7 +32,7 @@ export const useAPIFunctions = () => {
         refetchQueries: ['CalendarItems']
     })
 
-    const [ joinCalendarItem ] = useMutation(gql`
+    const [joinCalendarItem] = useMutation(gql`
         mutation Join ($id: ID){
             joinCalendarItem(id: $id){
                 id
@@ -42,7 +42,7 @@ export const useAPIFunctions = () => {
         refetchQueries: ['CommentQuery', 'CalendarItems']
     })
 
-    const [ leaveCalendarItem ] = useMutation(gql`
+    const [leaveCalendarItem] = useMutation(gql`
         mutation Leave ($id: ID){
             leaveCalendarItem(id: $id){
                 id
@@ -77,6 +77,9 @@ export const useAPIFunctions = () => {
 
 
 
+
+
+
     return {
         deleteCalendarItem,
         updateCalendarItem,
@@ -85,5 +88,43 @@ export const useAPIFunctions = () => {
         leaveCalendarItem,
         commentOnCalendar,
         removeCommentOnCalendar
+    }
+}
+
+export const useAPIData = (horizon: any) => {
+
+    const { data: calendarData } = useQuery(gql`
+        query CalendarItems($startDate: DateTime, $endDate: DateTime){
+          calendarItems (where: {start_LTE: $endDate, end_GTE: $startDate} ){
+            id
+            start
+            end
+    
+            data
+            groupBy
+    
+            permissions {
+    
+              user {
+                id
+                name
+              }
+            }
+    
+            createdBy {
+              name
+            }
+          }
+        }  
+      `, {
+        variables: {
+            startDate: horizon?.start,
+            endDate: horizon?.end
+        }
+    })
+
+
+    return {
+        calendarData
     }
 }

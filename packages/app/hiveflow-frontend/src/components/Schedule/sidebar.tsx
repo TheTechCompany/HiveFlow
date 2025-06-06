@@ -42,7 +42,7 @@ export const Sidebar : React.FC<SidebarProps> = (props) => {
             }}>
                 {props.rows?.map((x, i) => (
                     <div
-                        onMouseDown={() => props.onExpand?.(i)}
+                        onMouseDown={() => x?.id && props.onExpand?.(x)}
                         onMouseEnter={() => props.setHoverRow?.(x)}
                         onMouseLeave={() => props.setHoverRow?.(null)}
                         style={{
@@ -51,7 +51,8 @@ export const Sidebar : React.FC<SidebarProps> = (props) => {
                             height: rowHeights?.[x?.id] || ROW_ITEM_CONTAINER,
                             borderBottom: x.name ? '1px solid black' : '1px solid #dfdfdf',
                         }}>
-                        <Typography sx={{ padding: '8px' }}>
+                        
+                        <Typography sx={{ padding: '8px', cursor: x?.name ? 'pointer' : undefined, '&:hover': {textDecoration: 'underline'} }}>
                             {x.name}
                         </Typography>
                     </div>

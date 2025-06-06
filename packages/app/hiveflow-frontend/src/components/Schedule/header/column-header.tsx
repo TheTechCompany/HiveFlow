@@ -24,7 +24,7 @@ export const ColumnHeader : React.FC<ColumnProps> = (props) => {
     }}>
         <div>
             <div style={{ height: '27px', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '4px', paddingBottom: '4px', fontSize: 10 }}>
-                {moment(horizon).add(props.column.index, step as any).format(props.format)}
+                {moment(horizon?.start).add(props.column.index, step as any).format(props.format)}
             </div>
             <Divider />
             {props.column?.headerContent}

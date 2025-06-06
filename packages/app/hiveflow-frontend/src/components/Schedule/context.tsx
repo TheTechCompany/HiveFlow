@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from "react";
+import { Horizon } from ".";
 
 export const ScheduleContext = createContext<{
 
@@ -13,7 +14,7 @@ export const ScheduleContext = createContext<{
     changeTool?: (tool: any) => void;
 
     events?: any[];
-    horizon?: Date;
+    horizon?: Horizon;
 
     step?: string;
     stepCount?: number;

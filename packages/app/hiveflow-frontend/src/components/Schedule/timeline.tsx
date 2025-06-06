@@ -4,10 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Row } from "./row";
 import { RowHeightProivder, useRowHeights, useSchedule, useTool } from "./context";
 import { Header } from "./header";
+import { Horizon } from ".";
 
 export interface TimelineProps {
 
-    horizon: Date;
+    horizon: Horizon;
 
     // rows?: { project: any }[]
     rows?: { id: any, name: string, headerContent?: any, events: any[] }[];
@@ -70,10 +71,13 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
     }, [props.horizon, props.step, props.stepCount])
 
     const rows = useMemo(() => {
-        let count = (timelineSize?.height / 30) + props.rows.length;
+        //(timelineSize?.height / 30) +
+        let count =  props.rows.length + 5;
         let outputRows = [];
 
         for (var i = 0; i < count; i++) {
+            console.log({expanded: props.expanded, row: props.rows?.[i]?.id})
+
             outputRows.push(
                 <Row
                     filled={props.rows[i] != undefined}

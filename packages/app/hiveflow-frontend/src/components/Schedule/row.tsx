@@ -193,7 +193,7 @@ export const PlanItem = (props: any) => {
                 // border: props.selected ? '1px solid blue' : undefined
             }}>
 
-            <div
+            {props.item?.resizable != false && <div
                 onMouseDown={dragEnd('w')}
                 style={{
                     position: 'absolute',
@@ -203,14 +203,14 @@ export const PlanItem = (props: any) => {
                     height: '100%',
                     cursor: 'w-resize',
                     zIndex: 99
-                }}></div>
+                }}></div>}
             <div style={{ flex: 1, display: 'flex', position: 'relative' }}>
                 {listeners}
                 {props.renderItem?.()}
 
             </div>
 
-            <div
+            {props.item?.resizable != false && <div
                 onMouseDown={dragEnd('e')}
                 style={{
                     position: 'absolute',
@@ -220,7 +220,7 @@ export const PlanItem = (props: any) => {
                     height: '100%',
                     cursor: 'e-resize',
                     zIndex: 99
-                }}></div>
+                }}></div>}
         </div>
     )
 }

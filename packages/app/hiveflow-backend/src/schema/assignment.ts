@@ -18,7 +18,20 @@ export default (prisma: PrismaClient) => {
                         start: args.start,
                         end: args.end,
                         user: args.id,
-                        createdBy: context?.jwt?.id
+                        createdBy: context?.jwt?.id,
+                        organisation: context?.jwt?.organisation
+                    }
+                })
+            },
+            updateLeave: async (root: any, args: any, context: any) => {
+                return await prisma.leaveAssignment.update({
+                    where: {
+                        id: args.leave,
+                    },
+                    data: {
+                        user: args.id,
+                        start: args.start,
+                        end: args.end
                     }
                 })
             },
@@ -61,12 +74,35 @@ export default (prisma: PrismaClient) => {
                 })
             }
         },
-        HiveUser: {
-            leave: () => {
-                console.log("LEAVE")
-            }
-        },
+
         Query: {
+            userLeave: async (root: any, args: any, context: any) => {
+                let query : any = {
+                    organisation: context?.jwt?.organisation
+                };
+                if(args.ids){
+                    query.user = {in: args.ids}
+                }
+
+                const leaveRows = await prisma.leaveAssignment.findMany({
+                    where: {
+                        ...query
+                    }
+                })
+
+
+                const rows = [...new Set(leaveRows.map((x) => x.user).concat(args.ids || []))]
+                console.log({args, query, leaveRows, rows})
+
+                const result = (args.ids || rows).map((r) => {
+                    let leave = leaveRows.filter((a) => a.user == r)
+                    return {
+                        id: r,
+                        leave
+                    }
+                })
+                return result;
+            },
             skills: async (root: any, args: any) => {
                 let where : any = {};
                 if(args.user){
@@ -160,6 +196,7 @@ export default (prisma: PrismaClient) => {
     union AssignedTask = ProjectTask | EstimateTask
 
     type Query {
+        userLeave(ids: [ID]): [HiveUser] @merge(keyField: "id", keyArg: "ids")
         skills(user: ID): [SkillAssignment]
         assignments(ids: [ID], where: AssignedWhere): [AssignedTask!]!
     }
@@ -169,10 +206,12 @@ export default (prisma: PrismaClient) => {
         deleteSkillAssignment(id: ID): SkillAssignment
 
         assignLeave(id: ID, start: DateTime, end: DateTime): LeaveAssignment
+        updateLeave(id: ID, leave: ID, start: DateTime, end: DateTime): LeaveAssignment
         removeLeave(id: ID, leave: ID): LeaveAssignment
     }
 
-    type HiveUser {
+    type HiveUser @key(selectionSet: "{ id }"){
+        id: ID,
         leave: [LeaveAssignment]
     }
 
@@ -187,6 +226,7 @@ export default (prisma: PrismaClient) => {
         createdAt: DateTime
         createdBy: HiveUser
     }
+        
 
     type SkillAssignment {
         id: ID

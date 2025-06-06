@@ -1,4 +1,4 @@
-import { Autocomplete, Button, IconButton, Paper, Slider, TextField, Typography } from "@mui/material";
+import { Autocomplete, Button, Checkbox, IconButton, Menu, MenuItem, Paper, Slider, TextField, Typography } from "@mui/material";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sidebar } from "./sidebar";
 import { Tools } from "./tools";
@@ -9,10 +9,15 @@ import { DEFAULT_TOOLS } from "./tools/defaults";
 import { ChevronLeft, ChevronRight, Filter, FilterList } from '@mui/icons-material'
 import moment from "moment";
 
-export interface ScheduleProps {
-    horizon: Date;
-    onHorizonChanged?: (start: Date, end: Date) => void;
 
+export interface Horizon {
+    start: Date;
+    end: Date;
+}
+
+export interface ScheduleProps {
+    horizon: Horizon;
+    onHorizonChanged?: (horizon: Horizon) => void;
 
     sidebarHeader?: any;
 
@@ -22,14 +27,20 @@ export interface ScheduleProps {
     getRowGroup?: (event: any) => any
 
     events?: {
-        project: any;
-        start: Date
+        groupBy: {id: string};
+        start: Date;
+        end: Date;
+
+        data?: any;
+        
+        resizable?: boolean;
+        selectable?: boolean;
     }[]
 
     createEvent?: (event: any, autocreate?: boolean) => void;
     updateEvent?: (event: any) => void;
 
-    expanded?: string[];
+    expanded?: string[]; //Rows to be expanded
 
     onSelectMenuItem?: (item: any) => void;
     
@@ -48,10 +59,34 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
 
     const [tool, changeTool] = useState(DEFAULT_TOOLS[0]);
 
-    const [horizonSize, setHorizonSize] = useState(7);
+    const step = useMemo(() => {
+        let start = moment(props.horizon.start)
+        let end = moment(props.horizon.end)
 
-    const [step, setStep] = useState('day');
-    const [stepCount, setStepCount] = useState(7)
+        if(end.diff(start, 'days') < 2){
+            return 'hour';
+        }else if(end.diff(start, 'week') < 2){
+            return 'day';
+            
+        }else if(end.diff(start, 'months') < 6){
+            return 'month';
+        }else{
+            return 'year';
+        }
+    }, [props.horizon])
+
+
+    const stepCount = useMemo(() => {
+        let start = moment(props.horizon.start)
+        let end = moment(props.horizon.end)
+        return Math.round(end.diff(start, step, true));
+    }, [step, props.horizon])
+
+    console.log({step, stepCount})
+
+
+    // const [step, setStep] = useState('day');
+    // const [stepCount, setStepCount] = useState(7)
 
     const [events, setEvents] = useState<any[]>([]);
 
@@ -76,16 +111,9 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
         })
     }, [events])
 
-    const changeHorizon = (dir: number) => {
-        return () => {
-            let start = moment(props.horizon).add(stepCount * dir, step as any).toDate()
-            let end = moment(props.horizon).add((stepCount * dir) + stepCount, step as any).toDate()
-            props.onHorizonChanged(start, end)
-        }
-    }
-
     const timelineRows = useMemo(() => {
-        let count = (sizes?.height / 30) + rows.length;
+        // (sizes?.height / 30) + 
+        let count = rows.length + 5;
         let outputRows = [];
 
         for (var i = 0; i < count; i++) {
@@ -101,6 +129,7 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
 
     const [ copyItems, setCopyItems ] = useState<any[]>([]);
     const [ pasteItems, setPasteItems ] = useState<any[]>([]);
+
 
     return (
         <ScheduleProvider value={{
@@ -149,132 +178,7 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
                         gap: '8px',
                         flexDirection: 'column'
                     }}>
-                        <Paper style={{ display: 'flex', paddingLeft: '8px', justifyContent: 'space-between' }}>
-                            <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                                {/* <IconButton>
-                                    <FilterList />
-                                </IconButton>
-                                <Typography>Filter</Typography> */}
-                              
-                            </div>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1, padding: '8px', justifyContent: 'center' }}>
-                                <IconButton 
-                                    onClick={changeHorizon(-1)}
-                                    size="small">
-                                    <ChevronLeft fontSize="inherit" />
-                                </IconButton>
-                                <Typography>
-                                    {moment(props.horizon).format('DD/MM/yyyy')} - {moment(props.horizon).add(stepCount - 1, step as any).endOf(step as any).format('DD/MM/yyyy')}
-                                </Typography>
-                                <IconButton 
-                                    onClick={changeHorizon(1)}
-                                    size="small">
-                                    <ChevronRight fontSize="inherit" />
-                                </IconButton>
-                            </div>
-                            <div style={{
-                                flex: 1,
-                                display: 'flex',
-                                // flexDirection: 'column',
-                                gap: '8px',
-                                padding: '8px',
-                                alignItems: 'center',
-                                justifyContent: 'flex-end'
-                                // alignItems: 'flex-end'
-                            }}>
-
-                                <Button variant={step == 'hour' ? 'contained' : "outlined"} onClick={() => {
-                                    setStep('hour')
-                                    setStepCount(24);
-                                    let start = moment(props.horizon).startOf('day');
-                                    let end = moment(props.horizon).endOf('day');
-                                    props.onHorizonChanged?.(start.toDate(), end.toDate())
-                                }}>Day</Button>
-                                <Button
-                                variant={step == 'day' ? 'contained' : "outlined"}
-                                     onClick={() => {
-                                        setStep('day')
-                                        setStepCount(7);
-
-                                    let start = moment(props.horizon).startOf('week');
-                                    let end = moment(props.horizon).endOf('week');
-                                    props.onHorizonChanged?.(start.toDate(), end.toDate())
-
-                                    }}
-                                    >Week</Button>
-                                {/* <Button 
-                                variant={step == 'week' ? 'contained' : "outlined"}
-                                onClick={() => {
-                                    setStep('week')
-                                    setStepCount(4);
-
-
-                                    let start = moment(props.horizon).startOf('M');
-                                    let end = moment(props.horizon).add(1, 'month').startOf('M');
-
-                                    console.log("MONTHLY SET", start, end)
-                                    props.onHorizonChanged?.(start.toDate(), end.toDate())
-
-                                }}>Month</Button> */}
-
-                                <Button
-                                variant={step == 'month' && stepCount == 3 ? 'contained' : "outlined"}
-                                     onClick={() => {
-                                    setStep('month');
-                                    setStepCount(3);
-
-                                    let start = moment(props.horizon).startOf('quarter');
-                                    let end = moment(props.horizon).endOf('quarter');
-                                    props.onHorizonChanged?.(start.toDate(), end.toDate())
-                                }}>
-                                    
-                                    Quarter
-                                </Button>
-                                <Button 
-                                variant={step == 'year' ? 'contained' : "outlined"}
-                                onClick={() => {
-                                    setStep('year');
-                                    setStepCount(1)
-
-                                    let start = moment(props.horizon).startOf('year');
-                                    let end = moment(props.horizon).endOf('year');
-                                    props.onHorizonChanged?.(start.toDate(), end.toDate())
-                                }}>Year</Button>
-{/* 
-                                <Slider
-                                    value={horizonSize}
-                                    onChange={(e, value) => {
-                                        let horizonSize = value as any;
-                                        setHorizonSize(value as any);
-                                        if (horizonSize < 2) {
-                                            setStep('hour')
-                                            setStepCount(24 * horizonSize)
-                                        } else if (horizonSize > 2 && horizonSize < 14) {
-                                            setStep('day')
-                                            setStepCount(horizonSize)
-                                        } else if (horizonSize >= 14 && horizonSize < (28 * 1.5)) {
-                                            setStep('week');
-                                            setStepCount(Math.floor(horizonSize / 7));
-                                        } else if (horizonSize >= (28 * 1.5)) {
-                                            setStep('month')
-                                            setStepCount(Math.floor(horizonSize / 28));
-                                        }
-
-                                        setTimeout(() => {
-                                            let start = moment(props.horizon).toDate()
-                                            let end = moment(props.horizon).add(stepCount, step as any).toDate()
-                                            props.onHorizonChanged(start, end)
-                                        }, 0)
-                                        // setStep()
-                                    }}
-                                    sx={{ width: '200px' }}
-                                    size="small"
-                                    min={1}
-                                    max={3 * 28}
-                                /> */}
-
-                            </div>
-                        </Paper>
+                        
                         <div style={{
                             display: 'flex',
                             minHeight: 0,

@@ -85,22 +85,26 @@ export const DEFAULT_TOOLS = [
                             }
                         }
 
-                        if (target == 'item') {
+                        if (target == 'item' && item.selectable != false) {
                             e.stopPropagation();
 
                             let moved = false;
 
+                            let newSelection = selected?.slice();
+
                             if (e.metaKey || e.ctrlKey || e.shiftKey) {
                                 if (selected.indexOf(item?.id) > -1) {
-                                    let newSelection = selected.slice().filter((a) => a != item.id)
+                                    newSelection = selected.slice().filter((a) => a != item.id)
                                     changeSelection(newSelection)
                                 } else {
-                                    changeSelection([...selected, item.id])
+                                    newSelection = [...selected, item.id];
+                                    changeSelection(newSelection)
                                 }
                             } else {
                                 if (selected.indexOf(item?.id) > -1) {
                                     // changeSelection([])
                                 } else {
+                                    newSelection = [item?.id];
                                     changeSelection([item?.id])
                                 }
                             }
@@ -115,7 +119,7 @@ export const DEFAULT_TOOLS = [
 
                                 let diff = e.clientX - start;
 
-                                selected.map((id) => {
+                                newSelection.map((id) => {
                                     let item = events?.find((a) => a.id == id);
 
                                     if (!item) return;
@@ -137,7 +141,7 @@ export const DEFAULT_TOOLS = [
                                 let diff = e.clientX - start;
 
 
-                                selected.map((id) => {
+                                newSelection.map((id) => {
                                     let item = events?.find((a) => a.id == id);
                                     if (!item) return;
                                     const { x: startX } = dateToScreen(item?.start)

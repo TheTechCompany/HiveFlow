@@ -11,10 +11,8 @@ export const useScreenToDate = () => {
         let stepSize = timelineSize?.width / (stepCount * multiplyFactor);
 
         let x = (pos.x) / stepSize;
-
-        console.log({x, horizon, stepSize})
         
-        return moment(horizon).add(x, 'minutes').toDate();
+        return moment(horizon.start).add(x, 'minutes').toDate();
     }
 }
 
@@ -25,7 +23,7 @@ export const useDateToScreen = () => {
 
         const multiplyFactor = moment.duration(1, step as any).as('minutes');
 
-        let diff = moment(date).diff(moment(horizon), 'minutes')
+        let diff = moment(date).diff(moment(horizon.start), 'minutes')
         // let diff = moment(date).diff(moment(horizon), step as any)
 
         const stepSize = timelineSize?.width / (stepCount * multiplyFactor);
