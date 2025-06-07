@@ -155,7 +155,7 @@ export const SchedulingModal = (props: any) => {
             </DialogTitle>
             <DialogContent sx={{
                 display: 'flex',
-                maxHeight: '50vh',
+                // maxHeight: '50vh',
                 // flexDirection: 'column',
             }}>
                 {/* {schedule?.groupBy?.id && (
@@ -205,7 +205,7 @@ export const SchedulingModal = (props: any) => {
                         </Tabs>
                     </Box>
 
-                    <Box sx={{ minHeight: '30vh' }}>
+                    <Box sx={{  }}>
                         {/* <Typography>Schedule</Typography>     */}
                         {view == 0 ? <PeopleView
                             horizon={{

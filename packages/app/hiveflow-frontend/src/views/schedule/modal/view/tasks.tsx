@@ -11,7 +11,7 @@ export const TasksView = (props: any) => {
     return (
         <Box>
             <TextField fullWidth size="small" label="Search" />
-            <List>
+            <List sx={{height: '200px'}}>
                 {props.tasks?.map((task) => (
                     <ListItem disablePadding sx={{ display: 'flex', alignItems: 'center' }}>
                         <ListItemButton disableGutters onClick={() => {

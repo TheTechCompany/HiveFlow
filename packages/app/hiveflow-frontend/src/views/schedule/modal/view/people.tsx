@@ -52,7 +52,7 @@ export const PeopleView = (props: any) => {
     return (
         <Box>
             <TextField fullWidth size="small" label="Search" />
-            <List sx={{maxHeight: '200px', overflow: 'auto'}}>
+            <List sx={{ height: '200px', overflow: 'auto'}}>
                 {props.people?.filter(onLeave).map((people) => {
                     const {leave: leaveAvailability, scheduled: scheduleAvailability} = getAvailability(people);
                     return <ListItem   

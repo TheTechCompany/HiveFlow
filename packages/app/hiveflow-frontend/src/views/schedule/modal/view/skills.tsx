@@ -16,11 +16,10 @@ export const SkillView = (props: any) => {
         return skills
     }, [])
 
-    console.log({skills})
 
     return (
         <Box>
-            <List>
+            <List sx={{height: '200px'}}>
                 {skills?.map((skill) => (
                     <ListItem disablePadding sx={{ padding: '8px', display: 'flex', alignItems: 'center' }}>
         
