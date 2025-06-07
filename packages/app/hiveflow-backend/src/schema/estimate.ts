@@ -1,5 +1,5 @@
 import { EstimateTask, PrismaClient } from "@prisma/client"
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+// import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { LexoRank } from "lexorank";
 import { nanoid } from "nanoid";
 
@@ -286,13 +286,13 @@ export default (prisma: PrismaClient) => {
                             organisation: context.jwt.organisation
                         }
                     })
-                }catch(e){
-                        if(e instanceof PrismaClientKnownRequestError){
+                }catch(e: any){
+                        // if(e instanceof PrismaClientKnownRequestError){
                             if(e.code == 'P2002'){
     
                                 throw new Error("Duplicate estimate id")
                             }
-                        }
+                        // }
                 }
             },
             updateEstimate: async  (root: any, args: any, context: any) => {
