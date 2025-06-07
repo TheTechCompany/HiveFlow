@@ -584,20 +584,22 @@ export const Schedule: React.FC<any> = (props) => {
                       ) : (
                         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column' }}>
                           {project && <Box sx={{
-                            background: ((project?.colour ? project.colour : stringToColor(`${project?.displayId} - ${project.name}`)) || 'rgb(127, 127, 0, 1)'),
+                            background: ((project?.colour ? project.colour : stringToColor(`${project?.id} - ${project.name}`)) || 'rgb(127, 127, 0, 1)'),
                             color: 'white'
                           }}>
                             <Typography textAlign={'center'}>{project?.displayId}</Typography>
                           </Box>}
                           <Box sx={{
-                            padding: '8px',
+                            // padding: '8px',
                             display: 'flex',
                             flex: 1,
                             flexDirection: 'column',
-                            gap: '8px'
+                            // gap: '4px',
+                            textAlign: 'center'
                           }}>
+                            <Typography fontSize={'small'} fontWeight={"bold"}>{project?.name}</Typography>
                             {eventPeople.map((person) => (
-                              <Typography>{person?.name}</Typography>
+                              <Typography fontSize={'small'}>{person?.name}</Typography>
                             ))}
                           </Box>
                           {(item.permissions?.length > 0 || item.createdBy) &&

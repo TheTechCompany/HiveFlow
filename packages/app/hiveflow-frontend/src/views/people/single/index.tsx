@@ -333,7 +333,7 @@ export const PeopleSingle = (props: any) => {
                     }}>
                       <Box sx={{
                         padding: '4px',
-                        background: row?.colour ? row?.colour : stringToColor(`${row?.displayId} - ${row?.name}`) || 'green',
+                        background: row?.colour ? row?.colour : stringToColor(`${row?.id} - ${row?.name}`) || 'green',
                         color: 'white'
                       }}>
                         <Typography>{row?.displayId}</Typography>

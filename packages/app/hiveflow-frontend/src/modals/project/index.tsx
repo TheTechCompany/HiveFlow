@@ -50,7 +50,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = (props) => {
         )
     }, [props.statusList])
 
-    const defaultColour = stringToColor(`${project.displayId} - ${project.name}`)
+    const defaultColour = stringToColor(`${project.id} - ${project.name}`)
 
     const submit = () => {
         props.onSubmit({
