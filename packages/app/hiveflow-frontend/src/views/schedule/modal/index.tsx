@@ -115,7 +115,7 @@ export const SchedulingModal = (props: any) => {
     )
 
     const canEdit = () => {
-        return data?.calendarItems?.[0]?.canEdit;
+        return props.selected?.id == null || data?.calendarItems?.[0]?.canEdit;
     }
 
     return (
@@ -148,7 +148,7 @@ export const SchedulingModal = (props: any) => {
                                 })
                             }
                         }} sx={{color: 'navigation.main'}} size="small">
-                            {canEdit() ? "Leave" : "Join"}
+                            {props.selected?.id && canEdit() ? "Leave" : "Join"}
                         </Button>
                     }
                 </Box>

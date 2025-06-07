@@ -52,7 +52,9 @@ export const Sidebar : React.FC<SidebarProps> = (props) => {
                             borderBottom: x.name ? '1px solid black' : '1px solid #dfdfdf',
                         }}>
                         
-                        <Typography sx={{ padding: '8px', cursor: x?.name ? 'pointer' : undefined, '&:hover': {textDecoration: 'underline'} }}>
+                        <Typography 
+                            fontSize={'small'}
+                            sx={{ padding: '8px', cursor: x?.name ? 'pointer' : undefined, '&:hover': {textDecoration: 'underline'} }}>
                             {x.name}
                         </Typography>
                     </div>
