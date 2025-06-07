@@ -177,7 +177,7 @@ export const SchedulingModal = (props: any) => {
                     <Autocomplete
                         options={rowOptions || []}
                         value={rowOptions?.find((a) => a.id == schedule.groupBy?.id) || null}
-                        onChange={(e, newValue) => setSchedule({ ...schedule, groupBy: newValue })}
+                        onChange={(e, newValue) => setSchedule({ ...schedule, groupBy: {id: newValue?.id} })}
                         groupBy={(option) => option.project ? 'Project' : 'Estimate'}
                         getOptionLabel={(option: any) => typeof (option) == 'string' ? option : option.name}
                         renderInput={(params) => <TextField {...params} label="Row" size="small" />} />

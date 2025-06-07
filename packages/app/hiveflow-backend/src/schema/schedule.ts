@@ -261,7 +261,7 @@ export default (prisma: PrismaClient) => {
             }
         },
         Query: {
-            calendarItems: async (root: any, args: any) => {
+            calendarItems: async (root: any, args: any, context: any) => {
                 let query : any = {};
 
                 if(args.where?.end_GTE) query['end'] = {...query['end'], gt: args.where.end_GTE};
@@ -270,7 +270,8 @@ export default (prisma: PrismaClient) => {
 
                 return await prisma.calendarItem.findMany({
                     where: {
-                        ...query
+                        ...query,
+                        organisation: context?.jwt?.organisation
                     },
                     include: {
                         permissions: true,
