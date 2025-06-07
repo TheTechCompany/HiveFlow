@@ -22,7 +22,7 @@
   "homepage": "https://github.com/TheTechCompany/HiveFlow#readme",
   "devDependencies": {
     "lerna": "^7.2.0",
-    "typescript": "^4.5.4"
+    "typescript": "^4.x"
   },
   "resolutions": {
     "@mui/x-tree-view": "6.0.0-alpha.1",

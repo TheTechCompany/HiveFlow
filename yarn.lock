@@ -2880,7 +2880,7 @@ __metadata:
     prisma: "npm:6.9.0"
     ts-node: "npm:^10.4.0"
     tsconfig-paths-webpack-plugin: "npm:^3.5.2"
-    typescript: "npm:4.5.4"
+    typescript: "npm:4.x"
   languageName: unknown
   linkType: soft
 
@@ -2986,7 +2986,7 @@ __metadata:
   resolution: "@hive-flow/root@workspace:."
   dependencies:
     lerna: "npm:^7.2.0"
-    typescript: "npm:^4.5.4"
+    typescript: "npm:^4.x"
   languageName: unknown
   linkType: soft
 
@@ -18388,13 +18388,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:4.5.4":
-  version: 4.5.4
-  resolution: "typescript@npm:4.5.4"
+"typescript@npm:4.x, typescript@npm:^4.1.2, typescript@npm:^4.4.3, typescript@npm:^4.5.4, typescript@npm:^4.x":
+  version: 4.9.5
+  resolution: "typescript@npm:4.9.5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10/a0259a3e2d28b5f9331e70059e49ce1eb4f5a325385253c7464133c914efaf8ebb93826045fb20cb9990d10cd6fc9a560f321baddee44a31dc2e8ea59ebdfeef
+  checksum: 10/458f7220ab11e0fc191514cc41be1707645ec9a8c2d609448a448e18c522cef9646f58728f6811185a4c35613dacdf6c98cf8965c88b3541d0288c47291e4300
   languageName: node
   linkType: hard
 
@@ -18415,16 +18415,6 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 10/6e4e6a14a50c222b3d14d4ea2f729e79f972fa536ac1522b91202a9a65af3605c2928c4a790a4a50aa13694d461c479ba92cedaeb1e7b190aadaa4e4b96b8e18
-  languageName: node
-  linkType: hard
-
-"typescript@npm:^4.1.2, typescript@npm:^4.4.3, typescript@npm:^4.5.4":
-  version: 4.9.5
-  resolution: "typescript@npm:4.9.5"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 10/458f7220ab11e0fc191514cc41be1707645ec9a8c2d609448a448e18c522cef9646f58728f6811185a4c35613dacdf6c98cf8965c88b3541d0288c47291e4300
   languageName: node
   linkType: hard
 

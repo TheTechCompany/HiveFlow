@@ -6,7 +6,7 @@ import FormData from 'form-data';
 
 import axios from 'axios';``
 import { LexoRank } from "lexorank";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+// import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 // import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 
 export default (prisma: PrismaClient) => {
@@ -111,13 +111,13 @@ export default (prisma: PrismaClient) => {
                             return project
                         }
                     )
-                }catch(e){
-                    if(e instanceof PrismaClientKnownRequestError){
+                }catch(e: any){
+                    // if(e instanceof PrismaClientKnownRequestError){
                         if(e.code == 'P2002'){
 
                             throw new Error("Duplicate job id")
                         }
-                    }
+                    // }
                 }
 
             },
