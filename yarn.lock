@@ -74,41 +74,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apollo/client@npm:^3.7.0":
-  version: 3.8.8
-  resolution: "@apollo/client@npm:3.8.8"
-  dependencies:
-    "@graphql-typed-document-node/core": "npm:^3.1.1"
-    "@wry/equality": "npm:^0.5.6"
-    "@wry/trie": "npm:^0.5.0"
-    graphql-tag: "npm:^2.12.6"
-    hoist-non-react-statics: "npm:^3.3.2"
-    optimism: "npm:^0.18.0"
-    prop-types: "npm:^15.7.2"
-    response-iterator: "npm:^0.2.6"
-    symbol-observable: "npm:^4.0.0"
-    ts-invariant: "npm:^0.10.3"
-    tslib: "npm:^2.3.0"
-    zen-observable-ts: "npm:^1.2.5"
-  peerDependencies:
-    graphql: ^14.0.0 || ^15.0.0 || ^16.0.0
-    graphql-ws: ^5.5.5
-    react: ^16.8.0 || ^17.0.0 || ^18.0.0
-    react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
-    subscriptions-transport-ws: ^0.9.0 || ^0.11.0
-  peerDependenciesMeta:
-    graphql-ws:
-      optional: true
-    react:
-      optional: true
-    react-dom:
-      optional: true
-    subscriptions-transport-ws:
-      optional: true
-  checksum: 10/06a95d3cfd8da09172b67c0d704edd35c160fa98599526ac9d6d870c7a612e4bd342a7286bb01151775bb5d5c495d1e7987626c00d178acb85fe58c30ff25403
-  languageName: node
-  linkType: hard
-
 "@apollo/federation-internals@npm:2.6.2":
   version: 2.6.2
   resolution: "@apollo/federation-internals@npm:2.6.2"
@@ -2870,7 +2835,6 @@ __metadata:
   dependencies:
     "@hexhive/graphql-server": "npm:1.0.2-beta.53"
     "@prisma/client": "npm:3.12.0"
-    "@types/apollo-upload-client": "npm:^17.0.0"
     "@types/jsonwebtoken": "npm:^8.5.6"
     "@types/node": "npm:^17.0.6"
     "@types/pg": "npm:^8.6.5"
@@ -5042,17 +5006,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/apollo-upload-client@npm:^17.0.0":
-  version: 17.0.5
-  resolution: "@types/apollo-upload-client@npm:17.0.5"
-  dependencies:
-    "@apollo/client": "npm:^3.7.0"
-    "@types/extract-files": "npm:*"
-    graphql: "npm:14 - 16"
-  checksum: 10/fb65e5a4792de035587392d81c55500247c5a04115187375e50ed6247e4263fc4a8d4529dd5455d51651575c687303cf358e3361375e8cf28ad889335ae24faa
-  languageName: node
-  linkType: hard
-
 "@types/aria-query@npm:^5.0.1":
   version: 5.0.4
   resolution: "@types/aria-query@npm:5.0.4"
@@ -5279,13 +5232,6 @@ __metadata:
     "@types/qs": "npm:*"
     "@types/serve-static": "npm:*"
   checksum: 10/7a6d26cf6f43d3151caf4fec66ea11c9d23166e4f3102edfe45a94170654a54ea08cf3103d26b3928d7ebcc24162c90488e33986b7e3a5f8941225edd5eb18c7
-  languageName: node
-  linkType: hard
-
-"@types/extract-files@npm:*":
-  version: 8.1.3
-  resolution: "@types/extract-files@npm:8.1.3"
-  checksum: 10/5a8aa6b4167a8e72eb156dd0f94848b7c58570926a60acad289b4550ed34fce9ceecfd6010dd99dc66414525f14348b5066f119e53f51776aa30263642131e15
   languageName: node
   linkType: hard
 
@@ -10491,7 +10437,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graphql@npm:14 - 16, graphql@npm:16.x, graphql@npm:^16.2.0, graphql@npm:^16.5.0":
+"graphql@npm:16.x, graphql@npm:^16.2.0, graphql@npm:^16.5.0":
   version: 16.8.1
   resolution: "graphql@npm:16.8.1"
   checksum: 10/7a09d3ec5f75061afe2bd2421a2d53cf37273d2ecaad8f34febea1f1ac205dfec2834aec3419fa0a10fcc9fb345863b2f893562fb07ea825da2ae82f6392893c
@@ -16595,13 +16541,6 @@ __metadata:
   bin:
     resolve: bin/resolve
   checksum: 10/c473506ee01eb45cbcfefb68652ae5759e092e6b0fb64547feadf9736a6394f258fbc6f88e00c5ca36d5477fbb65388b272432a3600fa223062e54333c156753
-  languageName: node
-  linkType: hard
-
-"response-iterator@npm:^0.2.6":
-  version: 0.2.6
-  resolution: "response-iterator@npm:0.2.6"
-  checksum: 10/ef7c74693ef3891461955a666e753585b298fe0de1baaf0d190e7a6818e4311e459d72f4a36f04aa8f49eda9b5f97124e5534be01e40d9e008795125d0bbb374
   languageName: node
   linkType: hard
 

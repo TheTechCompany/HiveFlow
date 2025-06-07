@@ -12,7 +12,7 @@ RUN yarn
 
 WORKDIR /app/packages/app/hiveflow-backend
 
-RUN yarn build
+# RUN yarn build
 
 RUN npx prisma generate
 
