@@ -587,7 +587,7 @@ export const Schedule: React.FC<any> = (props) => {
                             background: ((project?.colour ? project.colour : stringToColor(`${project?.id} - ${project.name}`)) || 'rgb(127, 127, 0, 1)'),
                             color: 'white'
                           }}>
-                            <Typography textAlign={'center'}>{project?.displayId}</Typography>
+                            <Typography fontSize={'small'} textAlign={'center'}>{project?.displayId}</Typography>
                           </Box>}
                           <Box sx={{
                             // padding: '8px',

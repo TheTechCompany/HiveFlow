@@ -332,15 +332,16 @@ export const PeopleSingle = (props: any) => {
                     marginBottom: '4px',
                     }}>
                       <Box sx={{
-                        padding: '4px',
+                        textAlign: 'center',
                         background: row?.colour ? row?.colour : stringToColor(`${row?.id} - ${row?.name}`) || 'green',
                         color: 'white'
                       }}>
-                        <Typography>{row?.displayId}</Typography>
+                        <Typography fontSize={'small'}>{row?.displayId}</Typography>
                       </Box>
-                      <Box sx={{ padding: '8px' }}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography fontSize={'small'} fontWeight={"bold"}>{row?.name}</Typography>
                         {people?.map((person) => (
-                          <Typography>{person?.name}</Typography>
+                          <Typography fontSize={'small'}>{person?.name}</Typography>
                         ))}
                       </Box>
                     </Paper>
