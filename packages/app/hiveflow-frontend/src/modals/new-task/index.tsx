@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react'
-import { Add } from '@mui/icons-material'
-import { Box, Button, CircularProgress, Collapse, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Paper, TextField, Typography } from '@mui/material'
+import React, { useEffect, useRef, useState } from 'react'
+import { Add, Close } from '@mui/icons-material'
+import { Autocomplete, Box, Button, CircularProgress, Collapse, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Menu, MenuItem, Paper, Popover, TextField, Typography } from '@mui/material'
 import { FormControl } from '@hexhive/ui'
 import { MemberList } from './members'
 import { DatePicker } from '@mui/x-date-pickers'
 import moment from 'moment'
 
 export const TaskModal = (props) => {
+
+    const [skillRef, setSkillRef] = useState(null);
 
     const [ loading, setLoading ] = useState(false);
 
@@ -17,6 +19,7 @@ export const TaskModal = (props) => {
         description?: string;
         status?: string;
         members?: string[];
+        requiredSkills?: any;
         startDate?: Date;
         endDate?: Date;
         dependencyOn?: {title: string, status: string, endDate: Date}[];
@@ -86,7 +89,7 @@ export const TaskModal = (props) => {
                         />
                 </Box>
             </DialogTitle>
-            <DialogContent sx={{display: 'flex', position: 'relative'}}>
+            <DialogContent sx={{display: 'flex', gap: '8px', position: 'relative'}}>
 
                 {/* <Collapse in={task.dependencyOf?.length > 0 || task.dependencyOn?.length > 0} sx={{display: 'flex', flexDirection: 'column', padding: '3px', position: 'absolute', top: 0, bottom: 0, left: '-100%'}}>
                     {task.dependencyOn?.length > 0 && <Paper>
@@ -175,6 +178,76 @@ export const TaskModal = (props) => {
                             label="End Date" />
                     </Box>
 
+                    {task.requiredSkills ? (
+                        <Box>
+                            <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                                <Typography>Skills</Typography>
+                                <IconButton
+                                    onClick={() => {
+                                        setTask({
+                                            ...task,
+                                            requiredSkills: [...task.requiredSkills, {}]
+                                        })
+                                    }}
+                                    size="small"><Add /></IconButton>
+                            </Box>
+                            {task.requiredSkills?.map((skill, ix) => (
+                                <Box sx={{display: 'flex'}}>
+                                    <Autocomplete
+                                        fullWidth
+                                        value={skill.skill}
+                                        onChange={(e, newValue) => {
+                                            let requiredSkills = task.requiredSkills.slice();
+                                            requiredSkills[ix].skill = newValue
+                                            setTask({
+                                                ...task, 
+                                                requiredSkills
+                                            })
+                                        }}
+                                        options={props.skills || []}
+                                        getOptionLabel={(option) => typeof(option) == 'string' ? option : option.skill}
+                                        renderInput={(params) => <TextField {...params} size="small" />}
+                                        />
+                                    <TextField 
+                                        fullWidth
+                                        value={skill.hours}
+                                        onChange={(e) => {
+                                            let requiredSkills = task.requiredSkills.slice();
+                                            requiredSkills[ix].hours = e.target.value
+                                            setTask({
+                                                ...task, 
+                                                requiredSkills
+                                            })
+                                        }}
+                                        size="small" />
+                                    <IconButton size="small" onClick={() => {
+                                          let requiredSkills = task.requiredSkills.slice();
+                                          requiredSkills.splice(ix, 1)
+                                          setTask({
+                                              ...task, 
+                                              requiredSkills
+                                          })
+                                    }}>
+                                        <Close />
+                                    </IconButton>
+                                </Box>
+                            ))}
+                        </Box>
+                    ) : null}
+                </Box>
+                <Box sx={{paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
+
+                    <Button 
+                        variant="outlined"
+                        sx={{textTransform: 'none'}}>Members</Button>
+                    <Button 
+                        // ref={skillRef}
+                        onClick={(e) => {
+                            setTask({...task, requiredSkills: []})
+                        }}
+                        variant={task.requiredSkills ? 'contained' : "outlined"}
+                        sx={{textTransform: 'none'}}>Skills</Button>
+                   
                 </Box>
             </DialogContent>
             <DialogActions sx={{display: 'flex', justifyContent: props.selected?.id ? 'space-between' : undefined}}>

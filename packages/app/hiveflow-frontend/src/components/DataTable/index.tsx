@@ -67,6 +67,7 @@ export const DataTable: React.FC<DataTableProps> = (props) => {
                 <List>
                     {props.data?.map((data) => (
                         <ListItem
+                            key={data.id}
                             disablePadding
                             secondaryAction={props.onEditRow ? (
 

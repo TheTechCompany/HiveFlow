@@ -64,6 +64,7 @@
     "@hive-flow/api": "^1.0.0",
     "@lifeomic/axios-fetch": "^3.0.0",
     "@mui/material": "5.10.11",
+    "@mui/styles": "^6.4.8",
     "@mui/x-date-pickers": "^6.19.2",
     "@silevis/reactgrid": "^4.0.3",
     "@types/jest": "^26.0.23",

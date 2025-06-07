@@ -7,11 +7,22 @@ export default (prisma: PrismaClient) => {
     const typeDefs = `
 
         type Query {
+            calendarItems(where: CalendarWhere): [CalendarItem]
             scheduleItems(where: ScheduleWhere): [ScheduleItem]
             timelineItems(where: TimelineItemWhere): [TimelineItem]
         }
 
         type Mutation {
+            createCalendarItem(input: CalendarItemInput): CalendarItem
+            updateCalendarItem(id: ID, input: CalendarItemInput): CalendarItem
+            deleteCalendarItem(id: ID): CalendarItem
+
+            joinCalendarItem(id: ID): CalendarItem
+            leaveCalendarItem(id: ID): CalendarItem
+
+            commentOnCalendar(id: ID, message: String): Comment
+            removeCommentOnCalendar(id: ID, comment: ID): Comment
+
             createTimeline(input: TimelineInput): Timeline
             updateTimeline(id: ID, input: TimelineInput): Timeline
             deleteTimeline(id: ID): Timeline
@@ -32,6 +43,56 @@ export default (prisma: PrismaClient) => {
             cloneScheduleItem(id: ID, dates: [DateTime]): [ScheduleItem]
             joinScheduleItem(id: ID): ScheduleItem
             leaveScheduleItem(id: ID): ScheduleItem
+        }
+        
+        input CalendarWhere {
+            ids: [ID]
+            start_LTE: DateTime
+            end_GTE: DateTime
+        }
+
+        input CalendarItemInput {
+            start: DateTime
+            end: DateTime
+
+            data: JSON
+            groupBy: JSON
+        }
+
+        type CalendarItem {
+            id: ID
+
+            data: JSON
+            groupBy: JSON
+
+            start: DateTime
+            end: DateTime
+
+            comments: [Comment]
+
+            permissions: [CalendarItemPermission]
+
+            createdBy: HiveUser
+
+            canEdit: Boolean
+            isOwner: Boolean
+
+        }
+
+        type CalendarItemPermission {
+            id: ID
+            user: HiveUser
+            item: CalendarItem
+        }
+
+        type Comment {
+            id: ID
+            
+            message: String
+
+            user: HiveUser
+
+            createdAt: DateTime
         }
 
         type TimelineItemItems {
@@ -167,7 +228,56 @@ export default (prisma: PrismaClient) => {
                 return canEdit //list.map((x: {id: string}) => x.id).indexOf(context.jwt.id) > -1
             }
         },
+        Comment: {
+            user: (root: any) => {
+                console.log({root})
+                return {id: root?.user}
+            }
+        },
+        CalendarItem: {
+            createdBy: (root: any) => {
+                return root.createdBy ? {
+                    id: root?.createdBy
+                } : null
+            },
+            isOwner: (root: any, args: any, context: any) => {
+                return root?.createdBy == context?.jwt?.id;
+            },
+            canEdit: (root: any, args: any, context: any) => {
+                const { permissions, createdBy } = root;
+
+                const list = (permissions || []).map((x) => x.user).concat([createdBy])
+
+                const canEdit = list.map((x: any) => x).indexOf(context.jwt.id) > -1;
+
+                
+                return canEdit //list.map((x: {id: string}) => x.id).indexOf(context.jwt.id) > -1
+            }
+        },
+        CalendarItemPermission: {
+            user: (root: any) => {
+                console.log({root})
+                return root?.user ? {id: root?.user} : null;
+            }
+        },
         Query: {
+            calendarItems: async (root: any, args: any) => {
+                let query : any = {};
+
+                if(args.where?.end_GTE) query['end'] = {...query['end'], gt: args.where.end_GTE};
+                if(args.where?.start_LTE) query['start'] = {...query['start'], lt: args.where.start_LTE};
+                if(args.where.ids) query['id'] = {in: args.where.ids};
+
+                return await prisma.calendarItem.findMany({
+                    where: {
+                        ...query
+                    },
+                    include: {
+                        permissions: true,
+                        comments: true
+                    }
+                })
+            },
             scheduleItems: async (root: any, args: any, context: any) => {
 
                 let query : any = {};
@@ -222,6 +332,89 @@ export default (prisma: PrismaClient) => {
             }
         },
         Mutation: {
+            joinCalendarItem: async (root: any, args: any, context: any) => {
+                const {permissions = []} = await prisma.calendarItem.findFirst({
+                    where: {
+                        id: args.id
+                    },
+                    include: {
+                        permissions: true
+                    }
+                }) || {}
+                if(permissions?.findIndex((a) => a.user == context?.jwt?.id) < 0){
+                    await prisma.calendarItemPermissions.create({
+                        data: {
+                            id: nanoid(),
+                            itemId: args.id,
+                            user: context?.jwt?.id
+                        }
+                    })
+                }
+            },
+            leaveCalendarItem: async (root: any, args: any, context: any) => {
+                await prisma.calendarItemPermissions.deleteMany({
+                    where: {
+                        itemId: args.id,
+                        user: context?.jwt?.id
+                    }
+                })
+            },
+            commentOnCalendar: async (root: any, args: any, context: any) => {
+                console.log({context})
+                const comment = await prisma.calendarItemComment.create({
+                    data: {
+                     
+                        id: nanoid(),
+                        message: args.message,
+                        user: context?.jwt?.id,
+                        itemId: args.id
+                    }
+                })
+                
+                return comment
+            }, 
+            removeCommentOnCalendar: async (root: any, args: any, context: any) => {
+                const comment = await prisma.calendarItemComment.findFirst({
+                    where: {
+                        id: args.id,
+                    }
+                })
+                
+                return comment;
+            },
+            createCalendarItem: async (root: any, args: any, context: any) => {
+                return await prisma.calendarItem.create({
+                    data: {
+                        id: nanoid(),
+                        data: args.input.data,
+                        groupBy: args.input.groupBy,
+                        start: args.input.start,
+                        end: args.input.end,
+                        organisation: context?.jwt?.organisation,
+                        createdBy: context?.jwt?.id
+                    }
+                })
+            },
+            updateCalendarItem: async (root: any, args: any, context: any) => {
+                return await prisma.calendarItem.update({
+                    where: {
+                        id: args.id,
+                    },
+                    data: {
+                        data: args.input.data,
+                        groupBy: args.input.groupBy,
+                        start: args.input.start,
+                        end: args.input.end,
+                    }
+                })
+            },
+            deleteCalendarItem: async (root: any, args: any, context: any) => {
+                return await prisma.calendarItem.delete({
+                    where: {
+                        id: args.id,
+                    },
+                })
+            },
             // createTimeline: async (root: any, args: {input: any}, context: any) => {
             //     return await prisma.timeline.create({
             //         data: {
@@ -460,15 +653,15 @@ export default (prisma: PrismaClient) => {
                     data: {
                         date: args.input.date,
                         notes: args.input.notes || [],
-                        people: {
+                        people: args.input.people ? {
                             set: args.input.people || []
-                        },
-                        equipment: {
+                        } : undefined,
+                        equipment: args.input.equipment ? {
                             set: args.input.equipment?.map((x: any) => ({id: x})) || []
-                        },
-                        project: {
+                        } : undefined,
+                        project: args.input.project ? {
                             connect: {id: args.input.project}
-                        }
+                        } : undefined
                     }
                 })
             },

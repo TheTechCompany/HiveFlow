@@ -1,9 +1,10 @@
 import { FormControl, FormInput } from '@hexhive/ui';
 import { DatePicker } from '@mui/x-date-pickers';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, TextField, Button, Autocomplete, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box, TextField, Button, Autocomplete, Divider, InputAdornment } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 import { createFilterOptions } from '@mui/material/Autocomplete';
 import moment from 'moment';
+import { stringToColor } from '@hexhive/utils';
 
 const filter = createFilterOptions<ProjectStatusOption>();
 
@@ -11,6 +12,7 @@ export interface Project {
     id?: string;
     displayId?: string;
     name?: string;
+    colour?: string;
     description?: string;
     status?: string;
 
@@ -18,7 +20,7 @@ export interface Project {
     endDate?: Date;
 }
 
-export interface ProjectStatusOption {
+interface ProjectStatusOption {
     text: string;
     inputValue?: string;
 }
@@ -48,13 +50,14 @@ export const ProjectModal: React.FC<ProjectModalProps> = (props) => {
         )
     }, [props.statusList])
 
-    console.log(props.statusList, projectStatusList)
+    const defaultColour = stringToColor(`${project.id} - ${project.name}`)
 
     const submit = () => {
         props.onSubmit({
             ...project,
             startDate: (project?.startDate as any)?.toDate(),
-            endDate: (project?.endDate as any)?.toDate()
+            endDate: (project?.endDate as any)?.toDate(),
+            colour: project.colour || defaultColour
         })
     }
 
@@ -94,6 +97,21 @@ export const ProjectModal: React.FC<ProjectModalProps> = (props) => {
                         sx={{ marginBottom: '6px' }}
                         onChange={(e) => setProject({ ...project, name: e.target.value })}
                         label='Name' />
+
+                    <Box sx={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                    <TextField
+                        InputProps={{
+                            startAdornment: <InputAdornment position="start">
+                                <Box sx={{background: project.colour || defaultColour, width: '30px', height: "30px", }} />
+                            </InputAdornment>
+                        }}
+                        size="small"
+                        fullWidth
+                        value={project.colour || defaultColour || null}
+                        sx={{ marginBottom: '6px' }}
+                        onChange={(e) => setProject({ ...project, colour: e.target.value })}
+                        label='Colour' />
+                    </Box>
 
                     <Autocomplete
                         sx={{ marginBottom: '6px' }}

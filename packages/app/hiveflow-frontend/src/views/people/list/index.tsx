@@ -14,6 +14,7 @@ import { idText } from 'typescript';
 import { useTypeConfiguration } from '../../../context';
 import { PeopleModal, Person } from '../../../modals/people';
 import { Paper } from '@mui/material';
+import { useNavigate } from 'react-router';
 
 // import { }
 
@@ -42,6 +43,7 @@ export const PeopleList: React.FC<any> = (props) => {
             id
             name
          }
+
       }
    `)
 
@@ -50,6 +52,8 @@ export const PeopleList: React.FC<any> = (props) => {
    const refetch = () => {
       client.refetchQueries({include: ['GetPeople']})
    }
+
+   const navigate = useNavigate();
 
   
    // componentWillMount(){
@@ -140,6 +144,9 @@ export const PeopleList: React.FC<any> = (props) => {
                      setProperty(_property)
                      setDirection('asc')
                    }
+               }}
+               onClickRow={(row) => {
+                  navigate(row.id)
                }}
                columns={[
              

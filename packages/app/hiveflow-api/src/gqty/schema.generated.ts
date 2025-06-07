@@ -27,8 +27,30 @@ export interface Scalars {
   /** A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar. */
   DateTime: string;
   Hash: any;
+  /** The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf). */
+  JSON: any;
   /** The `Upload` scalar type represents a file upload. */
   Upload: any;
+}
+
+export interface AssignedWhere {
+  archived?: InputMaybe<Scalars["Boolean"]>;
+  displayId?: InputMaybe<Scalars["String"]>;
+  end?: InputMaybe<Scalars["DateTime"]>;
+  start?: InputMaybe<Scalars["DateTime"]>;
+  status?: InputMaybe<Array<InputMaybe<Scalars["String"]>>>;
+}
+
+export interface CalendarItemInput {
+  data?: InputMaybe<Scalars["JSON"]>;
+  end?: InputMaybe<Scalars["DateTime"]>;
+  groupBy?: InputMaybe<Scalars["JSON"]>;
+  start?: InputMaybe<Scalars["DateTime"]>;
+}
+
+export interface CalendarWhere {
+  end_GTE?: InputMaybe<Scalars["DateTime"]>;
+  start_LTE?: InputMaybe<Scalars["DateTime"]>;
 }
 
 export interface EquipmentInput {
@@ -61,7 +83,7 @@ export interface EstimateTaskInput {
   below?: InputMaybe<Scalars["String"]>;
   description?: InputMaybe<Scalars["String"]>;
   endDate?: InputMaybe<Scalars["DateTime"]>;
-  estimateId: Scalars["String"];
+  estimateId?: InputMaybe<Scalars["String"]>;
   members?: InputMaybe<Array<InputMaybe<Scalars["String"]>>>;
   startDate?: InputMaybe<Scalars["DateTime"]>;
   status?: InputMaybe<Scalars["String"]>;
@@ -79,6 +101,7 @@ export interface EstimateWhere {
 }
 
 export interface ProjectInput {
+  colour?: InputMaybe<Scalars["String"]>;
   description?: InputMaybe<Scalars["String"]>;
   endDate?: InputMaybe<Scalars["DateTime"]>;
   id?: InputMaybe<Scalars["ID"]>;
@@ -93,7 +116,8 @@ export interface ProjectTaskInput {
   description?: InputMaybe<Scalars["String"]>;
   endDate?: InputMaybe<Scalars["DateTime"]>;
   members?: InputMaybe<Array<InputMaybe<Scalars["String"]>>>;
-  projectId: Scalars["String"];
+  projectId?: InputMaybe<Scalars["String"]>;
+  requiredSkills?: InputMaybe<Scalars["JSON"]>;
   startDate?: InputMaybe<Scalars["DateTime"]>;
   status?: InputMaybe<Scalars["String"]>;
   title?: InputMaybe<Scalars["String"]>;
@@ -163,10 +187,40 @@ export const scalarsEnumsHash: import("gqty").ScalarsEnumsHash = {
   Hash: true,
   ID: true,
   Int: true,
+  JSON: true,
   String: true,
   Upload: true,
 };
 export const generatedSchema = {
+  AssignedTask: {
+    __typename: { __type: "String!" },
+    $on: { __type: "$AssignedTask!" },
+  },
+  AssignedWhere: {
+    archived: { __type: "Boolean" },
+    displayId: { __type: "String" },
+    end: { __type: "DateTime" },
+    start: { __type: "DateTime" },
+    status: { __type: "[String]" },
+  },
+  CalendarItem: {
+    __typename: { __type: "String!" },
+    data: { __type: "JSON" },
+    end: { __type: "DateTime" },
+    groupBy: { __type: "JSON" },
+    id: { __type: "ID" },
+    start: { __type: "DateTime" },
+  },
+  CalendarItemInput: {
+    data: { __type: "JSON" },
+    end: { __type: "DateTime" },
+    groupBy: { __type: "JSON" },
+    start: { __type: "DateTime" },
+  },
+  CalendarWhere: {
+    end_GTE: { __type: "DateTime" },
+    start_LTE: { __type: "DateTime" },
+  },
   Equipment: {
     __typename: { __type: "String!" },
     displayId: { __type: "String" },
@@ -243,7 +297,7 @@ export const generatedSchema = {
     below: { __type: "String" },
     description: { __type: "String" },
     endDate: { __type: "DateTime" },
-    estimateId: { __type: "String!" },
+    estimateId: { __type: "String" },
     members: { __type: "[String]" },
     startDate: { __type: "DateTime" },
     status: { __type: "String" },
@@ -279,6 +333,7 @@ export const generatedSchema = {
   },
   Project: {
     __typename: { __type: "String!" },
+    colour: { __type: "String" },
     description: { __type: "String" },
     displayId: { __type: "String" },
     endDate: { __type: "DateTime" },
@@ -293,6 +348,7 @@ export const generatedSchema = {
     tasks: { __type: "[ProjectTask]" },
   },
   ProjectInput: {
+    colour: { __type: "String" },
     description: { __type: "String" },
     endDate: { __type: "DateTime" },
     id: { __type: "ID" },
@@ -319,6 +375,7 @@ export const generatedSchema = {
     lastUpdated: { __type: "DateTime" },
     members: { __type: "[HiveUser]" },
     project: { __type: "Project" },
+    requiredSkills: { __type: "JSON" },
     startDate: { __type: "DateTime" },
     status: { __type: "String" },
     timelineRank: { __type: "String" },
@@ -330,7 +387,8 @@ export const generatedSchema = {
     description: { __type: "String" },
     endDate: { __type: "DateTime" },
     members: { __type: "[String]" },
-    projectId: { __type: "String!" },
+    projectId: { __type: "String" },
+    requiredSkills: { __type: "JSON" },
     startDate: { __type: "DateTime" },
     status: { __type: "String" },
     title: { __type: "String" },
@@ -377,6 +435,13 @@ export const generatedSchema = {
     date_LTE: { __type: "DateTime" },
     id: { __type: "ID" },
     project: { __type: "String" },
+  },
+  SkillAssignment: {
+    __typename: { __type: "String!" },
+    id: { __type: "ID" },
+    skill: { __type: "String" },
+    skillData: { __type: "JSON" },
+    user: { __type: "HiveUser" },
   },
   Timeline: {
     __typename: { __type: "String!" },
@@ -454,6 +519,10 @@ export const generatedSchema = {
       __type: "[ScheduleItem]",
       __args: { dates: "[DateTime]", id: "ID" },
     },
+    createCalendarItem: {
+      __type: "CalendarItem",
+      __args: { input: "CalendarItemInput" },
+    },
     createEquipment: {
       __type: "Equipment",
       __args: { input: "EquipmentInput" },
@@ -497,6 +566,7 @@ export const generatedSchema = {
       __type: "TimelineItem",
       __args: { source: "ID", target: "ID" },
     },
+    deleteCalendarItem: { __type: "CalendarItem", __args: { id: "ID" } },
     deleteEquipment: { __type: "Equipment", __args: { id: "ID!" } },
     deleteEstimate: { __type: "Estimate", __args: { id: "ID!" } },
     deleteEstimateLineItem: {
@@ -519,6 +589,7 @@ export const generatedSchema = {
       __args: { project: "ID", source: "ID", target: "ID" },
     },
     deleteScheduleItem: { __type: "ScheduleItem", __args: { id: "ID" } },
+    deleteSkillAssignment: { __type: "SkillAssignment", __args: { id: "ID" } },
     deleteTimeline: { __type: "Timeline", __args: { id: "ID" } },
     deleteTimelineItem: { __type: "TimelineItem", __args: { id: "ID" } },
     deleteTimelineItemDependency: {
@@ -535,6 +606,10 @@ export const generatedSchema = {
     renameProjectFile: {
       __type: "File",
       __args: { newPath: "String", path: "String", project: "ID!" },
+    },
+    updateCalendarItem: {
+      __type: "CalendarItem",
+      __args: { id: "ID", input: "CalendarItemInput" },
     },
     updateEquipment: {
       __type: "Equipment",
@@ -580,6 +655,10 @@ export const generatedSchema = {
       __type: "ScheduleItem",
       __args: { id: "ID", input: "ScheduleItemInput" },
     },
+    updateSkillAssignment: {
+      __type: "SkillAssignment",
+      __args: { skill: "String", skillData: "JSON", user: "String" },
+    },
     updateTimeline: {
       __type: "Timeline",
       __args: { id: "ID", input: "TimelineInput" },
@@ -600,6 +679,14 @@ export const generatedSchema = {
   query: {
     __typename: { __type: "String!" },
     _sdl: { __type: "String!" },
+    assignments: {
+      __type: "[AssignedTask!]!",
+      __args: { ids: "[ID]", where: "AssignedWhere" },
+    },
+    calendarItems: {
+      __type: "[CalendarItem]",
+      __args: { where: "CalendarWhere" },
+    },
     equipment: { __type: "[Equipment]" },
     estimates: { __type: "[Estimate!]!", __args: { where: "EstimateWhere" } },
     flowWorkInProgress: {
@@ -616,14 +703,32 @@ export const generatedSchema = {
       __type: "[ScheduleItem]",
       __args: { where: "ScheduleWhere" },
     },
+    skills: { __type: "[SkillAssignment]", __args: { user: "ID" } },
     timelineItems: {
       __type: "[TimelineItem]",
       __args: { where: "TimelineItemWhere" },
     },
   },
   subscription: {},
-  [SchemaUnionsKey]: { TimelineProject: ["Estimate", "Project"] },
+  [SchemaUnionsKey]: {
+    AssignedTask: ["EstimateTask", "ProjectTask"],
+    TimelineProject: ["Estimate", "Project"],
+  },
 } as const;
+
+export interface AssignedTask {
+  __typename?: "EstimateTask" | "ProjectTask";
+  $on: $AssignedTask;
+}
+
+export interface CalendarItem {
+  __typename?: "CalendarItem";
+  data?: Maybe<ScalarsEnums["JSON"]>;
+  end?: Maybe<ScalarsEnums["DateTime"]>;
+  groupBy?: Maybe<ScalarsEnums["JSON"]>;
+  id?: Maybe<ScalarsEnums["ID"]>;
+  start?: Maybe<ScalarsEnums["DateTime"]>;
+}
 
 export interface Equipment {
   __typename?: "Equipment";
@@ -709,6 +814,7 @@ export interface People {
 
 export interface Project {
   __typename?: "Project";
+  colour?: Maybe<ScalarsEnums["String"]>;
   description?: Maybe<ScalarsEnums["String"]>;
   displayId?: Maybe<ScalarsEnums["String"]>;
   endDate?: Maybe<ScalarsEnums["DateTime"]>;
@@ -745,6 +851,7 @@ export interface ProjectTask {
   lastUpdated?: Maybe<ScalarsEnums["DateTime"]>;
   members?: Maybe<Array<Maybe<HiveUser>>>;
   project?: Maybe<Project>;
+  requiredSkills?: Maybe<ScalarsEnums["JSON"]>;
   startDate?: Maybe<ScalarsEnums["DateTime"]>;
   status?: Maybe<ScalarsEnums["String"]>;
   timelineRank?: Maybe<ScalarsEnums["String"]>;
@@ -777,6 +884,14 @@ export interface ScheduleItem {
   owner?: Maybe<HiveUser>;
   people?: Maybe<Array<Maybe<HiveUser>>>;
   project?: Maybe<Project>;
+}
+
+export interface SkillAssignment {
+  __typename?: "SkillAssignment";
+  id?: Maybe<ScalarsEnums["ID"]>;
+  skill?: Maybe<ScalarsEnums["String"]>;
+  skillData?: Maybe<ScalarsEnums["JSON"]>;
+  user?: Maybe<HiveUser>;
 }
 
 export interface Timeline {
@@ -839,6 +954,9 @@ export interface Mutation {
     dates?: Maybe<Array<Maybe<Scalars["DateTime"]>>>;
     id?: Maybe<Scalars["ID"]>;
   }) => Maybe<Array<Maybe<ScheduleItem>>>;
+  createCalendarItem: (args?: {
+    input?: Maybe<CalendarItemInput>;
+  }) => Maybe<CalendarItem>;
   createEquipment: (args?: {
     input?: Maybe<EquipmentInput>;
   }) => Maybe<Equipment>;
@@ -880,6 +998,9 @@ export interface Mutation {
     source?: Maybe<Scalars["ID"]>;
     target?: Maybe<Scalars["ID"]>;
   }) => Maybe<TimelineItem>;
+  deleteCalendarItem: (args?: {
+    id?: Maybe<Scalars["ID"]>;
+  }) => Maybe<CalendarItem>;
   deleteEquipment: (args: { id: Scalars["ID"] }) => Maybe<Equipment>;
   deleteEstimate: (args: { id: Scalars["ID"] }) => Maybe<Estimate>;
   deleteEstimateLineItem: (args?: {
@@ -906,6 +1027,9 @@ export interface Mutation {
   deleteScheduleItem: (args?: {
     id?: Maybe<Scalars["ID"]>;
   }) => Maybe<ScheduleItem>;
+  deleteSkillAssignment: (args?: {
+    id?: Maybe<Scalars["ID"]>;
+  }) => Maybe<SkillAssignment>;
   deleteTimeline: (args?: { id?: Maybe<Scalars["ID"]> }) => Maybe<Timeline>;
   deleteTimelineItem: (args?: {
     id?: Maybe<Scalars["ID"]>;
@@ -931,6 +1055,10 @@ export interface Mutation {
     path?: Maybe<Scalars["String"]>;
     project: Scalars["ID"];
   }) => Maybe<File>;
+  updateCalendarItem: (args?: {
+    id?: Maybe<Scalars["ID"]>;
+    input?: Maybe<CalendarItemInput>;
+  }) => Maybe<CalendarItem>;
   updateEquipment: (args: {
     id: Scalars["ID"];
     input?: Maybe<EquipmentInput>;
@@ -980,6 +1108,11 @@ export interface Mutation {
     id?: Maybe<Scalars["ID"]>;
     input?: Maybe<ScheduleItemInput>;
   }) => Maybe<ScheduleItem>;
+  updateSkillAssignment: (args?: {
+    skill?: Maybe<Scalars["String"]>;
+    skillData?: Maybe<Scalars["JSON"]>;
+    user?: Maybe<Scalars["String"]>;
+  }) => Maybe<SkillAssignment>;
   updateTimeline: (args?: {
     id?: Maybe<Scalars["ID"]>;
     input?: Maybe<TimelineInput>;
@@ -1003,6 +1136,13 @@ export interface Mutation {
 export interface Query {
   __typename?: "Query";
   _sdl: ScalarsEnums["String"];
+  assignments: (args?: {
+    ids?: Maybe<Array<Maybe<Scalars["ID"]>>>;
+    where?: Maybe<AssignedWhere>;
+  }) => Array<AssignedTask>;
+  calendarItems: (args?: {
+    where?: Maybe<CalendarWhere>;
+  }) => Maybe<Array<Maybe<CalendarItem>>>;
   equipment?: Maybe<Array<Maybe<Equipment>>>;
   estimates: (args?: { where?: Maybe<EstimateWhere> }) => Array<Estimate>;
   flowWorkInProgress: (args?: {
@@ -1018,6 +1158,9 @@ export interface Query {
   scheduleItems: (args?: {
     where?: Maybe<ScheduleWhere>;
   }) => Maybe<Array<Maybe<ScheduleItem>>>;
+  skills: (args?: {
+    user?: Maybe<Scalars["ID"]>;
+  }) => Maybe<Array<Maybe<SkillAssignment>>>;
   timelineItems: (args?: {
     where?: Maybe<TimelineItemWhere>;
   }) => Maybe<Array<Maybe<TimelineItem>>>;
@@ -1028,6 +1171,7 @@ export interface Subscription {
 }
 
 export interface SchemaObjectTypes {
+  CalendarItem: CalendarItem;
   Equipment: Equipment;
   Estimate: Estimate;
   EstimateLineItem: EstimateLineItem;
@@ -1044,6 +1188,7 @@ export interface SchemaObjectTypes {
   Report: Report;
   Schedule: Schedule;
   ScheduleItem: ScheduleItem;
+  SkillAssignment: SkillAssignment;
   Subscription: Subscription;
   Timeline: Timeline;
   TimelineItem: TimelineItem;
@@ -1052,6 +1197,7 @@ export interface SchemaObjectTypes {
   WorkInProgress: WorkInProgress;
 }
 export type SchemaObjectTypesNames =
+  | "CalendarItem"
   | "Equipment"
   | "Estimate"
   | "EstimateLineItem"
@@ -1068,12 +1214,18 @@ export type SchemaObjectTypesNames =
   | "Report"
   | "Schedule"
   | "ScheduleItem"
+  | "SkillAssignment"
   | "Subscription"
   | "Timeline"
   | "TimelineItem"
   | "TimelineItemData"
   | "TimelineItemItems"
   | "WorkInProgress";
+
+export interface $AssignedTask {
+  EstimateTask?: EstimateTask;
+  ProjectTask?: ProjectTask;
+}
 
 export interface $TimelineProject {
   Estimate?: Estimate;

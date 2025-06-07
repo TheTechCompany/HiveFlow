@@ -102,6 +102,7 @@ export default (prisma: PrismaClient) => {
                                     id: nanoid(),
                                     displayId: args.input.id || `${count + 1}`,
                                     name: args.input.name,
+                                    colour: args.input.colour,
                                     organisation: context.jwt.organisation,
                                     description: args.input.description,
                                     startDate: args.input.startDate,
@@ -132,6 +133,7 @@ export default (prisma: PrismaClient) => {
                     },
                     data: {
                         name: args.input.name,
+                        colour: args.input.colour,
                         startDate: args.input.startDate,
                         endDate: args.input.endDate,
                         description: args.input.description,
@@ -200,6 +202,7 @@ export default (prisma: PrismaClient) => {
                                 description: args.input.description,
                                 createdBy: context?.jwt?.id,
                                 members: args.input.members || [],
+                                requiredSkills: args.input.requiredSkills,
                                 columnRank: nextColumnRank,
                                 timelineRank: nextTimelineRank,
                                 startDate: args.input.startDate,
@@ -350,6 +353,7 @@ export default (prisma: PrismaClient) => {
                         title: args.input.title,
                         description: args.input.description,
                         members: args.input.members,
+                        requiredSkills: args.input.requiredSkills,
                         startDate: args.input.startDate,
                         endDate: args.input.endDate,
                         columnRank: nextRank,
@@ -642,6 +646,7 @@ export default (prisma: PrismaClient) => {
     input ProjectInput {
         id: ID
         name: String
+        colour: String
         description: String
         startDate: DateTime
         endDate: DateTime
@@ -664,6 +669,8 @@ export default (prisma: PrismaClient) => {
         name: String
         description: String
 
+        colour: String
+
         organisation: HiveOrganisation
         
         schedule: [ScheduleItem!]! 
@@ -683,6 +690,7 @@ export default (prisma: PrismaClient) => {
         description: String
 
         members: [String]
+        requiredSkills: JSON
 
         startDate: DateTime
         endDate: DateTime
@@ -712,6 +720,7 @@ export default (prisma: PrismaClient) => {
         project: Project
 
         members: [HiveUser]
+        requiredSkills: JSON
 
         createdBy: HiveUser
 

@@ -1,59 +1,89 @@
 import React, {
-  Component, useState
+  Component, useMemo, useState
 } from 'react';
-import { Box, Button, Collapsible } from 'grommet'
-import { ScheduleView } from '@hexhive/ui';
+// import { ScheduleView } from '@hexhive/ui';
 import { mutation, useRefetch, useMutation, useQuery, resolved } from '@hive-flow/api';
 import moment from 'moment';
 import { schedule as scheduleActions } from '../../actions'
 import { useContext } from 'react';
 import { AuthContext, useAuth } from '@hexhive/auth-ui';
 import { useEffect } from 'react';
-import { Menu, ChevronLeft as Previous, ChevronRight as Next } from '@mui/icons-material';
-import {DraftPane } from './draft-pane';
-import { useQuery as useApollo, gql, useApolloClient } from '@apollo/client';
+import { Menu, ChevronLeft as Previous, ChevronRight as Next, X } from '@mui/icons-material';
+import { DraftPane } from './draft-pane';
+import { useQuery as useApollo, useMutation as useApolloMutation, gql, useApolloClient } from '@apollo/client';
 import { ScheduleItem, ScheduleModal } from '../../modals/schedule';
-
-export const Schedule : React.FC<any> = (props) =>  {
+import { Schedule as ScheduleView } from '../../components/Schedule';
+import { SchedulingModal } from './modal';
+import { mergeDateRanges } from './utils';
+import { Collapse, Typography, Button, Box, Paper, Popover, Menu as UIMenu, MenuItem } from '@mui/material';
+import { groupBy, head } from 'lodash';
+import { ConfirmModal } from '../../modals/confirm';
+import { useAPIData, useAPIFunctions } from './api';
+import { AvatarList } from '@hexhive/ui';
+import { useNavigate, useNavigation } from 'react-router';
+import { Header } from './header';
+import { SchedulerHeaderItem } from './schedule-components/header';
+import { ScheduleRootProvider } from './context';
+import { LeaveModal } from './leave-modal';
+import { stringToColor } from '@hexhive/utils';
+export const Schedule: React.FC<any> = (props) => {
 
   //User
-  const [ modalOpen, openModal ] = useState(false);
-  const [ modalDate, setModalDate ] = useState<Date>();
+  const [modalOpen, openModal] = useState(false);
+  const [modalDate, setModalDate] = useState<Date>();
 
-  const [ selected, setSelected ] = useState<ScheduleItem>();
+  const [selected, setSelected] = useState<any>(null);
 
   const { activeUser } = useAuth() //{activeUser: {sub: '1'}}
 
   const client = useApolloClient();
 
-  const [ horizon, setHorizon ] = useState<{start: Date, end: Date}>({
-    start: new Date( moment(new Date()).startOf('isoWeek').valueOf() ),
-    end: new Date( moment(new Date()).endOf('isoWeek').valueOf() )
+  const [horizon, setHorizon] = useState<{ start: Date, end: Date }>({
+    start: new Date(moment(new Date()).startOf('isoWeek').valueOf()),
+    end: new Date(moment(new Date()).endOf('isoWeek').valueOf())
   })
 
-
-  const query = useQuery({
-    suspense: false,
-    staleWhileRevalidate: false,
-  
-  })
-
-
-  // const draftSchedule = query.timelineItems({ where: {timeline: "Projects", startDate_LTE: horizon.end?.toISOString(), endDate_GTE: horizon.start?.toISOString()} })?.map((x) => ({...x, project: x.project({}), items: x.items({})})) || [];
-
-  // const [schedule, setSchedule] = useState<any[]>([])//?.map((x) => ({...x, project: x?.project})) || [];
-//query.ScheduleMany({startDate: horizon.start, endDate: horizon.end})
 
   const slowResult = useApollo(gql`
-    query Slow {
-      users(active: true){
+    query Slow{
+
+      estimates {
         id
+        displayId
         name
+
+
+        tasks {
+          id
+          
+
+          title
+
+          startDate
+          endDate
+
+
+        }
+
       }
       projects{
         id
         displayId
         name
+        colour
+
+        
+        tasks {
+          id
+
+          title
+
+          startDate
+          endDate
+
+          requiredSkills
+
+        }
       }
       equipment {
         id
@@ -62,463 +92,581 @@ export const Schedule : React.FC<any> = (props) =>  {
     }
   `)
   const slowData = slowResult.data;
-  
-  const { data } = useApollo(gql`
-   query Q ($startDate: DateTime, $endDate: DateTime) {
-     timelineItems (where: {timeline: "Project", startDate_LTE: $endDate, endDate_GTE: $startDate}){
-       id
-       project{
-          id
-          displayId
-          name
-       }
 
-       estimate {
-            id
-            displayId
-            name
-       }
-       data {
-          item
-          location
-          quantity
-       }
-     }
-    scheduleItems (where: {date_GTE: $startDate, date_LTE: $endDate} ) {
-      id
-      date
-      
-      canEdit
+  const { createCalendarItem, updateCalendarItem, deleteCalendarItem } = useAPIFunctions();
+  const { calendarData } = useAPIData(horizon);
 
-      people{
-        id
-        name
-      }
-      equipment{
-        id
-        name
-      }
-      project {
-        id
-        displayId
-        name
-      }
-      notes
-      owner {
-        id
-        name
-      }
-      managers {
-        id
-        name
-      }
+  const [headerHandle, setHeaderHandle] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(0);
 
-      createdAt
-    }
-   
+  const [tasks, setTasks] = useState<any[]>([]);
+
+  const estimates = (slowData?.estimates || []).map((estimate) => {
+    let tasks = estimate.tasks?.map((x) => ({ ...x, start: x.startDate, end: x.endDate }))
+
+    return { ...estimate, draftSchedule: mergeDateRanges(tasks) };
+  });;
+
+  const projects = (slowData?.projects || []).map((project) => {
+    let tasks = project.tasks.map((x) => ({ ...x, start: x.startDate, end: x.endDate }))
+
+    return { ...project, draftSchedule: mergeDateRanges(tasks) };
+  }); // query.projects({})?.map((x) => ({...x})) || [];
+
+  const unscheduled = projects.filter((project) => {
+    return project.tasks.length == 0 && calendarData?.calendarItems?.filter((item) => item.groupBy?.id == project.id)?.length == 0
+  });
+
+  const [unscheduledElem, setUnscheduleElem] = useState<any>(null)
+
+  const rowOptions = projects.map((x) => ({ ...x, project: true })).concat(
+    estimates.map((x) => ({ ...x, project: false }))
+  )
+
+  const [expanded, setExpanded] = useState<any>(rowOptions?.map((x, ix) => x.id) || []);
+
+  const router = useNavigate()
+
+  const people = calendarData?.users || []// query.people({})?.map((x) => ({...x})) || [];
+
+  const allUsers = calendarData?.allUsers || [];
+
+  const leave = people.map((person) => {
+    return (person.leave || []).map((x) => ({ ...x, user: person.id }))
+  }).reduce((prev, curr) => prev.concat(curr), [])
+
+
+  // const mergedLeave = useMemo(() => {
+  //   let outputLeave: any[] = [];
+  //   // Sort by shortest duration first
+  //   const shortestFirst = leave.sort((a, b) => {
+  //     const aDuration = moment(a.end).diff(moment(a.start), 'minutes');
+  //     const bDuration = moment(b.end).diff(moment(b.start), 'minutes');
+  //     return aDuration - bDuration;
+  //   });
+
+  //   for (let i = 0; i < shortestFirst.length; i++) {
+  //     const currentLeave = shortestFirst[i];
+  //     let newRanges = [];
+
+  //     for (let j = 0; j < outputLeave.length; j++) {
+  //       const item = outputLeave[j];
+
+  //       // If overlaps
+  //       if (item.start < currentLeave.end && item.end > currentLeave.start) {
+  //         const overlapStart = moment.max(moment(item.start), moment(currentLeave.start)).toISOString();
+  //         const overlapEnd = moment.min(moment(item.end), moment(currentLeave.end)).toISOString();
+
+  //         // Merge users into the overlapping range
+  //         item.data = [...new Set([...(item.data || []), currentLeave.user])];
+
+  //         // Add non-overlapping left segment
+  //         if (moment(currentLeave.start).isBefore(overlapStart)) {
+  //           newRanges.push({
+  //             id: `leave-${moment(currentLeave.start).valueOf()}-${i}-left`,
+  //             start: currentLeave.start,
+  //             end: overlapStart,
+  //             data: [currentLeave.user]
+  //           });
+  //         }
+
+  //         // Add non-overlapping right segment
+  //         if (moment(currentLeave.end).isAfter(overlapEnd)) {
+  //           newRanges.push({
+  //             id: `leave-${moment(currentLeave.end).valueOf()}-${i}-right`,
+  //             start: overlapEnd,
+  //             end: currentLeave.end,
+  //             data: [currentLeave.user]
+  //           });
+  //         }
+
+  //         // Mark as handled
+  //         currentLeave._handled = true;
+  //       }
+  //     }
+
+  //     // If there were no overlaps, just push the entire leave range
+  //     if (!currentLeave._handled) {
+  //       outputLeave.push({
+  //         id: `leave-${moment(currentLeave.start).valueOf()}-${i}`,
+  //         start: currentLeave.start,
+  //         end: currentLeave.end,
+  //         data: [currentLeave.user]
+  //       });
+  //     }
+
+  //     // Push any new non-overlapping segments
+  //     for (const r of newRanges) {
+  //       outputLeave.push(r);
+  //     }
+  //   }
+
+  //   return outputLeave;
+
+  // }, [leave])
+
+  const mergedLeave = useMemo(() => {
+    const events = [];
+
+  // Create entry and exit events
+  for (const { start, end, user } of leave) {
+    events.push({ time: new Date(start).getTime(), type: 'start', user });
+    events.push({ time: new Date(end).getTime(), type: 'end', user });
   }
-  `, {
-    variables: {
-      startDate: horizon?.start?.toISOString(),
-      endDate: horizon?.end?.toISOString()
-    }
-  })
 
-  const refetchSchedule = () => {
-    client.refetchQueries({
-      include: ['Q', 'Slow']
-    })
+  // Sort by time, with 'end' events before 'start' at same timestamp
+  events.sort((a, b) => 
+    a.time - b.time || (a.type === 'end' ? -1 : 1)
+  );
+
+  const activeUsers = new Set();
+  const result = [];
+  let lastTime = null;
+
+  for (const { time, type, user } of events) {
+    if (lastTime !== null && time !== lastTime) {
+      result.push({
+        start: new Date(lastTime).toISOString(),
+        end: new Date(time).toISOString(),
+        data: [...activeUsers].sort(),
+      });
+    }
+
+    // Modify active set after recording the segment
+    if (type === 'start') {
+      activeUsers.add(user);
+    } else {
+      activeUsers.delete(user);
+    }
+
+    lastTime = time;
   }
 
-  const draftSchedule = data?.timelineItems || []
-  const schedule : any[] = data?.scheduleItems || []//query.scheduleItems({where: {date_GT: horizon.start?.toISOString(), date_LT: horizon.end?.toISOString()}})
+  return result.filter(r => r.data.length); // Remove empty ranges
+  }, [leave])
 
-  const projects = slowData?.projects || []// query.projects({})?.map((x) => ({...x})) || [];
-  const people = slowData?.users || []// query.people({})?.map((x) => ({...x})) || [];
-  const equipment = slowData?.equipment || [] //query.equipment({})?.map((x) => ({...x})) || []
+  // const mergedLeave = useMemo(() => {
 
-  const users = slowData?.hiveUsers || [] //query.hiveUsers({})?.map((x) => ({...x})) || []
+  //   let outputLeave = [];
 
-  const [createItem, info] = useMutation((mutation, args: {item: any}) => {
-    let query = {};
+  //   //Get shortest leave ranges
+  //   const shortestFirst = leave.sort((a, b) => {
+  //     return moment(a.end).diff(moment(a.start), 'minutes') > moment(b.end).diff(moment(b.end));
+  //   })
 
-    if(!args.item.project) return {error: 'Project is required'}
+  //   for(var i = 0; i < shortestFirst.length; i++){
+  //     let currentLeave = shortestFirst[i];
 
-   
-    const result = mutation.createScheduleItem({ 
-      input: {
-        date: args.item.date,
-        project: args.item.project,
-        people: args.item.people,
-        equipment: args.item.equipment,
-        notes: args.item.notes,
-      }
-    })
-    return {
-      item: {
-        ...result
-      },
-      error: null
+  //     let created = [];
+
+  //     //Find any existing ranges that have overlap
+  //     outputLeave.forEach((item, ix) => {
+  //       console.log("OUTPUT", {item, currentLeave}, item.start < currentLeave.end, item.end > currentLeave.start)
+  //       if(item.start < currentLeave.end && item.end > currentLeave.start){
+
+  //         //Keep track of ranges created
+  //         created.push({
+  //           start: item.start,
+  //           end: item.end
+  //         })
+
+  //         //Add to their people list
+  //         outputLeave[ix].data?.push(currentLeave.user)
+  //       }
+  //     })
+
+  //     //Get ranges left after subtracting currentLeave
+  //     let rangesRemaining = [];
+  //     created.forEach((range, ix) => {
+  //       rangesRemaining.push({
+  //         start: (created[ix - 1]?.end || currentLeave.start),
+  //         end: (range.start)
+  //       })
+  //     })
+  //     rangesRemaining.push({
+  //       start: (created[created.length - 1]?.end || currentLeave.start),
+  //       end: created[created.length - 1]?.end > currentLeave?.end ? currentLeave?.end : created[created.length - 1]?.end
+  //     })
+
+
+  //     console.log({rangesRemaining, created})
+
+  //     //Create remaining ranges
+  //     rangesRemaining.map((range) => {
+  //       outputLeave.push({
+  //         id: `leave-${new Date(currentLeave?.start)?.getTime()}`, 
+  //         start: currentLeave.start, 
+  //         end: currentLeave.end, data: [currentLeave.user]
+  //       })
+  //     })
+
+  //     // if(ix < 0){
+  //     //   outputLeave.push({id: `leave-${new Date(currentLeave?.start)?.getTime()}`, start: currentLeave.start, end: currentLeave.end, data: [currentLeave.user]})
+  //     // }else{
+  //     //   outputLeave[ix].data?.push(currentLeave.user)
+  //     // }
+  //   }
+  //   return outputLeave;
+  // }, [leave]);
+
+
+  const [confirmCallback, setConfirmCallback] = useState<any>(null);
+
+  const raiseConfirm = (message: string, cb: any) => {
+    setConfirmCallback({ message, cb });
+  }
+
+  const [headerCapacity, setHeaderCapacity] = useState<any>({});
+
+  useEffect(() => {
+    if (moment(horizon.end).diff(moment(horizon.start), 'days') < 10) {
+      setExpanded(rowOptions.map((x, ix) => x.id).concat(['on-leave']))
+    } else {
+      setExpanded([])
     }
-  }, {
-    onCompleted(data) {},
-    onError(error) {},
-    refetchQueries: [],
-    awaitRefetchQueries: true,
-    suspense: false,  
-  })
+  }, [JSON.stringify(rowOptions), JSON.stringify(mergedLeave), JSON.stringify(horizon)])
 
-  const [updateItem, infoItem] = useMutation((mutation, args: {id: string, item: any}) => {
-    
-    
-    // let oldScheduleItem = schedule.find((a) => a.id == args.id)
-    
-    // let add_people = args.item.people.filter((a: any) => oldScheduleItem.people.map((x: any) => x.id).indexOf(a.id) < 0)
-    // let remove_people = oldScheduleItem.people.filter((a: any) => args.item.people.map((x: any) => x.id).indexOf(a.id) < 0)
+  const [graphType, setGraphType] = useState<any>('Capacity');
 
-    // let add_equipment = args.item.equipment.filter((a: any) => oldScheduleItem.equipment.map((x: any) => x.id).indexOf(a.id) < 0)
-    // let remove_equipment = oldScheduleItem.equipment.filter((a: any) => args.item.equipment.map((x: any) => x.id).indexOf(a.id) < 0)
+  const [leaveOpen, openLeave] = useState(false);
 
+  console.log(JSON.stringify(leave))
 
-    let query : any = {
-      
-    };
+  return (
+    <Box
+      sx={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+      }} className="schedule-container">
 
-    // if(args.item.project != oldScheduleItem.project.id) {
-    //   query['project'] = args.item.project
-    // }
-
-    // if(args.item.notes) query.notes = args.item.notes;
-
-    // if(add_people.length > 0){
-    //   query = {
-    //     ...query,
-    //     people: {
-    //       ...query.people,
-    //       connect: [{where: {node: {id_IN: add_people.map((x: any) => x.id)}}}]
-    //     }
-    //   }
-    // }
-
-
-    // if(remove_people.length > 0){
-    //   query = {
-    //     ...query,
-    //     people: {
-    //       ...query.people,
-    //       disconnect: [{where: {node: {id_IN: remove_people.map((x: any) => x.id)}}}]
-    //     }
-    //   }
-    // }
-
-    // if(add_equipment.length > 0){
-    //   query = {
-    //     ...query,
-    //     equipment: {
-    //       ...query.equipment,
-    //       connect: [{where: {node: {id_IN: add_equipment.map((x: any) => x.id)}}}]
-    //     }
-    //   }
-    // }
-
-
-    // if(remove_equipment.length > 0){
-    //   query = {
-    //     ...query,
-    //     equipment: {
-    //       ...query.equipment,
-    //       disconnect: [{where: {node: {id_IN: remove_equipment.map((x: any) => x.id)}}}]
-    //     }
-    //   }
-    // }
-
-    const result = mutation.updateScheduleItem({id: args.id, input: {
-        ...args.item
-    }})
-
-    return {
-      item: {
-        ...result
-      },
-      error: null
-    }
-  }, {
-    onCompleted(data) {},
-    onError(error) {},
-    refetchQueries: [],
-    awaitRefetchQueries: true,
-    suspense: false,  
-  })
-
-  const [removeItem, infoRemove] = useMutation((mutation, args: {id: string}) => {
-    if(!args.id) return {error: "Item Id is required"}
-    const result = mutation.deleteScheduleItem({id: args.id})
-    return {
-      item: {
-        ...result
-      },
-      error: null
-    }
-  }, {
-    onCompleted(data) {},
-    onError(error) {},
-    refetchQueries: [],
-    awaitRefetchQueries: true,
-    suspense: false,  
-  })
-
-  const [joinCard, joinInfo] = useMutation((mutation, args: {id: string}) => {
-    if(!activeUser?.id) return;
- 
-    const result = mutation.joinScheduleItem({
-      id: args.id
-    })
-    return {
-      item: {
-        ...result
-      },
-      error: null
-    }
-  }, {
-    onCompleted(data) {},
-    onError(error) {},
-    refetchQueries: [],
-    awaitRefetchQueries: true,
-    suspense: false,  
-  })
-
-
-  const [leaveCard, leaveInfo] = useMutation((mutation, args: {id: string}) => {
-    if(!activeUser?.id) return;
-    const result = mutation.leaveScheduleItem({
-      id: args.id
-    })
-    return {
-      item: {...result},
-      error: null
-    }
-  }, {
-    onCompleted(data) {},
-    onError(error) {},
-    refetchQueries: [],
-    awaitRefetchQueries: true,
-    suspense: false,  
-  })
-
-  const [cloneItem, cloenInfo] = useMutation((mutation, args: {id: string, dates: Date[]}) => {
-    
-    const items = mutation.cloneScheduleItem({
-      id: args.id,
-      dates: args.dates.map((x) => x.toISOString())
-    })
-    // let query : any = {};
-    // if(args.item.notes) query.notes = args.item.notes;
-
-    // if(args.item.people.length > 0){
-    //   query = {
-    //     ...query,
-    //     people: {
-    //       ...query.people,
-    //       connect: [{where: {node: {id_IN: args.item.people.map((x: any) => x.id)}}}]
-    //     }
-    //   }
-    // }
-
-    // if(args.item.equipment.length > 0){
-    //   query = {
-    //     ...query,
-    //     equipment: {
-    //       ...query.equipment,
-    //       connect: [{where: {node: {id_IN: args.item.equipment.map((x: any) => x.id)}}}]
-    //     }
-    //   }
-    // }
-
-
-    // const item = mutation.updateHiveOrganisations({
-    //   update: {
-    //     schedule: [{create: args.dates.map((date) => ({
-    //       node: {
-    //         date: date.toISOString(),
-    //         project: {
-    //           connect: {where: {node: {
-    //             id: args.item.project
-    //            }}}
-    //         },
-    //         ...query,
-    //         owner: {
-    //           connect: {where: {node: {id: activeUser?.id}}}
-    //         }
-    //       }
-    //     }))}]
-    //   }
-    // })
-    // // const result = mutation.cloneScheduleItem({id: args.id, cloneTo: args.dates})
-    // return {
-    //   item:  {
-    //     ...item.hiveOrganisations[0]
-    //   }, //result ||
-    //   error: null
-    // }
-    return {
-      item: [...items]
-    }
-  }, {
-    onCompleted(data) {},
-    onError(error) {},
-    refetchQueries: [],
-    awaitRefetchQueries: true,
-    suspense: false,  
-  })
-
-  
-  const [ draftsOpen, openDrafts ] = useState<boolean>(false);
-
-
-    return (
-      <Box
-        direction="row"
-         flex className="schedule-container">
-   
-          <DraftPane  
+      <ScheduleRootProvider value={{
+        events: calendarData?.calendarItems || [],
+        rowOptions,
+        people: people,
+        leave,
+        horizon,
+        graphType
+      }}>
+        {/* <DraftPane  
             open={draftsOpen}
             drafts={draftSchedule}
-            projects={projects} />
+            projects={projects} /> */}
+        <ConfirmModal
+          open={confirmCallback != null}
+          message={confirmCallback?.message}
+          onConfirm={() => {
+            confirmCallback?.cb?.();
+            setConfirmCallback(null);
+          }}
+          onReject={() => {
+            setConfirmCallback(null)
+          }} />
 
-          <ScheduleModal
-              selected={schedule.find((a) => a.id == selected?.id)}
-              open={modalOpen}
-              date={modalDate}
-              projects={projects}
-              people={people}
-              equipment={equipment}
-              onJoin={() => {
-                console.log("onJoin")
-                  joinCard({args: {id: selected.id}}).then((resp) => {
-                    refetchSchedule()
-                  })
-               
-              }}
-              onLeave={() => {
-                console.log("onLeave")
-                  leaveCard({args: {id: selected.id}}).then((resp) => {
-                    refetchSchedule()
-                  })
-                
-              }}
-              onDelete={() => {
-                removeItem({
-                  args: {
-                    id: selected?.id
+        <LeaveModal
+          open={leaveOpen}
+          onClose={() => openLeave(false)}
+        />
+        <SchedulingModal
+          open={modalOpen}
+          selected={selected}
+          projects={projects}
+          estimates={estimates}
+          people={people}
+          tasks={tasks}
+          onDelete={() => {
+            deleteCalendarItem({
+              variables: {
+                id: selected?.id
+              }
+            }).then(() => {
+
+              openModal(false)
+              setModalDate(undefined)
+              setSelected(undefined)
+            })
+          }}
+          onSubmit={(schedule) => {
+            let promise: any;
+
+            if (!schedule.id) {
+
+              promise = createCalendarItem({
+                variables: {
+                  input: {
+                    start: schedule.start,
+                    end: schedule.end,
+                    groupBy: schedule.groupBy,
+                    data: {
+                      people: schedule.people,
+                      comments: schedule.comments,
+                      tasks: schedule.tasks,
+                    }
                   }
-                }).then(() => {
-                  openModal(false);
-                  setModalDate(undefined);
-                  setSelected(undefined)
-                  refetchSchedule();
-                })
-              }}
-              onSubmit={(item) => {
-                //TODO create schedule item
-                if(item.cloneDates){
-                  console.log("Clone Dates", {item})
-                  cloneItem({
-                    args: {
-                      id: selected.id,
-                      dates: item.cloneDates
-                    }
-                  }).then(() => {
-                    openModal(false);
-                    setModalDate(undefined);
-                    setSelected(undefined)
-                    refetchSchedule();
-                  })
-                }else if(!item.id){
-                  createItem({
-                    args: {
-                      item: {
-                        project: item.project,
-                        equipment: item.equipment?.map((x: any) => x.id),
-                        people: item.people?.map((x: any) => x.id),
-                        notes: item.notes || [],
-                        date: modalDate
-                      }
-                    }
-                  }).then(() => {
-                    openModal(false);
-                    setModalDate(undefined);
-                    setSelected(undefined)
-                    refetchSchedule();
-                  })
-                }else{
-                  updateItem({
-                    args: {
-                      id: selected.id,
-                      item: {
-                        project: item.project,
-                        equipment: item.equipment?.map((x: any) => x.id),
-                        people: item.people?.map((x: any) => x.id),
-                        notes: item.notes || [],
-                        date: modalDate
-                      }
-                    }
-                  }).then(() => {
-                    openModal(false);
-                    setModalDate(undefined);
-                    setSelected(undefined)
-                    refetchSchedule();
-                  })
                 }
-              }}
-              onClose={() => {
-                openModal(false)
-                setModalDate(undefined)
-                setSelected(undefined)
-              }}
-            />
-        <ScheduleView 
-          actions={{
-            left: draftSchedule?.length > 0 && (<Button 
-              onClick={() => openDrafts(!draftsOpen)} 
-               hoverIndicator icon={draftsOpen ? <Previous /> : <Next />} />)
-          }}
-          isLoading={query.$state.isLoading}
-      
-          date={horizon.start}
-          onHorizonChanged={async (start, end) => {
-            setHorizon({start, end})
+              })
+            } else {
+              promise = updateCalendarItem({
+                variables: {
+                  id: schedule.id,
+                  input: {
+                    start: schedule.start,
+                    end: schedule.end,
+                    groupBy: schedule.groupBy,
+                    data: {
+                      people: schedule.people,
+                      comments: schedule.comments,
+                      tasks: schedule.tasks,
+                    }
+                  }
+                }
+              })
+            }
 
-            
-          
+            promise.then(() => {
+              openModal(false)
+              setModalDate(undefined)
+              setSelected(undefined)
+            })
           }}
-          events={(schedule || []).map((x) => ({
-            id: x?.id || '',
-            people: x?.people || [],
-            equipment: x?.equipment || [],
-            project: {displayId: x?.project?.displayId || '', name: x?.project?.name?.toString() || '', id: x?.project?.id?.toString() || ''},
-            notes: x?.notes || [],
-            managers: x?.managers || [],
-            date: x?.date,
-            owner: {id: x?.owner?.id?.toString() || '', name: x?.owner?.name?.toString() || ''}
-          }))}
-          onCreateItem={(ts) => {
+          onClose={() => {
+            openModal(false)
+            setModalDate(undefined)
+            setSelected(undefined)
+          }}
+        />
 
+        <Header
+          graphType={graphType}
+          setGraphType={setGraphType}
+          horizon={horizon}
+          onHorizonChanged={(horizon) => {
+            setHorizon(horizon)
+          }} />
+
+        <ScheduleView
+          onSelectMenuItem={(item) => {
+            let project = rowOptions?.find((a) => a.id == item?.id);
+
+            if (project)
+              router(`/${project?.project ? "projects" : "estimates"}/${project.displayId}/tickets`)
+          }}
+          createEvent={(event, autocreate) => {
+
+            if (autocreate) {
+              createCalendarItem({
+                variables: {
+                  input: {
+                    start: event.start,
+                    end: event.end,
+                    groupBy: event.groupBy,
+                    data: {
+                      people: event.data.people,
+                      // comments: schedule.comments,
+                      tasks: event.data.tasks,
+                    }
+                  }
+                }
+              })
+              return;
+            }
+
+            if (event.groupBy?.id == 'on-leave') {
+              openLeave(true);
+              return;
+            }
+
+            let tasks = rowOptions.reduce((prev, curr) => prev.concat(curr.tasks.map((task) => ({ ...task, startDate: new Date(task.startDate), endDate: new Date(task.endDate), project: curr }))), [])
+            tasks = tasks.filter((task) => {
+              return task.endDate?.getTime() > event.start?.getTime() && task.startDate?.getTime() < event.end?.getTime();
+              // return task.start.getTime() < event.start.getTime() && task.end.getTime() > event.end.getTime()
+            })
+            if (event?.groupBy) {
+              tasks = tasks.filter((a) => a.project?.id == event?.groupBy?.id)
+            }
+
+            setModalDate(event.start)
+            setTasks(tasks);
+            setSelected(event);
             openModal(true);
-            setModalDate(ts)
-          
-          }}
-
-          onUpdateItem={(item) => {
-            console.log({item})
-            // if(item.canEdit){
-              setSelected(item);
-              openModal(true);
-              setModalDate(item.date);
             // }
           }}
-         
-         />
-      </Box>
-    );
+          updateEvent={(event) => {
+            updateCalendarItem({
+              variables: {
+                id: event.id,
+                input: {
+                  start: event.start,
+                  end: event.end
+                }
+              }
+            })
+
+          }}
+          horizon={horizon}
+          onHorizonChanged={({ start, end }) => {
+            setHorizon({ start, end })
+            setHeaderCapacity({})
+            client.refetchQueries({ include: ['CalendarItems', 'Slow'] })
+          }}
+          onDoubleClickEvent={(event) => {
+            if (event.selectable != false) {
+
+              let tasks = rowOptions.reduce((prev, curr) => prev.concat(curr.tasks.map((task) => ({ ...task, startDate: new Date(task.startDate), endDate: new Date(task.endDate), project: curr }))), [])
+              tasks = tasks.filter((task) => {
+                return task.endDate?.getTime() > new Date(event.start)?.getTime() && task.startDate?.getTime() < new Date(event.end)?.getTime();
+              })
+              tasks = tasks.filter((a) => a.project?.id == event?.groupBy?.id)
+
+              setTasks(tasks);
+              setSelected(event)
+              openModal(true);
+            }
+          }}
+          expanded={expanded}
+          sidebarHeader={(
+            <>
+              <UIMenu
+                onClose={() => setUnscheduleElem(null)}
+                open={Boolean(unscheduledElem)}
+                anchorEl={unscheduledElem}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+                {unscheduled.map((item) =>
+                  <MenuItem dense>{item.displayId} - {item.name}</MenuItem>
+                )}
+              </UIMenu>
+              <Button
+                onClick={(event) => setUnscheduleElem(event.currentTarget)}
+                fullWidth
+                style={{ textTransform: 'none', height: '100%', textAlign: 'center' }}>
+                <div>{unscheduled.length} unscheduled</div>
+
+              </Button>
+            </>)}
+          renderHeader={SchedulerHeaderItem}
+          renderItem={(item) => {
+
+            let project = rowOptions?.find((a) => a.id == item.groupBy?.id);
+
+            let eventPeople = (item.data?.people || []).map((x) => {
+              return allUsers?.find((a) => a.id == x)
+            })
+
+       
+            return (
+              <Paper
+                elevation={3}
+                style={{
+                  marginTop: '4px',
+                  marginBottom: '4px',
+                  flex: 1,
+                  // height: item.draft ? '80%' : undefined,
+                  borderRadius: '12px',
+                  boxShadow: item.selected ? '0px 0px 0px 2px blue' : '0px 0px 0px 2px transparent',
+                  zIndex: item.draft ? 0 : 99,
+                  // background: '#FFF8F2',
+                  overflow: 'hidden'
+                }}>
+                {
+                  (item.expanded) ?
+                    <Box sx={{
+                      display: item.expanded ? 'flex' : 'none',
+                      flex: 1,
+                      height: item.expanded ? '100%' : 0
+                    }}>
+                      {item.draft ? (
+                        <div style={{
+                          height: '100%',
+                          width: '100%',
+                          background: 'rgba(127, 127, 127, 0.8)'
+                        }}></div>
+                      ) : (
+                        <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column' }}>
+                          {project && <Box sx={{
+                            background: ((project?.colour ? project.colour : stringToColor(`${project?.id} - ${project.name}`)) || 'rgb(127, 127, 0, 1)'),
+                            color: 'white'
+                          }}>
+                            <Typography fontSize={'small'} textAlign={'center'}>{project?.displayId}</Typography>
+                          </Box>}
+                          <Box sx={{
+                            // padding: '8px',
+                            display: 'flex',
+                            flex: 1,
+                            flexDirection: 'column',
+                            // gap: '4px',
+                            textAlign: 'center'
+                          }}>
+                            <Typography fontSize={'small'} fontWeight={"bold"}>{project?.name}</Typography>
+                            {eventPeople.map((person) => (
+                              <Typography fontSize={'small'}>{person?.name}</Typography>
+                            ))}
+                          </Box>
+                          {(item.permissions?.length > 0 || item.createdBy) &&
+                            <Box sx={{ padding: '8px' }}>
+                              <AvatarList
+                                size={20}
+                                users={(item.permissions?.map((x) => x.user)?.concat(item.createdBy ? [item.createdBy] : [])).map((x) => ({...x, color: stringToColor(x.id)}))} />
+                            </Box>
+                          }
+                        </Box>
+                      )}
+                    </Box> : <div style={{
+                      height: '30px',
+                      background: item?.draft ? 'rgba(127, 127, 127, 0.4)' : (project?.colour || 'rgb(127, 127, 0, 1)')
+                    }} />}
+              </Paper>
+            )
+          }}
+          getRowGroup={(event) => {
+            if (event.groupBy?.id == 'on-leave') return 'On Leave';
+            const group = rowOptions?.find((a) => a.id == event.groupBy?.id);
+            return `${group?.displayId ? group?.displayId + ' - ' : ''}${group?.name}`;
+          }}
+          onDelete={(items) => {
+            raiseConfirm(`You are about to delete ${items.length} item`, () => {
+
+              Promise.all(items.map((item) => {
+                deleteCalendarItem?.({ variables: { id: item } })
+              }))
+
+            });
+
+          }}
+          events={
+            /*
+              {
+                id: '1',
+                start: new Date(),
+                end: moment(new Date()).add(1, 'day').toDate(),
+                selectable: false,
+                groupBy: {
+                  id: 'on-leave',
+                } 
+              }
+            */
+          
+              rowOptions.map((x) =>
+                x.draftSchedule.map((sched, ix) => ({
+                  ...sched,
+                  id: `${x.name}-${ix}`,
+                  draft: true,
+                  selectable: false,
+                  groupBy: { ...x }
+                }))
+              ).reduce((prev, curr) => prev.concat(curr), []).filter((x) => {
+                return (x.start.getTime() < horizon.end.getTime()) && (x.end.getTime() > horizon.start.getTime())
+              }).concat(
+                (calendarData?.calendarItems || []).map((x) => ({
+                  ...x
+                }))
+              )
+            
+
+          }
+        />
+      </ScheduleRootProvider>
+    </Box>
+  );
 
 }

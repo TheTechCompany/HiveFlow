@@ -185,6 +185,12 @@ export const Dashboard = (props: any) => {
       component: <ProjectView />
     },
     {
+      path: 'people',
+      label: "People",
+      icon: <People filter="invert(1)"/>,
+      component: <PeopleView />
+    },
+    {
       path: 'equipment',
       label: 'Equipment',
       icon: <Equipment filter="invert(1)" />,

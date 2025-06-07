@@ -15,6 +15,9 @@ model Project {
     id   String @id
 
     displayId String?
+
+    colour String?
+
     name String?
     description String?
 
@@ -52,6 +55,8 @@ model ProjectTask {
     columnRank String?
 
     members String[]
+
+    requiredSkills Json?
 
     createdBy String?
 
@@ -181,7 +186,7 @@ model ScheduleItemPermission {
 
 	createdAt DateTime @default(now())
 
-	scheduleItem ScheduleItem @relation(name: "permissionsFor", fields: [scheduleItemId], references: [id])
+	scheduleItem ScheduleItem @relation(name: "permissionsFor", fields: [scheduleItemId], references: [id], onDelete: Cascade)
 	scheduleItemId String
 
 	@@unique([owner, scheduleItemId], name: "schedulePermitted")
@@ -247,3 +252,80 @@ model TimelineItem {
 //   timelineItemId String
 //   organisation String
 // }
+
+
+model CalendarItem {
+    id String @id
+
+    start DateTime
+    end DateTime
+
+    groupBy Json?
+
+    data Json?
+
+    comments CalendarItemComment[] @relation(name: "hasComment")
+
+    permissions CalendarItemPermissions[] @relation(name: "hasPermissions")
+
+    createdBy String?
+
+    organisation String
+}
+
+model CalendarItemPermissions {
+    id String @id
+
+    user String
+
+    permissions String[]
+
+    item CalendarItem @relation(name: "hasPermissions", references: [id], fields: [itemId], onDelete: Cascade)
+    itemId String
+
+    createdAt DateTime @default(now())    
+}
+
+model CalendarItemComment {
+    id String @id
+    message String
+    user String
+    createdAt DateTime @default(now())
+
+    item CalendarItem @relation(name: "hasComment", references: [id], fields: [itemId], onDelete: Cascade)
+    itemId String
+}
+
+// model CalendarAnnotation {
+//     id String @id
+// }
+
+model LeaveAssignment {
+    id String @id
+
+    user String
+
+    start DateTime
+    end DateTime
+
+    createdAt DateTime @default(now())
+    createdBy String
+
+    organisation String?
+}
+
+model SkillAssignment {
+    id String @id
+
+    user String
+
+    skill String
+
+    skillData Json?
+
+    organisation String
+
+    created DateTime @default(now())
+
+    @@unique([user, skill])
+}
