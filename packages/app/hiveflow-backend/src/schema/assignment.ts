@@ -10,6 +10,14 @@ export default (prisma: PrismaClient) => {
                 if(root.estimateId) return 'EstimateTask';
             }
         },
+        HiveUser:{ 
+            leave: (root: any, args: any) => {
+                return root.leave?.filter((item) => {
+                    if(!args.where) return true;
+                    return item.start < args.where.start_LTE && item.end > args.where.end_GTE
+                })
+            }
+        },
         Mutation: {
             assignLeave: async (root: any, args: any, context: any) => {
                 return await prisma.leaveAssignment.create({
@@ -92,7 +100,6 @@ export default (prisma: PrismaClient) => {
 
 
                 const rows = [...new Set(leaveRows.map((x) => x.user).concat(args.ids || []))]
-                console.log({args, query, leaveRows, rows})
 
                 const result = (args.ids || rows).map((r) => {
                     let leave = leaveRows.filter((a) => a.user == r)
@@ -212,7 +219,12 @@ export default (prisma: PrismaClient) => {
 
     type HiveUser @key(selectionSet: "{ id }"){
         id: ID,
-        leave: [LeaveAssignment]
+        leave(where: LeaveWhere): [LeaveAssignment]
+    }
+
+    input LeaveWhere {
+        start_LTE: DateTime
+        end_GTE: DateTime
     }
 
     type LeaveAssignment {

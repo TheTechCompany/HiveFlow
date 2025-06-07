@@ -25,7 +25,8 @@ export interface ScheduleProps {
     renderHeader?: (header: any) => any;
 
     getRowGroup?: (event: any) => any
-
+    sortRow?: (a: any, b: any) => any;
+    
     events?: {
         groupBy: {id: string};
         start: Date;
@@ -82,8 +83,6 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
         return Math.round(end.diff(start, step, true));
     }, [step, props.horizon])
 
-    console.log({step, stepCount})
-
 
     // const [step, setStep] = useState('day');
     // const [stepCount, setStepCount] = useState(7)
@@ -108,7 +107,7 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
                 name: g,
                 events: groupedEvents?.filter((a) => a.group == g)
             }
-        })
+        })?.sort((a, b) => props.sortRow ? props.sortRow?.(a, b) : a.name.localeCompare(b.name))
     }, [events])
 
     const timelineRows = useMemo(() => {
@@ -176,6 +175,7 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
                         flex: 1,
                         display: 'flex',
                         gap: '8px',
+                        minHeight: 0,
                         flexDirection: 'column'
                     }}>
                         
@@ -187,7 +187,7 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
 
                         }}>
                             <Paper sx={{
-                                minWidth: '200px',
+                                width: '200px',
                                 display: 'flex',
                             }}>
                                 <Sidebar 

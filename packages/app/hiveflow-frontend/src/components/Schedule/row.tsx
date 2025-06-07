@@ -27,14 +27,17 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
     const dateToScreen = useDateToScreen();
     const { activeTool } = useTool();
     const { updateRowHeight, rowHeights } = useRowHeights();
-    const { selected } = useSchedule();
+    const { selected, horizon } = useSchedule();
 
     const [sizes, setSizes] = useState<any>(null)
     const [ allSizes, setAllSizes ] = useState<any>({});
 
+    const rowKey = `${rowTemplate?.id}`
+    
+
     useEffect(() => {
-        if(rowHeights[rowTemplate?.id] != sizes?.height){
-            updateRowHeight(rowTemplate?.id, sizes?.height)
+        if(rowHeights[rowKey] != sizes?.height){
+            updateRowHeight(rowKey, sizes?.height)
         }
     }, [JSON.stringify(rowTemplate), JSON.stringify(rowHeights), JSON.stringify(sizes)])
 
@@ -46,7 +49,7 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
                 borderBottom: filled ? '1px solid black' : '1px solid #dfdfdf',
                 display: 'flex',
                 alignItems: 'center',
-                height: rowHeights[rowTemplate?.id] || ROW_ITEM_CONTAINER, //expanded ? undefined : ROW_ITEM_CONTAINER,
+                height: rowHeights[rowKey] || ROW_ITEM_CONTAINER, //expanded ? undefined : ROW_ITEM_CONTAINER,
                 width: '100%',
             }}
 
@@ -76,9 +79,11 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
 
                 const width = endX - x;
                 return <PlanItem
+                    key={event.id}
                     left={x}
                     width={width}
                     selected={selected.indexOf(event.id) > -1}
+                    rowHeight={rowHeights[rowKey]}
                     onResize={(itemSize) => {
                         setAllSizes((allSizes) => {
                             let newSizes = {...allSizes, [event.id]: itemSize?.height}
@@ -114,7 +119,7 @@ export const PlanItem = (props: any) => {
 
     useEffect(() => {
         props.onResize?.(sizes);
-    }, [sizes])
+    }, [props.rowHeight, props.item, JSON.stringify(sizes)])
 
     const dragEnd = (position: string) => {
         return (e: any) => {
@@ -173,11 +178,7 @@ export const PlanItem = (props: any) => {
             onMouseMove={(e) => {
                 activeTool?.listeners?.onMouseMove?.('item', e, props.item)
             }}
-            onKeyDown={(e) => {
-                if(e.key == 'Escape'){
-                    alert("Escape in plan row")
-                }
-            }}
+       
             style={{
                 position: 'absolute',
                 display: 'flex',
@@ -185,7 +186,8 @@ export const PlanItem = (props: any) => {
                 pointerEvents: 'all',
                 left: props.left,
                 width: props.width,
-                minHeight: props.expanded ? '100%' : undefined,
+                // height: !props.rowHeight ? 0 : undefined,
+                minHeight: (props.expanded) ? '100%' : undefined,
                 userSelect: 'none'
                 // height: '100%',
                 // background: '#bbb',
@@ -204,7 +206,7 @@ export const PlanItem = (props: any) => {
                     cursor: 'w-resize',
                     zIndex: 99
                 }}></div>}
-            <div style={{ flex: 1, display: 'flex', position: 'relative' }}>
+            <div style={{ zIndex: 1, flex: 1, display: 'flex', position: 'relative' }}>
                 {listeners}
                 {props.renderItem?.()}
 

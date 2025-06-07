@@ -1,4 +1,4 @@
-import { Box, Menu, MenuItem } from "@mui/material";
+import { Box, Menu, MenuItem, Typography } from "@mui/material";
 import { useRootSchedule } from "../context";
 import { useState } from "react";
 import { makeStyles } from '@mui/styles';
@@ -18,6 +18,7 @@ export const SchedulerHeaderItem = (header: any) => {
         events,
         rowOptions,
         people,
+        leave,
         horizon,
         graphType
     } = useRootSchedule();
@@ -115,8 +116,6 @@ export const SchedulerHeaderItem = (header: any) => {
             }).length == 0
         })
 
-        console.log({ people, available_people })
-
         let unassigned = available_people.filter((a) => people_ids.indexOf(a.id) < 0)
 
         return (
@@ -189,6 +188,37 @@ export const SchedulerHeaderItem = (header: any) => {
                 </Box>
 
             </div>
+        )
+    } else if (graphType == 'Leave') {
+
+        const sectionLeave = leave.map((x) => ({ ...x, start: new Date(x.start), end: new Date(x.end) })).filter((item) => {
+            return item.start < header.end && item.end > header.start
+        })
+
+
+        return (
+            <Box sx={{
+                height: header.height,
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <Box sx={{
+                    position: "absolute",
+                    height: '100%',
+                    overflow: 'auto',
+                    display: 'flex',
+                    width: '100%'
+                }}>
+                    <Box sx={{ flex: 1, padding: '8px' }}>
+                        {sectionLeave?.map((leave_item) => (
+                            <Box>
+                                <Typography>{people.find((a) => a.id == leave_item.user)?.name}</Typography>
+                            </Box>
+                        ))}
+                    </Box>
+
+                </Box>
+            </Box>
         )
     }
 }

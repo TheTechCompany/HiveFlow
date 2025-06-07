@@ -38,7 +38,7 @@ export const PeopleSingle = (props: any) => {
               id
               name
 
-              leave {
+              leave (where: {start_LTE: $end, end_GTE: $start}){
                 id
                 start
                 end
@@ -149,7 +149,11 @@ export const PeopleSingle = (props: any) => {
 
   const person = data?.users?.[0];
 
-  const leave = person?.leave?.length > 0 ? person.leave : [{}];
+  const allLeave = person?.leave?.length > 0 ? person.leave?.filter((item) => {
+    return new Date(item.start) < horizon.end && new Date(item.end) > horizon.start
+  }) : []
+
+  const leave = allLeave?.length > 0 ? allLeave.map((x) => ({ ...x, groupBy: { id: 'on-leave' } })) : [{ groupBy: { id: 'on-leave' } }];
 
   const [skills, setSkills] = useState<any[]>([])
 
@@ -178,7 +182,9 @@ export const PeopleSingle = (props: any) => {
     }
   }
 
-  const rowOptions = data?.projects?.map((x) => ({...x, project: true})).concat(data?.estimates?.map((x) => ({...x, project: false})))
+  const rowOptions = data?.projects?.map((x) => ({ ...x, project: true })).concat(data?.estimates?.map((x) => ({ ...x, project: false })))
+
+  console.log({ leave })
 
   return (
     <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column' }} className="employee-view">
@@ -265,7 +271,6 @@ export const PeopleSingle = (props: any) => {
             clearOnBlur
             handleHomeEndKeys
             renderOption={(props, option) => {
-              console.log({ option })
               const { key, ...optionProps } = props as any;
               return (
                 <li key={key} {...optionProps}>
@@ -308,55 +313,78 @@ export const PeopleSingle = (props: any) => {
           </Paper>
           <Schedule
             horizon={horizon}
+            expanded={[...new Set(data?.calendarItems?.map((x) => x.groupBy?.id))] as any[]}
             renderItem={(item) => {
-              if(item?.groupBy){
+              if (item?.groupBy?.id == 'on-leave') {
+                return <Paper elevation={2} sx={{ border: item.selected ? '1px solid blue' : undefined, background: 'red', flex: 1, height: '30px', marginTop: '4px', marginBottom: '4px' }}></Paper>
+
+              }
+              if (item?.groupBy) {
                 let row = rowOptions?.find((a) => a.id == item?.groupBy?.id);
                 const people = data?.people?.filter((a) => item?.data?.people?.indexOf(a.id) > -1)
                 return (
-                  <Paper>
-                    <Box sx={{
-                      padding: '4px',
-                      background: row?.colour ? row?.colour : stringToColor(`${row.displayId} - ${row?.name}`) || 'green',
-                      color: 'white'
+                  <Box sx={{
+                    width: '100%',
+                    height: '100%',
+                  }}>
+                    <Paper sx={{
+                    marginTop: '4px',
+                    marginBottom: '4px',
                     }}>
-                      <Typography>{row?.displayId} - {row?.name}</Typography>
-                    </Box>
-                    <Box sx={{padding: '8px'}}>
-                      {people?.map((person) => (
-                        <Typography>{person?.name}</Typography>
-                      ))}
-                    </Box>
-                  </Paper>
-                ) 
+                      <Box sx={{
+                        padding: '4px',
+                        background: row?.colour ? row?.colour : stringToColor(`${row?.displayId} - ${row?.name}`) || 'green',
+                        color: 'white'
+                      }}>
+                        <Typography>{row?.displayId}</Typography>
+                      </Box>
+                      <Box sx={{ padding: '8px' }}>
+                        {people?.map((person) => (
+                          <Typography>{person?.name}</Typography>
+                        ))}
+                      </Box>
+                    </Paper>
+                  </Box>
+
+                )
               }
-              return <Paper elevation={2} sx={{ border: item.selected ? '1px solid blue' : undefined, background: 'red', flex: 1, height: '30px' }}></Paper>
+            }}
+            sortRow={(a, b) => {
+              if (a?.name == 'Leave') return -1;
+              if (b?.name == 'Leave') return -1;
+              return a.name?.localeCompare(b?.name);
             }}
             getRowGroup={(event) => {
-              if(event?.groupBy){
+              if (event?.groupBy?.id == 'on-leave') return 'Leave';
+              if (event?.groupBy) {
                 let row = rowOptions?.find((a) => a.id == event?.groupBy?.id);
 
-                return row?.name
+                return row.displayId + ' - ' + row?.name
               }
-              return 'Leave';
             }}
             createEvent={(event) => {
-              assignLeave({
-                variables: {
-                  id: id,
-                  start: event.start,
-                  end: event.end
-                }
-              })
+              if(event.groupBy?.id == 'on-leave'){
+                assignLeave({
+                  variables: {
+                    id: id,
+                    start: event.start,
+                    end: event.end
+                  }
+                })
+              }
+              
             }}
             updateEvent={(event) => {
-              updateLeave({
-                variables: {
-                  id,
-                  leave: event.id,
-                  start: event.start,
-                  end: event.end
-                }
-              })
+              if(leave.map((x) => x.id).indexOf(event.id) > -1){
+                updateLeave({
+                  variables: {
+                    id,
+                    leave: event.id,
+                    start: event.start,
+                    end: event.end
+                  }
+                })
+              }
             }}
             onDelete={(items) => {
 
@@ -371,7 +399,7 @@ export const PeopleSingle = (props: any) => {
 
               })
             }}
-            events={leave.concat(data?.calendarItems?.filter((item) => item?.data?.people?.indexOf(id) > -1))}
+            events={leave.concat((data?.calendarItems || []).filter((item) => item?.data?.people?.indexOf(id) > -1))}
           />
         </Paper>
       </Box>

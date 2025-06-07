@@ -1,4 +1,4 @@
-import { Autocomplete, Button, Checkbox, IconButton, Menu, MenuItem, Paper, TextField, Typography } from "@mui/material";
+import { Autocomplete, Box, Button, Checkbox, IconButton, Menu, MenuItem, Paper, TextField, Typography } from "@mui/material";
 import React, { useState } from "react"
 import { FilterList, ChevronLeft, ChevronRight } from '@mui/icons-material'
 import moment from "moment";
@@ -41,25 +41,28 @@ export const Header : React.FC<HeaderProps> = (props) => {
                 <Menu
                     onClose={() => setFilterAnchor(null)}
                     open={filterAnchor != null}
-                    anchorEl={filterAnchor}>
-
-                    <MenuItem sx={{ paddingRight: '8px' }} disableGutters dense>
-                        <Checkbox checked={true} />
-                        <Typography>Show people on leave</Typography>
-                    </MenuItem>
-                    <MenuItem>
+                    anchorEl={filterAnchor}
+                    >
+                    <Box sx={{
+                        padding: '8px',
+                        minWidth: '200px'
+                    }}>
+               
                         <Autocomplete
                             value={props.graphType}
                             onChange={(e, newGraphType) => {
                                 props.setGraphType(newGraphType)
+                                setFilterAnchor(null);
+                                // setHeaderHeght
                             }}
                             fullWidth
                             options={[
                                 "Capacity",
-                                "Unassigned"
+                                "Unassigned",
+                                "Leave"
                             ]}
                             renderInput={(params) => <TextField {...params} size="small" label="Graph type" />} />
-                    </MenuItem>
+                    </Box>
                 </Menu>
 
             </div>

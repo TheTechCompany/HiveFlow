@@ -9,6 +9,7 @@ import { SkillView } from "./view/skills";
 import { gql, useMutation, useQuery } from "@apollo/client";
 import { AvatarList } from "@hexhive/ui";
 import { useAPIFunctions } from "../api";
+import { stringToColor } from "@hexhive/utils";
 
 export const SchedulingModal = (props: any) => {
 
@@ -47,11 +48,13 @@ export const SchedulingModal = (props: any) => {
 
                 permissions {
                     user {
+                        id
                         name
                     }
                 }
                 
                 createdBy {
+                    id
                     name
                 }
             }
@@ -127,7 +130,7 @@ export const SchedulingModal = (props: any) => {
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <AvatarList
                         size={20}
-                        users={permissions.map((x) => x.user).concat(createdBy ? [createdBy] : [])}
+                        users={(permissions.map((x) => x.user).concat(createdBy ? [createdBy] : [])).map((x) => ({...x, color: stringToColor(x.id)}))}
                     />
                     {!data?.calendarItems?.[0]?.isOwner && 
                         <Button onClick={() => {

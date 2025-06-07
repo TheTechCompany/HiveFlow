@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { Horizon } from ".";
 
 export const ScheduleContext = createContext<{
@@ -86,6 +86,19 @@ export const RowHeightProivder : any = (props: any) => {
       setRowHeights((prev) => ({ ...prev, [rowId]: height }));
     };
   
+    const { horizon } = useSchedule();
+
+    useEffect(() => {
+        setRowHeights((rowHeights) => {
+
+            return Object.keys(rowHeights).map((key) => {
+                return {key, value: 0}
+            }).reduce((prev, curr) => ({...prev, [curr.key]: curr.value}), {})
+        });
+        // let rowHeights = Object.keys(rowHeights)
+    }, [JSON.stringify(horizon)])
+
+
     const Provider : any = RowHeightContext.Provider;
     return <Provider value={{
         rowHeights,

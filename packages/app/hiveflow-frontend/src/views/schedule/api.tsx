@@ -95,6 +95,22 @@ export const useAPIData = (horizon: any) => {
 
     const { data: calendarData } = useQuery(gql`
         query CalendarItems($startDate: DateTime, $endDate: DateTime){
+
+        allUsers: users{
+            id
+            name
+        }
+         users(active: true){
+                id
+                name
+
+                leave (where: {start_LTE: $endDate, end_GTE: $startDate}){
+                    id
+
+                    start
+                    end
+                }
+            }
           calendarItems (where: {start_LTE: $endDate, end_GTE: $startDate} ){
             id
             start
@@ -112,6 +128,7 @@ export const useAPIData = (horizon: any) => {
             }
     
             createdBy {
+                id
               name
             }
           }

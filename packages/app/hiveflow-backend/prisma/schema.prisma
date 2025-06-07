@@ -186,7 +186,7 @@ model ScheduleItemPermission {
 
 	createdAt DateTime @default(now())
 
-	scheduleItem ScheduleItem @relation(name: "permissionsFor", fields: [scheduleItemId], references: [id])
+	scheduleItem ScheduleItem @relation(name: "permissionsFor", fields: [scheduleItemId], references: [id], onDelete: Cascade)
 	scheduleItemId String
 
 	@@unique([owner, scheduleItemId], name: "schedulePermitted")
@@ -280,7 +280,7 @@ model CalendarItemPermissions {
 
     permissions String[]
 
-    item CalendarItem @relation(name: "hasPermissions", references: [id], fields: [itemId])
+    item CalendarItem @relation(name: "hasPermissions", references: [id], fields: [itemId], onDelete: Cascade)
     itemId String
 
     createdAt DateTime @default(now())    
@@ -292,7 +292,7 @@ model CalendarItemComment {
     user String
     createdAt DateTime @default(now())
 
-    item CalendarItem @relation(name: "hasComment", references: [id], fields: [itemId])
+    item CalendarItem @relation(name: "hasComment", references: [id], fields: [itemId], onDelete: Cascade)
     itemId String
 }
 

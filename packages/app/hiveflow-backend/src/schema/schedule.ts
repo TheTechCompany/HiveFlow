@@ -238,7 +238,7 @@ export default (prisma: PrismaClient) => {
             createdBy: (root: any) => {
                 return root.createdBy ? {
                     id: root?.createdBy
-                } : undefined
+                } : null
             },
             isOwner: (root: any, args: any, context: any) => {
                 return root?.createdBy == context?.jwt?.id;
@@ -257,15 +257,15 @@ export default (prisma: PrismaClient) => {
         CalendarItemPermission: {
             user: (root: any) => {
                 console.log({root})
-                return {id: root?.user}
+                return root?.user ? {id: root?.user} : null;
             }
         },
         Query: {
             calendarItems: async (root: any, args: any) => {
                 let query : any = {};
 
-                if(args.where?.end_GTE) query['end'] = {...query['end'], gte: args.where.end_GTE};
-                if(args.where?.start_LTE) query['start'] = {...query['start'], lte: args.where.start_LTE};
+                if(args.where?.end_GTE) query['end'] = {...query['end'], gt: args.where.end_GTE};
+                if(args.where?.start_LTE) query['start'] = {...query['start'], lt: args.where.start_LTE};
                 if(args.where.ids) query['id'] = {in: args.where.ids};
 
                 return await prisma.calendarItem.findMany({

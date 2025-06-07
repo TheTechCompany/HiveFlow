@@ -6,6 +6,7 @@ export const ScheduleRootContext = createContext<{
     rowOptions?: any[];
     
     people?: any[];
+    leave?: any[];
     horizon?: Horizon;
 
     graphType?: string;

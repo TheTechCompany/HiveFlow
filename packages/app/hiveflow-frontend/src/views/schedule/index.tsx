@@ -24,6 +24,8 @@ import { useNavigate, useNavigation } from 'react-router';
 import { Header } from './header';
 import { SchedulerHeaderItem } from './schedule-components/header';
 import { ScheduleRootProvider } from './context';
+import { LeaveModal } from './leave-modal';
+import { stringToColor } from '@hexhive/utils';
 export const Schedule: React.FC<any> = (props) => {
 
   //User
@@ -43,18 +45,7 @@ export const Schedule: React.FC<any> = (props) => {
 
 
   const slowResult = useApollo(gql`
-    query Slow {
-      users(active: true){
-        id
-        name
-
-        leave {
-          id
-
-          start
-          end
-        }
-      }
+    query Slow{
 
       estimates {
         id
@@ -136,80 +127,122 @@ export const Schedule: React.FC<any> = (props) => {
 
   const router = useNavigate()
 
-  const people = slowData?.users || []// query.people({})?.map((x) => ({...x})) || [];
+  const people = calendarData?.users || []// query.people({})?.map((x) => ({...x})) || [];
+
+  const allUsers = calendarData?.allUsers || [];
 
   const leave = people.map((person) => {
     return (person.leave || []).map((x) => ({ ...x, user: person.id }))
   }).reduce((prev, curr) => prev.concat(curr), [])
 
 
+  // const mergedLeave = useMemo(() => {
+  //   let outputLeave: any[] = [];
+  //   // Sort by shortest duration first
+  //   const shortestFirst = leave.sort((a, b) => {
+  //     const aDuration = moment(a.end).diff(moment(a.start), 'minutes');
+  //     const bDuration = moment(b.end).diff(moment(b.start), 'minutes');
+  //     return aDuration - bDuration;
+  //   });
+
+  //   for (let i = 0; i < shortestFirst.length; i++) {
+  //     const currentLeave = shortestFirst[i];
+  //     let newRanges = [];
+
+  //     for (let j = 0; j < outputLeave.length; j++) {
+  //       const item = outputLeave[j];
+
+  //       // If overlaps
+  //       if (item.start < currentLeave.end && item.end > currentLeave.start) {
+  //         const overlapStart = moment.max(moment(item.start), moment(currentLeave.start)).toISOString();
+  //         const overlapEnd = moment.min(moment(item.end), moment(currentLeave.end)).toISOString();
+
+  //         // Merge users into the overlapping range
+  //         item.data = [...new Set([...(item.data || []), currentLeave.user])];
+
+  //         // Add non-overlapping left segment
+  //         if (moment(currentLeave.start).isBefore(overlapStart)) {
+  //           newRanges.push({
+  //             id: `leave-${moment(currentLeave.start).valueOf()}-${i}-left`,
+  //             start: currentLeave.start,
+  //             end: overlapStart,
+  //             data: [currentLeave.user]
+  //           });
+  //         }
+
+  //         // Add non-overlapping right segment
+  //         if (moment(currentLeave.end).isAfter(overlapEnd)) {
+  //           newRanges.push({
+  //             id: `leave-${moment(currentLeave.end).valueOf()}-${i}-right`,
+  //             start: overlapEnd,
+  //             end: currentLeave.end,
+  //             data: [currentLeave.user]
+  //           });
+  //         }
+
+  //         // Mark as handled
+  //         currentLeave._handled = true;
+  //       }
+  //     }
+
+  //     // If there were no overlaps, just push the entire leave range
+  //     if (!currentLeave._handled) {
+  //       outputLeave.push({
+  //         id: `leave-${moment(currentLeave.start).valueOf()}-${i}`,
+  //         start: currentLeave.start,
+  //         end: currentLeave.end,
+  //         data: [currentLeave.user]
+  //       });
+  //     }
+
+  //     // Push any new non-overlapping segments
+  //     for (const r of newRanges) {
+  //       outputLeave.push(r);
+  //     }
+  //   }
+
+  //   return outputLeave;
+
+  // }, [leave])
+
   const mergedLeave = useMemo(() => {
-    let outputLeave: any[] = [];
-    // Sort by shortest duration first
-    const shortestFirst = leave.sort((a, b) => {
-      const aDuration = moment(a.end).diff(moment(a.start), 'minutes');
-      const bDuration = moment(b.end).diff(moment(b.start), 'minutes');
-      return aDuration - bDuration;
-    });
+    const events = [];
 
-    for (let i = 0; i < shortestFirst.length; i++) {
-      const currentLeave = shortestFirst[i];
-      let newRanges = [];
+  // Create entry and exit events
+  for (const { start, end, user } of leave) {
+    events.push({ time: new Date(start).getTime(), type: 'start', user });
+    events.push({ time: new Date(end).getTime(), type: 'end', user });
+  }
 
-      for (let j = 0; j < outputLeave.length; j++) {
-        const item = outputLeave[j];
+  // Sort by time, with 'end' events before 'start' at same timestamp
+  events.sort((a, b) => 
+    a.time - b.time || (a.type === 'end' ? -1 : 1)
+  );
 
-        // If overlaps
-        if (item.start < currentLeave.end && item.end > currentLeave.start) {
-          const overlapStart = moment.max(moment(item.start), moment(currentLeave.start)).toISOString();
-          const overlapEnd = moment.min(moment(item.end), moment(currentLeave.end)).toISOString();
+  const activeUsers = new Set();
+  const result = [];
+  let lastTime = null;
 
-          // Merge users into the overlapping range
-          item.data = [...new Set([...(item.data || []), currentLeave.user])];
-
-          // Add non-overlapping left segment
-          if (moment(currentLeave.start).isBefore(overlapStart)) {
-            newRanges.push({
-              id: `leave-${moment(currentLeave.start).valueOf()}-${i}-left`,
-              start: currentLeave.start,
-              end: overlapStart,
-              data: [currentLeave.user]
-            });
-          }
-
-          // Add non-overlapping right segment
-          if (moment(currentLeave.end).isAfter(overlapEnd)) {
-            newRanges.push({
-              id: `leave-${moment(currentLeave.end).valueOf()}-${i}-right`,
-              start: overlapEnd,
-              end: currentLeave.end,
-              data: [currentLeave.user]
-            });
-          }
-
-          // Mark as handled
-          currentLeave._handled = true;
-        }
-      }
-
-      // If there were no overlaps, just push the entire leave range
-      if (!currentLeave._handled) {
-        outputLeave.push({
-          id: `leave-${moment(currentLeave.start).valueOf()}-${i}`,
-          start: currentLeave.start,
-          end: currentLeave.end,
-          data: [currentLeave.user]
-        });
-      }
-
-      // Push any new non-overlapping segments
-      for (const r of newRanges) {
-        outputLeave.push(r);
-      }
+  for (const { time, type, user } of events) {
+    if (lastTime !== null && time !== lastTime) {
+      result.push({
+        start: new Date(lastTime).toISOString(),
+        end: new Date(time).toISOString(),
+        data: [...activeUsers].sort(),
+      });
     }
 
-    return outputLeave;
+    // Modify active set after recording the segment
+    if (type === 'start') {
+      activeUsers.add(user);
+    } else {
+      activeUsers.delete(user);
+    }
 
+    lastTime = time;
+  }
+
+  return result.filter(r => r.data.length); // Remove empty ranges
   }, [leave])
 
   // const mergedLeave = useMemo(() => {
@@ -276,7 +309,6 @@ export const Schedule: React.FC<any> = (props) => {
   //   return outputLeave;
   // }, [leave]);
 
-  console.log({ leave, mergedLeave })
 
   const [confirmCallback, setConfirmCallback] = useState<any>(null);
 
@@ -296,19 +328,24 @@ export const Schedule: React.FC<any> = (props) => {
 
   const [graphType, setGraphType] = useState<any>('Capacity');
 
+  const [leaveOpen, openLeave] = useState(false);
+
+  console.log(JSON.stringify(leave))
+
   return (
     <Box
       sx={{
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px'
+        gap: '8px',
       }} className="schedule-container">
 
       <ScheduleRootProvider value={{
         events: calendarData?.calendarItems || [],
         rowOptions,
         people: people,
+        leave,
         horizon,
         graphType
       }}>
@@ -326,6 +363,11 @@ export const Schedule: React.FC<any> = (props) => {
           onReject={() => {
             setConfirmCallback(null)
           }} />
+
+        <LeaveModal
+          open={leaveOpen}
+          onClose={() => openLeave(false)}
+        />
         <SchedulingModal
           open={modalOpen}
           selected={selected}
@@ -406,8 +448,8 @@ export const Schedule: React.FC<any> = (props) => {
         <ScheduleView
           onSelectMenuItem={(item) => {
             let project = rowOptions?.find((a) => a.id == item?.id);
-            
-            if(project)
+
+            if (project)
               router(`/${project?.project ? "projects" : "estimates"}/${project.displayId}/tickets`)
           }}
           createEvent={(event, autocreate) => {
@@ -429,9 +471,14 @@ export const Schedule: React.FC<any> = (props) => {
               })
               return;
             }
+
+            if (event.groupBy?.id == 'on-leave') {
+              openLeave(true);
+              return;
+            }
+
             let tasks = rowOptions.reduce((prev, curr) => prev.concat(curr.tasks.map((task) => ({ ...task, startDate: new Date(task.startDate), endDate: new Date(task.endDate), project: curr }))), [])
             tasks = tasks.filter((task) => {
-              console.log(task.endDate?.getTime() > event.start?.getTime(), task.startDate?.getTime() < event.end?.getTime(), task, event)
               return task.endDate?.getTime() > event.start?.getTime() && task.startDate?.getTime() < event.end?.getTime();
               // return task.start.getTime() < event.start.getTime() && task.end.getTime() > event.end.getTime()
             })
@@ -446,7 +493,6 @@ export const Schedule: React.FC<any> = (props) => {
             // }
           }}
           updateEvent={(event) => {
-            console.log("Update", { event })
             updateCalendarItem({
               variables: {
                 id: event.id,
@@ -504,9 +550,10 @@ export const Schedule: React.FC<any> = (props) => {
             let project = rowOptions?.find((a) => a.id == item.groupBy?.id);
 
             let eventPeople = (item.data?.people || []).map((x) => {
-              return people?.find((a) => a.id == x)
+              return allUsers?.find((a) => a.id == x)
             })
 
+       
             return (
               <Paper
                 elevation={3}
@@ -514,7 +561,6 @@ export const Schedule: React.FC<any> = (props) => {
                   marginTop: '4px',
                   marginBottom: '4px',
                   flex: 1,
-                  border: !project && '2px solid red',
                   // height: item.draft ? '80%' : undefined,
                   borderRadius: '12px',
                   boxShadow: item.selected ? '0px 0px 0px 2px blue' : '0px 0px 0px 2px transparent',
@@ -525,25 +571,28 @@ export const Schedule: React.FC<any> = (props) => {
                 {
                   (item.expanded) ?
                     <Box sx={{
-                      display: item.expanded ? undefined : 'none',
+                      display: item.expanded ? 'flex' : 'none',
+                      flex: 1,
                       height: item.expanded ? '100%' : 0
                     }}>
                       {item.draft ? (
                         <div style={{
                           height: '100%',
-                          background: 'rgba(127, 127, 127, 0.4)'
+                          width: '100%',
+                          background: 'rgba(127, 127, 127, 0.8)'
                         }}></div>
                       ) : (
-                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column' }}>
                           {project && <Box sx={{
-                            background: (project?.colour || 'rgb(127, 127, 0, 1)'),
+                            background: ((project?.colour ? project.colour : stringToColor(`${project?.displayId} - ${project.name}`)) || 'rgb(127, 127, 0, 1)'),
                             color: 'white'
                           }}>
-                            <Typography textAlign={'center'}>{project?.displayId} - {project?.name}</Typography>
+                            <Typography textAlign={'center'}>{project?.displayId}</Typography>
                           </Box>}
                           <Box sx={{
                             padding: '8px',
                             display: 'flex',
+                            flex: 1,
                             flexDirection: 'column',
                             gap: '8px'
                           }}>
@@ -551,11 +600,11 @@ export const Schedule: React.FC<any> = (props) => {
                               <Typography>{person?.name}</Typography>
                             ))}
                           </Box>
-                          {item.permissions?.length > 0 &&
+                          {(item.permissions?.length > 0 || item.createdBy) &&
                             <Box sx={{ padding: '8px' }}>
                               <AvatarList
                                 size={20}
-                                users={item.permissions?.map((x) => x.user)?.concat(item.createdBy ? [item.createdBy] : [])} />
+                                users={(item.permissions?.map((x) => x.user)?.concat(item.createdBy ? [item.createdBy] : [])).map((x) => ({...x, color: stringToColor(x.id)}))} />
                             </Box>
                           }
                         </Box>
@@ -594,19 +643,7 @@ export const Schedule: React.FC<any> = (props) => {
                 } 
               }
             */
-            mergedLeave.map((leave_item) => ({
-              id: `${leave_item.id}`,
-              start: leave_item.start,
-              end: leave_item.end,
-              selectable: false,
-              resizable: false,
-              data: {
-                people: leave_item.data
-              },
-              groupBy: {
-                id: 'on-leave'
-              }
-            })).concat(
+          
               rowOptions.map((x) =>
                 x.draftSchedule.map((sched, ix) => ({
                   ...sched,
@@ -622,7 +659,7 @@ export const Schedule: React.FC<any> = (props) => {
                   ...x
                 }))
               )
-            )
+            
 
           }
         />

@@ -76,25 +76,21 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
         let outputRows = [];
 
         for (var i = 0; i < count; i++) {
-            console.log({expanded: props.expanded, row: props.rows?.[i]?.id})
 
             outputRows.push(
                 <Row
+                    key={props.rows?.[i]?.id}
                     filled={props.rows[i] != undefined}
                     expanded={props.expanded?.indexOf(props.rows?.[i]?.id || i) > -1}
                     row={{...props.rows?.[i], id: props.rows?.[i]?.id || i, index: i}}
                     events={props.rows[i]?.events || []} 
+
                     renderItem={props.renderItem}/>
             )
         }
         return outputRows;
     }, [timelineSize, props.renderItem, props.rows, props.expanded])
 
-    useEffect(() => {
-        window.addEventListener('keydown', (e) => {
-            console.log(e.target, e.key)
-        })
-    }, [])
 
     return (
         <div style={{ flex: 1, display: 'flex', gap: '8px' }}>
@@ -149,7 +145,6 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
                         }}
                         onScroll={(event) => {
                             const top = event.currentTarget.scrollTop;
-                            console.log({top})
                             setScrollTop(top)
                         }}
                         sx={{
