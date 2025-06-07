@@ -5,9 +5,6 @@ import path from 'path'
 import FormData from 'form-data';
 
 import axios from 'axios';
-import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core'
-import fetch from "cross-fetch";
-import { createUploadLink } from 'apollo-upload-client'
 import { LexoRank } from "lexorank";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 
@@ -18,7 +15,7 @@ export default (prisma: PrismaClient) => {
             files: async (root: any, args: any, context: any) => {
                 const appPath = `/Application Data/Flow/${root.displayId}`
                 const dataPath = path.join(appPath, args.path)
-				const fileQuery = gql`
+				const fileQuery = `
 					{
 						files(path: "${dataPath}") {
 							id
@@ -425,7 +422,7 @@ export default (prisma: PrismaClient) => {
                 const appPath = `/Application Data/Flow/${args.project}`
                 const dataPath = path.join(appPath, args.path)
 
-				const fileQuery = gql`
+				const fileQuery = `
 					mutation CreateProjectFolder {
 						createDirectory(path: "${dataPath}", recursive: true){
                             id
@@ -446,20 +443,7 @@ export default (prisma: PrismaClient) => {
             },
             uploadProjectFiles: async (root: any, args: {project: string, files: any[], path: string}, context: any) => {
                 
-                const uploadLink = createUploadLink({
-                    uri: context.gatewayUrl,
-                    fetch: fetch,
-                    headers: {
-                        'X-Hive-JWT': `${context.token}`,
-				
-                        'Authorization': `Bearer ${context.token}`
-                    }
-                })
-                const client = new ApolloClient({
-                    link: uploadLink,
-                    cache: new InMemoryCache()
-                })
-
+            
                 const appPath = `/Application Data/Flow/${args.project}`
                 const dataPath = path.join(appPath, args.path)
 
@@ -484,7 +468,7 @@ export default (prisma: PrismaClient) => {
                     return {name: filename, data: fileData}
                 }))
 
-				const fileQuery = gql`
+				const fileQuery = `
 					mutation UploadProjectFiles ($files: [Upload!]) {
 						uploadFiles(path: "${dataPath}", files: $files){
                             id
@@ -558,7 +542,7 @@ export default (prisma: PrismaClient) => {
 
                 const newPath = path.join(appPath, args.newPath)
 
-                const moveQuery = gql`
+                const moveQuery = `
                     mutation MoveFile {
                         moveFile(path: "${dataPath}", newPath: "${newPath}"){
                             id
@@ -579,7 +563,7 @@ export default (prisma: PrismaClient) => {
 
                 const newPath = path.join(appPath, args.newPath)
 
-                const renameQuery = gql`
+                const renameQuery = `
                     mutation RenameFile {
                         renameFile(path: "${dataPath}", newName: "${args.newPath}"){
                             id
@@ -598,7 +582,7 @@ export default (prisma: PrismaClient) => {
                 const appPath = `/Application Data/Flow/${args.project}`
                 const dataPath = path.join(appPath, args.path)
 
-                const deleteQuery = gql`
+                const deleteQuery = `
                     mutation DeleteFile {
                         deleteFile(path: "${dataPath}"){
                             id
