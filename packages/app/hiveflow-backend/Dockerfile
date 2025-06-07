@@ -1,4 +1,4 @@
-FROM node:24-slim
+FROM node:22
 
 ARG BUILD_ENV=github
 
@@ -12,7 +12,7 @@ RUN yarn
 
 WORKDIR /app/packages/app/hiveflow-backend
 
-# RUN yarn build
+RUN yarn build
 
 RUN npx prisma generate
 
