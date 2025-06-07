@@ -5,7 +5,6 @@ import express from "express";
 import schema from "./schema";
 import { PrismaClient } from '@prisma/client'
 
-
 const prisma = new PrismaClient();
 
 (async () => {
