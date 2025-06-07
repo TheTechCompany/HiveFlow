@@ -7,8 +7,9 @@ public.key
 .DS_Store
 migration/
 patch-*
-task*
 last_dump*
+packages/integrations/data-producer/task.json
+packages/integrations/data-producer/task-test.json
 
 .yarn/*
 !.yarn/cache
