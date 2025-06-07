@@ -1,4 +1,4 @@
-import { PrismaClient, ProjectTask } from "@prisma/client"
+import { PrismaClient } from "@prisma/client"
 import { nanoid } from "nanoid";
 
 export default (prisma: PrismaClient) => {

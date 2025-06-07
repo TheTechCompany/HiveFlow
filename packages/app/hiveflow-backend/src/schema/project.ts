@@ -1,12 +1,13 @@
-import { PrismaClient, ProjectTask } from "@prisma/client"
+import { PrismaClient } from "@prisma/client"
 import { nanoid } from "nanoid";
 import { request } from 'graphql-request'
 import path from 'path'
 import FormData from 'form-data';
 
-import axios from 'axios';
+import axios from 'axios';``
 import { LexoRank } from "lexorank";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+// import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 
 export default (prisma: PrismaClient) => {
 
@@ -225,7 +226,7 @@ export default (prisma: PrismaClient) => {
                 
                 if(!projectRoot) throw new Error("No projectTask found")
 
-                let aboveTask: ProjectTask | null, belowTask : ProjectTask | null;
+                let aboveTask: any | null, belowTask : any | null;
 
                 let aboveTimelineRank, belowTimelineRank;
 
