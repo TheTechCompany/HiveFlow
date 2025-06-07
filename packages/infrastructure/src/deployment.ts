@@ -36,7 +36,9 @@ export const Deployment = async (provider: Provider, rootServer: string, dbUrl: 
                             { name: 'ROOT_SERVER', value: `http://${rootServer}` },
                             { name: 'VERSION_SHIM', value: '1.0.5' },
                             { name: "DATABASE_URL", value: all([dbUrl, dbPass]).apply(([url, pass]) => `postgresql://postgres:${pass}@${url}.db-${suffix}.svc.cluster.local:5432/hiveflow`) },
-
+                            { name: 'HEXHIVE_SECRET', value: process.env.HEXHIVE_SECRET },
+                            { name: "BACKEND_URL", value: `http://hive-flow-prod-svc.default.svc.cluster.local/graphql`},
+                            { name: "ENTRYPOINT", value: 'https://apps.hexhive.io/hiveflow-frontend/hexhive-apps-hive-flow.js' }
                             // { name: 'UI_URL',  value: `https://${domainName}/dashboard` },
                             // { name: 'BASE_URL',  value: `https://${domainName}`},
                             // { name: "NEO4J_URI", value: process.env.NEO4J_URI /*neo4Url.apply((url) => `neo4j://${url}.default.svc.cluster.local`)*/ },

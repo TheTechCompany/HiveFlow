@@ -14,6 +14,24 @@ const prisma = new PrismaClient();
   const { typeDefs, resolvers } = schema(prisma);
   
   const graphServer = new HiveGraph({
+    name: 'HiveFlow',
+    slug: 'flow',
+    backend_url: process.env.BACKEND_URL || 'http://localhost:9011',
+    entrypoint: process.env.ENTRYPOINT || 'http://localhost:8503/hexhive-apps-hive-flow.js',
+    resources: [
+      {
+        name: 'Project',
+        actions: ['create', 'read', 'update', 'delete']
+      },
+      {
+        name: "ProjectTask",
+        actions: ['create', 'read', 'update', 'delete']
+      },
+      {
+        name: 'CalendarItem',
+        actions: ['create', 'read', 'update', 'delete']
+      }
+    ],
 		rootServer: process.env.ROOT_SERVER || "http://localhost:7000",
     dev: false,
 		schema: {

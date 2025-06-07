@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@graphql-tools/merge": "^9.0.24",
-    "@hexhive/graphql-server": "1.0.2-beta.53",
+    "@hexhive/graphql-server": "1.0.2-beta.94",
     "@prisma/client": "6.9.0",
     "axios": "^0.27.2",
     "body-parser": "^2.2.0",
