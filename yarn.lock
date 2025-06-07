@@ -2977,7 +2977,7 @@ __metadata:
     totalist: "npm:^3.0.0"
     ts-config-single-spa: "npm:^2.0.1"
     tsconfig-paths-webpack-plugin: "npm:^3.5.2"
-    typescript: "npm:^4.3.4"
+    typescript: "npm:5.8.3"
     webpack: "npm:^5.88.2"
     webpack-bundle-analyzer: "npm:^4.5.0"
     webpack-cli: "npm:^4.7.2"
@@ -18343,6 +18343,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"typescript@npm:5.8.3":
+  version: 5.8.3
+  resolution: "typescript@npm:5.8.3"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 10/65c40944c51b513b0172c6710ee62e951b70af6f75d5a5da745cb7fab132c09ae27ffdf7838996e3ed603bb015dadd099006658046941bd0ba30340cc563ae92
+  languageName: node
+  linkType: hard
+
 "typescript@npm:>=3 < 6":
   version: 5.3.3
   resolution: "typescript@npm:5.3.3"
@@ -18353,7 +18363,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^4.1.2, typescript@npm:^4.3.4, typescript@npm:^4.4.3, typescript@npm:^4.5.4":
+"typescript@npm:^4.1.2, typescript@npm:^4.4.3, typescript@npm:^4.5.4":
   version: 4.9.5
   resolution: "typescript@npm:4.9.5"
   bin:
