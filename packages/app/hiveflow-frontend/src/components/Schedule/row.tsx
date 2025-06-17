@@ -154,13 +154,13 @@ export const PlanItem = (props: any) => {
                         updateEvent({ ...props.item, end: screenToDate({ x: dateToScreen(props.item.end).x + diff }) })
                         break;
                 }
-                e.target.removeEventListener('mousemove', move);
-                e.target.removeEventListener('mouseup', up);
+                e.target.removeEventListener('pointermove', move);
+                e.target.removeEventListener('pointerup', up);
                 e.target.releasePointerCapture(e.pointerId);
             }
 
-            e.target.addEventListener('mousemove', move);
-            e.target.addEventListener('mouseup', up);
+            e.target.addEventListener('pointermove', move);
+            e.target.addEventListener('pointerup', up);
 
         }
     }
@@ -202,7 +202,7 @@ export const PlanItem = (props: any) => {
             }}>
 
             {props.item?.resizable != false && <div
-                onMouseDown={dragEnd('w')}
+                onPointerDown={dragEnd('w')}
                 style={{
                     position: 'absolute',
                     left: 0,
@@ -219,7 +219,7 @@ export const PlanItem = (props: any) => {
             </div>
 
             {props.item?.resizable != false && <div
-                onMouseDown={dragEnd('e')}
+                onPointerDown={dragEnd('e')}
                 style={{
                     position: 'absolute',
                     right: 0,

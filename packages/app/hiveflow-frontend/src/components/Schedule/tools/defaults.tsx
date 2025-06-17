@@ -44,7 +44,7 @@ export const DEFAULT_TOOLS = [
                             e.stopPropagation();
                         }
                     },
-                    onMouseDown: (target: any, e: any, item: any) => {
+                    onPointerDown: (target: any, e: any, item: any) => {
                         if (pasteItems.length > 0) {
                             if (target == 'row') {
                                 let x = hoverPos - timelinePosition.x;
@@ -162,12 +162,12 @@ export const DEFAULT_TOOLS = [
 
                                 currentTarget.releasePointerCapture(e.pointerId);
 
-                                currentTarget.removeEventListener('mousemove', move);
-                                currentTarget.removeEventListener('mouseup', up);
+                                currentTarget.removeEventListener('pointermove', move);
+                                currentTarget.removeEventListener('pointerup', up);
                             }
 
-                            currentTarget.addEventListener('mousemove', move);
-                            currentTarget.addEventListener('mouseup', up);
+                            currentTarget.addEventListener('pointermove', move);
+                            currentTarget.addEventListener('pointerup', up);
                         }
                     },
                     onMouseMove: (target: any, e: any) => {
