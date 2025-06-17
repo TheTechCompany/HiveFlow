@@ -65,6 +65,9 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
             onMouseDown={(e) => {
                 activeTool?.listeners?.onMouseDown?.('row', e, rowTemplate);
             }}
+            onPointerDown={(e) => {
+                activeTool?.listeners?.onPointerDown?.('row', e, rowTemplate)
+            }}
             onMouseUp={(e) => {
                 activeTool?.listeners?.onMouseUp?.('row', e, rowTemplate);
             }}
@@ -168,6 +171,9 @@ export const PlanItem = (props: any) => {
             onDoubleClick={() => onDoubleClickEvent?.(props.item)}
             onMouseDown={(e) => {
                 activeTool?.listeners?.onMouseDown?.('item', e, props.item);
+            }}
+            onPointerDown={(e) => {
+                activeTool?.listeners?.onPointerDown?.('item', e, props.item)
             }}
             onMouseUp={(e) => {
                 activeTool?.listeners?.onMouseUp?.('item', e, props.item);

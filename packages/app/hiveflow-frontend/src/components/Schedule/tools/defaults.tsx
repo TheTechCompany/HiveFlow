@@ -269,7 +269,7 @@ export const DEFAULT_TOOLS = [
                             setHoverRow(item)
                         }
                     },
-                    onMouseDown: (target: any, e: any, row: any) => {
+                    onPointerDown: (target: any, e: any, row: any) => {
                         if (target == 'row') {
                             const currentTarget = e.currentTarget;
 
@@ -296,12 +296,12 @@ export const DEFAULT_TOOLS = [
 
                                 currentTarget.releasePointerCapture(e.pointerId);
 
-                                currentTarget.removeEventListener('mousemove', move);
-                                currentTarget.removeEventListener('mouseup', up);
+                                currentTarget.removeEventListener('pointermove', move);
+                                currentTarget.removeEventListener('pointerup', up);
                             }
 
-                            currentTarget.addEventListener('mousemove', move);
-                            currentTarget.addEventListener('mouseup', up);
+                            currentTarget.addEventListener('pointermove', move);
+                            currentTarget.addEventListener('pointerup', up);
                         }
                     },
                     onMouseUp: (target: any, e: any) => {

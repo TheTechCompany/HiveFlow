@@ -110,7 +110,7 @@ export const Header = (props: any) => {
                                         onMouseLeave={() => {
                                             setHeaderHandle(false)
                                         }}
-                                        onMouseDown={(e: any) => {
+                                        onPointerDown={(e: any) => {
                                             let startY = e.clientY;
 
                                             e.currentTarget.setPointerCapture(e.pointerId)
@@ -140,12 +140,12 @@ export const Header = (props: any) => {
 
                                                 e.currentTarget.releasePointerCapture(e.pointerId)
 
-                                                e.currentTarget.removeEventListener('mousemove', move)
-                                                e.currentTarget.removeEventListener('mouseup', up)
+                                                e.currentTarget.removeEventListener('pointermove', move)
+                                                e.currentTarget.removeEventListener('pointerup', up)
                                             }
 
-                                            e.currentTarget.addEventListener('mousemove', move)
-                                            e.currentTarget.addEventListener('mouseup', up)
+                                            e.currentTarget.addEventListener('pointermove', move)
+                                            e.currentTarget.addEventListener('pointerup', up)
 
                                         }}
                                         sx={{
