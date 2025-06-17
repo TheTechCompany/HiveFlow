@@ -19,7 +19,7 @@ export const SkillView = (props: any) => {
 
     return (
         <Box>
-            <List sx={{height: '200px'}}>
+            <List sx={{height: '200px', overflow: 'auto'}}>
                 {skills?.map((skill) => (
                     <ListItem disablePadding sx={{ padding: '8px', display: 'flex', alignItems: 'center' }}>
         
