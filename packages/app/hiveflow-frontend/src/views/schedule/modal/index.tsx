@@ -179,7 +179,7 @@ export const SchedulingModal = (props: any) => {
                         value={rowOptions?.find((a) => a.id == schedule.groupBy?.id) || null}
                         onChange={(e, newValue) => setSchedule({ ...schedule, groupBy: {id: newValue?.id} })}
                         groupBy={(option) => option.project ? 'Project' : 'Estimate'}
-                        getOptionLabel={(option: any) => typeof (option) == 'string' ? option : option.name}
+                        getOptionLabel={(option: any) => typeof (option) == 'string' ? option : `${option.displayId} - ${option.name}`}
                         renderInput={(params) => <TextField {...params} label="Row" size="small" />} />
                     <Box sx={{ display: 'flex', gap: '8px' }}>
                         <DateTimePicker
