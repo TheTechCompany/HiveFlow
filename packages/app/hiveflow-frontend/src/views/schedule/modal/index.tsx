@@ -98,12 +98,12 @@ export const SchedulingModal = (props: any) => {
 
     const skills = (props.tasks || []).reduce((prev, curr) => {
 
-        const skillKeys = [...new Set(prev.map((x) => x.skill).concat((curr?.requiredSkills || []).map((x) => x.skill.skill)))]
+        const skillKeys = [...new Set(prev.map((x) => x?.skill).concat((curr?.requiredSkills || []).map((x) => x?.skill?.skill)).filter((a) => a != undefined))]
 
         let skills = skillKeys?.map((x) => {
             return {
                 skill: x,
-                hours: parseFloat(prev.find((a) => a.skill == x)?.hours || 0) + parseFloat(curr?.requiredSkills?.find((a) => a.skill.skill == x).hours || 0)
+                hours: parseFloat(prev.find((a) => a.skill == x)?.hours || 0) + parseFloat(curr?.requiredSkills?.find((a) => a?.skill?.skill == x).hours || 0)
             }
         })
 
