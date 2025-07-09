@@ -103,7 +103,7 @@ export const SchedulingModal = (props: any) => {
         let skills = skillKeys?.map((x) => {
             return {
                 skill: x,
-                hours: parseFloat(prev.find((a) => a.skill == x)?.hours || 0) + parseFloat(curr?.requiredSkills?.find((a) => a?.skill?.skill == x).hours || 0)
+                hours: parseFloat(prev.find((a) => a.skill == x)?.hours || 0) + parseFloat(curr?.requiredSkills?.find((a) => a?.skill?.skill == x)?.hours || 0)
             }
         })
 

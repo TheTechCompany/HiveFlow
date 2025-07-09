@@ -49,11 +49,21 @@ export const PeopleView = (props: any) => {
         }
     }
 
+    const [ searchQuery, setSearchQuery ] = useState('')
+
+    const search = (item: any) => {
+        if(!searchQuery || searchQuery.length == 0) return true;
+        return item.name.indexOf(searchQuery) > -1;
+    }
+
     return (
         <Box>
-            <TextField fullWidth size="small" label="Search" />
+            <TextField 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                fullWidth size="small" label="Search" />
             <List sx={{ height: '200px', overflow: 'auto'}}>
-                {props.people?.filter(onLeave).map((people) => {
+                {props.people?.filter(onLeave).filter(search).map((people) => {
                     const {leave: leaveAvailability, scheduled: scheduleAvailability} = getAvailability(people);
                     return <ListItem   
                         dense
