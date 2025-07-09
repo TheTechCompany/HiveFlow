@@ -563,7 +563,7 @@ export const Schedule: React.FC<any> = (props) => {
                   flex: 1,
                   // height: item.draft ? '80%' : undefined,
                   borderRadius: '12px',
-                  boxShadow: item.selected ? '0px 0px 0px 2px blue' : `0px 0px 0px 2px ${(project?.colour ? project.colour : stringToColor(`${project?.id} - ${project.name}`)) || 'rgb(127, 127, 0, 1)'}`,
+                  boxShadow: item.selected ? '0px 0px 0px 2px blue' : `0px 0px 0px 2px ${(project?.colour ? project?.colour : stringToColor(`${project?.id} - ${project?.name}`)) || 'rgb(127, 127, 0, 1)'}`,
                   zIndex: item.draft ? 0 : 99,
                   // background: '#FFF8F2',
                   overflow: 'hidden'
