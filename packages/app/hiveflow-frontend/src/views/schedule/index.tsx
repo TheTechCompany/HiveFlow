@@ -450,7 +450,7 @@ export const Schedule: React.FC<any> = (props) => {
             let project = rowOptions?.find((a) => a.id == item?.id);
 
             if (project)
-              router(`/${project?.project ? "projects" : "estimates"}/${project.displayId}/tickets`)
+              router(`/${project?.project ? "projects" : "estimates"}/${project.displayId}/timeline`)
           }}
           createEvent={(event, autocreate) => {
 
