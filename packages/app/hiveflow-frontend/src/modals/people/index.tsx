@@ -1,4 +1,3 @@
-import { BaseModal, FormInput } from '@hexhive/ui';
 import { Dialog, Button, DialogActions, DialogTitle, TextField, DialogContent } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 
@@ -28,7 +27,7 @@ export const PeopleModal: React.FC<PeopleModalProps> = (props) => {
 
     return (
         <Dialog
-            title='Create Person'
+            fullWidth
             onClose={props.onClose}
             // onDelete={props.selected && props.onDelete}
             open={props.open}>

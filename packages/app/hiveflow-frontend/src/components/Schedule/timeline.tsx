@@ -117,7 +117,7 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
               
                     <Box
                         tabIndex={0}
-                        onMouseDown={() => {
+                        onPointerDown={() => {
                             changeSelection?.([])
                         }}
                         onKeyDown={(e) => {

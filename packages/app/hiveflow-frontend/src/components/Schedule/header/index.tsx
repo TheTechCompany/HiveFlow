@@ -75,7 +75,7 @@ export const Header = (props: any) => {
                             display: 'flex',
                             flex: 1,
                         }}>
-                            <div style={{ fontSize: 18 * (1 - ((rows.length - type.length) * 0.2)) + "px", textAlign: 'center' }}>
+                            <div style={{ minHeight: '21px', fontSize: 18 * (1 - ((rows.length - type.length) * 0.2)) + "px", textAlign: 'center' }}>
                                 {outStart.format(getFormat(type[0]))}
                             </div>
                             <Divider />
@@ -117,7 +117,6 @@ export const Header = (props: any) => {
 
                                             const move = (e: any) => {
                                                 let diff = e.clientY - startY;
-                                                console.log({ headerHeight, diff })
 
                                                 if (headerHeight + diff > 0) {
                                                     if (headerHeight + diff < 10) {

@@ -65,8 +65,6 @@ export const FilePreviewDialog : React.FC<FilePreviewDialogProps> = (props) => {
 
     const files = data?.filesById || [];
 
-    console.log("PREVIEW", {files, fileProps: props.files, len: files.length});
-
     useEffect(() => {
         setActiveIndex(0)
     }, [files])

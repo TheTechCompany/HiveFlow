@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
 
-import { AvatarList, BaseModal } from '@hexhive/ui'
+import { AvatarList } from '@hexhive/ui'
 import { PeopleTab } from './tabs/people-tab';
 import { EquipmentTab } from './tabs/equipment-tab';
 import NoteTab from './tabs/note-tab';
 import moment from 'moment';
 
-import { Autocomplete, Dialog, Box, Typography, Button, DialogTitle, DialogContent, TextField, DialogActions } from '@mui/material';
+import { Dialog, Box, Typography, Button, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { ScheduleModalHeader } from './header';
 import { CloneTab } from './tabs/clone-tab';
 import { TabHeader } from './tabheader';

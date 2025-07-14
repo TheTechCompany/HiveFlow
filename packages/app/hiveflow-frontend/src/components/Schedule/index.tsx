@@ -89,6 +89,8 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
 
     const [events, setEvents] = useState<any[]>([]);
 
+    const [ dragItem, setDragItem ] = useState<any>(null);
+
     const [ _selected, setSelected ] = useState<any[]>([])
     const selected = _selected.filter((a) => events.findIndex((b) => b.id == a) > -1)
 
@@ -136,6 +138,9 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
             pasteItems,
             setPasteItems,
 
+            dragItem,
+            setDragItem,
+
             timelineSize: sizes,
             timelinePosition: controlRef.current?.getBoundingClientRect?.(),
             events: events,
@@ -178,7 +183,18 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
                         minHeight: 0,
                         flexDirection: 'column'
                     }}>
-                        
+                        {dragItem && (
+                            <div style={{
+                                position: 'fixed',
+                                pointerEvents: 'none',
+                                zIndex: 9999,
+                                left: dragItem.x,
+                                top: dragItem.y,
+                                width: dragItem.width,
+                            }}>
+                                {props.renderItem(dragItem.item)}
+                            </div>
+                        )}
                         <div style={{
                             display: 'flex',
                             minHeight: 0,

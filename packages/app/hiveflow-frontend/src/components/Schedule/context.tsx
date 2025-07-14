@@ -10,6 +10,9 @@ export const ScheduleContext = createContext<{
     timelineSize?: any;
     timelinePosition?: any;
 
+    dragItem?: any;
+    setDragItem?: (item: any) => void;
+
     tool?: any,
     changeTool?: (tool: any) => void;
 

@@ -2,7 +2,7 @@ import { Box } from "@mui/material";
 import { useDateToScreen, useScreenToDate } from "./utils";
 import { useRowHeights, useSchedule, useTool } from "./context";
 import useResizeAware from "react-resize-aware";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export const ROW_ITEM_CONTAINER = '30px';
 export const ROW_ITEM_RADIUS = '12px';
@@ -29,27 +29,68 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
     const { updateRowHeight, rowHeights } = useRowHeights();
     const { selected, horizon } = useSchedule();
 
-    const [sizes, setSizes] = useState<any>(null)
-    const [ allSizes, setAllSizes ] = useState<any>({});
+    const [allSizes, setAllSizes] = useState<any>({});
 
     const rowKey = `${rowTemplate?.id}`
-    
 
-    useEffect(() => {
-        if(rowHeights[rowKey] != sizes?.height){
-            updateRowHeight(rowKey, sizes?.height)
+    const { lanes, laneEvents } = useMemo(() => {
+        const foregroundEvents = events.filter((a) => !a.draft)
+        if (!foregroundEvents || foregroundEvents.length === 0) return { lanes: [], laneEvents: [] };
+    
+        const sorted = [...foregroundEvents].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+        
+        const lanes: any[][] = []; // Each sub-array is a lane, containing events
+    
+        for (const event of sorted) {
+            let placed = false;
+            for (const lane of lanes) {
+                const hasOverlap = lane.some(existingEvent =>
+                    new Date(event.start) < new Date(existingEvent.end) && new Date(event.end) > new Date(existingEvent.start)
+                );
+                if (!hasOverlap) {
+                    lane.push(event);
+                    placed = true;
+                    break;
+                }
+            }
+            if (!placed) {
+                lanes.push([event]);
+            }
         }
-    }, [JSON.stringify(rowTemplate), JSON.stringify(rowHeights), JSON.stringify(sizes)])
+    
+        const laneEvents = lanes.map((lane, laneIndex) => {
+            return lane.map(event => ({...event, lane: laneIndex}))
+        }).flat();
+    
+        return { lanes, laneEvents };
+    }, [events]);
+
+    const { laneHeights, totalHeight } = useMemo(() => {
+        const laneHeights = lanes.map((lane) => {
+            const heights = lane.map(event => allSizes[event.id] || 30); // Default height 30px
+            return Math.max(0, ...heights);
+        });
+        const totalHeight = laneHeights.reduce((a, b) => a + b, 0);
+        return { laneHeights, totalHeight };
+    }, [lanes, allSizes]);
+
+    // useEffect(() => {
+    //     if (totalHeight > 0 && rowHeights[rowKey] !== totalHeight) {
+    //         updateRowHeight(rowKey, totalHeight);
+    //     } else if(totalHeight == 0 && rowHeights[rowKey] != ROW_ITEM_CONTAINER){
+    //         updateRowHeight(rowKey, parseInt(ROW_ITEM_CONTAINER, 10))
+    //     }
+    // }, [totalHeight, rowKey, rowHeights]);
 
     return (
         <Box
-
+            className="plan-row"
             sx={{
                 position: 'relative',
                 borderBottom: filled ? '1px solid black' : '1px solid #dfdfdf',
                 display: 'flex',
                 alignItems: 'center',
-                height: rowHeights[rowKey] || ROW_ITEM_CONTAINER, //expanded ? undefined : ROW_ITEM_CONTAINER,
+                height: rowHeights[rowKey] || ROW_ITEM_CONTAINER,
                 width: '100%',
             }}
 
@@ -75,29 +116,45 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
 
             {activeTool?.component?.(rowTemplate)}
 
-            {events.map((event) => {
+            {events.filter((a) => a.draft).map((event) => {
+                 const { x } = dateToScreen(event.start);
+                 const { x: endX } = dateToScreen(event.end);
 
+                 const width = endX - x;
+                 return <PlanItem
+                     key={event.id}
+                     left={x}
+                     width={width}
+                     height={rowHeights[rowKey] || ROW_ITEM_CONTAINER}
+                     item={event}
+                     selected={false}
+                     expanded={expanded}
+                     renderItem={() => renderItem({ ...event, expanded, selected: false })} />
+            })}
+
+            {laneEvents.map((event) => {
                 const { x } = dateToScreen(event.start);
                 const { x: endX } = dateToScreen(event.end);
-
                 const width = endX - x;
+
+                const laneIndex = event.lane;
+                const top = laneHeights.slice(0, laneIndex).reduce((a, b) => a + b, 0);
+                const height = laneHeights[laneIndex];
+
                 return <PlanItem
                     key={event.id}
                     left={x}
+                    top={top}
                     width={width}
+                    // height={height}
                     selected={selected.indexOf(event.id) > -1}
-                    rowHeight={rowHeights[rowKey]}
                     onResize={(itemSize) => {
-                        setAllSizes((allSizes) => {
-                            let newSizes = {...allSizes, [event.id]: itemSize?.height}
-                            setSizes({height: Math.max(...Object.keys(newSizes).map((x) => newSizes[x])) })
-                            
-                            return newSizes
+                        setAllSizes((currentSizes) => {
+                            if (currentSizes[event.id] !== itemSize?.height) {
+                                return { ...currentSizes, [event.id]: itemSize?.height };
+                            }
+                            return currentSizes;
                         });
-
-                        // if (!sizes?.height || itemSize?.height > sizes?.height || (event.id == sizes.id && itemSize?.height != sizes?.height)) {
-                        //     setSizes({ height: itemSize.height, id: event.id })
-                        // }
                     }}
                     item={event}
                     expanded={expanded}
@@ -117,7 +174,7 @@ export const PlanItem = (props: any) => {
     const screenToDate = useScreenToDate();
     const dateToScreen = useDateToScreen();
 
-    const { updateEvent, onClickEvent, onDoubleClickEvent } = useSchedule();
+    const { updateEvent, onClickEvent, onDoubleClickEvent, dragItem } = useSchedule();
     const { activeTool } = useTool();
 
     useEffect(() => {
@@ -167,6 +224,7 @@ export const PlanItem = (props: any) => {
 
     return (
         <div
+            className={`plan-item ${props.selected ? 'selected' : ''}`}
             onClick={() => onClickEvent?.(props.item)}
             onDoubleClick={() => onDoubleClickEvent?.(props.item)}
             onMouseDown={(e) => {
@@ -184,17 +242,20 @@ export const PlanItem = (props: any) => {
             onMouseMove={(e) => {
                 activeTool?.listeners?.onMouseMove?.('item', e, props.item)
             }}
-       
+
             style={{
                 position: 'absolute',
                 display: 'flex',
                 cursor: 'pointer',
                 pointerEvents: 'all',
+                touchAction: 'none',
+                top: props.top,
                 left: props.left,
                 width: props.width,
-                // height: !props.rowHeight ? 0 : undefined,
+                height: props.height,
                 minHeight: (props.expanded) ? '100%' : undefined,
-                userSelect: 'none'
+                userSelect: 'none',
+                opacity: dragItem?.item?.id === props.item.id ? 0.5 : 1
                 // height: '100%',
                 // background: '#bbb',
                 // borderRadius: ROW_ITEM_RADIUS,
@@ -215,7 +276,6 @@ export const PlanItem = (props: any) => {
             <div style={{ zIndex: 1, flex: 1, display: 'flex', position: 'relative' }}>
                 {listeners}
                 {props.renderItem?.()}
-
             </div>
 
             {props.item?.resizable != false && <div

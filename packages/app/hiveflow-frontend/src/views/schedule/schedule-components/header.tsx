@@ -15,8 +15,8 @@ export const SchedulerHeaderItem = (header: any) => {
     const styles = useStyles();
 
     const {
-        events,
-        rowOptions,
+        events = [],
+        rowOptions = [],
         people,
         leave,
         horizon,
@@ -27,12 +27,12 @@ export const SchedulerHeaderItem = (header: any) => {
 
     if (graphType == 'Capacity') {
 
-        const scheduled = events?.filter((item) => {
+        const scheduled = events.filter((item) => {
             return new Date(item.start)?.getTime() < header.end?.getTime() && new Date(item.end) > header.start?.getTime();
         }).length
 
         let project_options = rowOptions.filter((project) => {
-            return project.tasks.filter((task) => {
+            return (project.tasks || []).filter((task) => {
                 return new Date(task.endDate)?.getTime() > header.start?.getTime() && new Date(task.startDate)?.getTime() < header.end?.getTime();
             }).length > 0;
         }).length;
@@ -170,7 +170,10 @@ export const SchedulerHeaderItem = (header: any) => {
                             root: styles.popOverRoot
                         }}
                         slotProps={{
-                            backdrop: { style: { pointerEvents: 'none' } }
+                            root: { //TODO check this worked
+                                style: {pointerEvents: 'none'}
+                                // backdrop: { style: { pointerEvents: 'none' } }
+                            }
                         }}
                         hideBackdrop={true}
                         onClose={() => setHoverInfo(null)}

@@ -102,19 +102,19 @@ export const Schedule: React.FC<any> = (props) => {
   const [tasks, setTasks] = useState<any[]>([]);
 
   const estimates = (slowData?.estimates || []).map((estimate) => {
-    let tasks = estimate.tasks?.map((x) => ({ ...x, start: x.startDate, end: x.endDate }))
+    let tasks = (estimate.tasks || []).map((x) => ({ ...x, start: x.startDate, end: x.endDate }))
 
     return { ...estimate, draftSchedule: mergeDateRanges(tasks) };
   });;
 
   const projects = (slowData?.projects || []).map((project) => {
-    let tasks = project.tasks.map((x) => ({ ...x, start: x.startDate, end: x.endDate }))
+    let tasks = (project.tasks || []).map((x) => ({ ...x, start: x.startDate, end: x.endDate }))
 
     return { ...project, draftSchedule: mergeDateRanges(tasks) };
   }); // query.projects({})?.map((x) => ({...x})) || [];
 
   const unscheduled = projects.filter((project) => {
-    return project.tasks.length == 0 && calendarData?.calendarItems?.filter((item) => item.groupBy?.id == project.id)?.length == 0
+    return (project.tasks || []).length == 0 && (calendarData?.calendarItems || []).filter((item) => item.groupBy?.id == project.id)?.length == 0
   });
 
   const [unscheduledElem, setUnscheduleElem] = useState<any>(null)
@@ -478,12 +478,12 @@ export const Schedule: React.FC<any> = (props) => {
             }
 
             let tasks = rowOptions.reduce((prev, curr) => prev.concat(curr.tasks.map((task) => ({ ...task, startDate: new Date(task.startDate), endDate: new Date(task.endDate), project: curr }))), [])
-            tasks = tasks.filter((task) => {
+            tasks = (tasks || []).filter((task) => {
               return task.endDate?.getTime() > event.start?.getTime() && task.startDate?.getTime() < event.end?.getTime();
               // return task.start.getTime() < event.start.getTime() && task.end.getTime() > event.end.getTime()
             })
             if (event?.groupBy) {
-              tasks = tasks.filter((a) => a.project?.id == event?.groupBy?.id)
+              tasks = (tasks || []).filter((a) => a.project?.id == event?.groupBy?.id)
             }
 
             setModalDate(event.start)
@@ -514,10 +514,10 @@ export const Schedule: React.FC<any> = (props) => {
             if (event.selectable != false) {
 
               let tasks = rowOptions.reduce((prev, curr) => prev.concat(curr.tasks.map((task) => ({ ...task, startDate: new Date(task.startDate), endDate: new Date(task.endDate), project: curr }))), [])
-              tasks = tasks.filter((task) => {
+              tasks = (tasks || []).filter((task) => {
                 return task.endDate?.getTime() > new Date(event.start)?.getTime() && task.startDate?.getTime() < new Date(event.end)?.getTime();
               })
-              tasks = tasks.filter((a) => a.project?.id == event?.groupBy?.id)
+              tasks = (tasks || []).filter((a) => a.project?.id == event?.groupBy?.id)
 
               setTasks(tasks);
               setSelected(event)

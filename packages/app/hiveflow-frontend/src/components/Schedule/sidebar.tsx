@@ -18,7 +18,6 @@ export const Sidebar : React.FC<SidebarProps> = (props) => {
     const menuRef = useRef(null);
 
     useEffect(() => {
-        console.log({menu: menuRef.current, scrollTop, top: menuRef.current.scrollTop})
         menuRef.current.scrollTo(0, scrollTop);// = scrollTop ;
 
     }, [scrollTop])

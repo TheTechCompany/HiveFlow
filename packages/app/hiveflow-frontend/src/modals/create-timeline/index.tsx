@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 
-import { BaseModal, FormInput } from '@hexhive/ui'
+import {  FormInput } from '@hexhive/ui'
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material'
 
 export const CreateTimelineModal = (props) => {
 
@@ -12,18 +13,25 @@ export const CreateTimelineModal = (props) => {
     }
 
     return (
-        <BaseModal
-            title="Create Timeline"
-            open={props.open}
+        <Dialog
+            fullWidth
             onClose={props.onClose}
-            onSubmit={onSubmit}
-            >
-            <FormInput  
+            // onDelete={props.selected && props.onDelete}
+            open={props.open}>
+            
+            <DialogTitle>Create Timeline</DialogTitle>
+            <DialogContent>
+              <FormInput  
                 placeholder='Timeline Name'
                 value={timeline.name}
                 onChange={(value) => setTimeline({...timeline, name: value})}
                 />
+            </DialogContent>
+            <DialogActions>
+                <Button>Cancel</Button>
+                <Button variant='contained' color="primary" onClick={onSubmit}>Save</Button>
+            </DialogActions>
 
-        </BaseModal>
+        </Dialog>
     )
 }

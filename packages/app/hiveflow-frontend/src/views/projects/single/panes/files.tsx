@@ -1,6 +1,5 @@
 import { FileExplorer, FileDialog } from "@hexhive/ui";
 import { createTheme, Divider, Menu, MenuItem, ThemeProvider } from "@mui/material";
-import { FolderModal } from "../../../../modals/folder-modal";
 import { Box } from "grommet";
 import React, { useRef, useState } from "react";
 import { mutate, useMutation } from "@hive-flow/api";

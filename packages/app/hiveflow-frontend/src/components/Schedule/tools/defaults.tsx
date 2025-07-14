@@ -4,6 +4,7 @@ import { ContentCut, Navigation, ViewTimeline } from '@mui/icons-material';
 import { useDateToScreen, useScreenToDate } from "../utils";
 import { isEqual } from "lodash";
 import { PlanItem, ROW_ITEM_RADIUS } from "../row";
+import { getHostForElement } from "@hexhive/utils";
 export const DEFAULT_TOOLS = [
     {
         name: 'select',
@@ -17,6 +18,7 @@ export const DEFAULT_TOOLS = [
 
 
             const [hoverPos, setHoverPos] = useState<any>(null);
+            const [ isDragging, setIsDragging ] = useState(false);
 
             const cancelCallback = (e: any) => {
                 if (e.key == 'Escape') {
@@ -38,6 +40,7 @@ export const DEFAULT_TOOLS = [
 
                 listeners: {
                     onMouseEnter: (target: any, e: any) => {
+                        if(isDragging) return
                         if (target == 'row') {
                             setHoverPos(e.clientX);
                         } else {
@@ -95,25 +98,26 @@ export const DEFAULT_TOOLS = [
                             if (e.metaKey || e.ctrlKey || e.shiftKey) {
                                 if (selected.indexOf(item?.id) > -1) {
                                     newSelection = selected.slice().filter((a) => a != item.id)
-                                    changeSelection(newSelection)
                                 } else {
                                     newSelection = [...selected, item.id];
-                                    changeSelection(newSelection)
                                 }
                             } else {
                                 if (selected.indexOf(item?.id) > -1) {
                                     // changeSelection([])
                                 } else {
                                     newSelection = [item?.id];
-                                    changeSelection([item?.id])
                                 }
                             }
+                            
+                            if(!isEqual(selected, newSelection)) changeSelection(newSelection)
 
                             const currentTarget = e.currentTarget;
 
                             const start = e.clientX;
 
                             currentTarget.setPointerCapture(e.pointerId);
+
+                            setIsDragging(true);
 
                             let move = (e: any) => {
 
@@ -137,6 +141,8 @@ export const DEFAULT_TOOLS = [
 
                             let up = (e) => {
                                 e.stopPropagation()
+
+                                setIsDragging(false);
 
                                 let diff = e.clientX - start;
 
@@ -171,11 +177,11 @@ export const DEFAULT_TOOLS = [
                         }
                     },
                     onMouseMove: (target: any, e: any) => {
-                        setHoverPos(e.clientX);
+                        if(!isDragging) setHoverPos(e.clientX);
 
                     },
                     onMouseLeave: (target: any, e: any) => {
-                        setHoverPos(null)
+                        if(!isDragging) setHoverPos(null)
                     },
 
                 },

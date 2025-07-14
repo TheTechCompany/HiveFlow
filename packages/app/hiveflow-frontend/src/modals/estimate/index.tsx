@@ -1,4 +1,3 @@
-import { BaseModal, FormControl, FormInput } from '@hexhive/ui';
 import { Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 import { createFilterOptions } from '@mui/material/Autocomplete';
@@ -86,7 +85,6 @@ export const EstimateModal: React.FC<EstimateModalProps> = (props) => {
                         options={estimateStatusList}
                         // freeSolo
                         onChange={(ev, newValue) => {
-                            console.log({newValue})
                             if (typeof newValue === 'string') {
                                 setEstimate({ ...estimate, status: newValue })
                             } else if (newValue && newValue.inputValue) {
