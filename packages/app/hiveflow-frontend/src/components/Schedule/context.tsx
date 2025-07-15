@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { Horizon } from ".";
+import { Horizon } from "./types";
+import { proxy } from 'valtio';
 
 export const ScheduleContext = createContext<{
 
@@ -79,6 +80,15 @@ export const RowHeightContext = createContext<{
 
 })
 
+export const RowHeightProxy = proxy({})
+export const EventLaneProxy = proxy({})
+
+export const EventHeightProxy = proxy<{
+    
+}>({
+
+})
+
 export const RowHeightProivder : any = (props: any) => {
 
     const [ rowHeights, setRowHeights ] = useState<any>({});
@@ -86,12 +96,14 @@ export const RowHeightProivder : any = (props: any) => {
     const [ scrollTop, setScrollTop ] = useState(0);
 
     const updateRowHeight = (rowId, height) => {
+        console.log("Update rowHeights", rowId, height)
       setRowHeights((prev) => ({ ...prev, [rowId]: height }));
     };
   
     const { horizon } = useSchedule();
 
     useEffect(() => {
+        console.log("Set row heights")
         setRowHeights((rowHeights) => {
 
             return Object.keys(rowHeights).map((key) => {

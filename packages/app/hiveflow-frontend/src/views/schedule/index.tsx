@@ -26,6 +26,7 @@ import { SchedulerHeaderItem } from './schedule-components/header';
 import { ScheduleRootProvider } from './context';
 import { LeaveModal } from './leave-modal';
 import { stringToColor } from '@hexhive/utils';
+import zIndex from '@mui/material/styles/zIndex';
 export const Schedule: React.FC<any> = (props) => {
 
   //User
@@ -558,13 +559,14 @@ export const Schedule: React.FC<any> = (props) => {
               <Paper
                 elevation={3}
                 style={{
-                  marginTop: '4px',
-                  marginBottom: '4px',
+                  marginTop: item.zIndex == 0 ? '4px' : '8px',
+                  marginBottom: item.zIndex == 0 ? '4px' : '8px',
+                  
                   flex: 1,
                   // height: item.draft ? '80%' : undefined,
                   borderRadius: '12px',
                   boxShadow: item.selected ? '0px 0px 0px 2px blue' : `0px 0px 0px 2px ${(project?.colour ? project?.colour : stringToColor(`${project?.id} - ${project?.name}`)) || 'rgb(127, 127, 0, 1)'}`,
-                  zIndex: item.draft ? 0 : 99,
+                  zIndex: item.zIndex == 0 ? 0 : 99,
                   // background: '#FFF8F2',
                   overflow: 'hidden'
                 }}>
@@ -575,11 +577,11 @@ export const Schedule: React.FC<any> = (props) => {
                       flex: 1,
                       height: item.expanded ? '100%' : 0
                     }}>
-                      {item.draft ? (
+                      {item.zIndex == 0 ? (
                         <div style={{
                           height: '100%',
                           width: '100%',
-                          background: 'rgba(127, 127, 127, 0.8)'
+                          background: 'rgba(186, 186, 186, 0.8)'
                         }}></div>
                       ) : (
                         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column' }}>
@@ -613,7 +615,7 @@ export const Schedule: React.FC<any> = (props) => {
                       )}
                     </Box> : <div style={{
                       height: '30px',
-                      background: item?.draft ? 'rgba(127, 127, 127, 0.4)' : (project?.colour || 'rgb(127, 127, 0, 1)')
+                      background: item?.zIndex == 0 ? 'rgba(186, 186, 186, 0.4)' : (project?.colour || 'rgb(127, 127, 0, 1)')
                     }} />}
               </Paper>
             )
@@ -650,7 +652,7 @@ export const Schedule: React.FC<any> = (props) => {
                 x.draftSchedule.map((sched, ix) => ({
                   ...sched,
                   id: `${x.name}-${ix}`,
-                  draft: true,
+                  zIndex: 0,
                   selectable: false,
                   groupBy: { ...x }
                 }))
@@ -658,7 +660,8 @@ export const Schedule: React.FC<any> = (props) => {
                 return (x.start.getTime() < horizon.end.getTime()) && (x.end.getTime() > horizon.start.getTime())
               }).concat(
                 (calendarData?.calendarItems || []).map((x) => ({
-                  ...x
+                  ...x,
+                  zIndex: 1
                 }))
               )
             

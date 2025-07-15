@@ -2,7 +2,6 @@ import { Box, Divider, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import useResizeAware from "react-resize-aware";
 import { useRowHeights, useSchedule } from "../context";
-import { ColumnHeader } from "./column-header";
 import moment from "moment";
 
 export const Header = (props: any) => {

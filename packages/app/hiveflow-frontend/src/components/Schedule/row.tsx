@@ -36,11 +36,11 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
     const { lanes, laneEvents } = useMemo(() => {
         const foregroundEvents = events.filter((a) => !a.draft)
         if (!foregroundEvents || foregroundEvents.length === 0) return { lanes: [], laneEvents: [] };
-    
+
         const sorted = [...foregroundEvents].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-        
+
         const lanes: any[][] = []; // Each sub-array is a lane, containing events
-    
+
         for (const event of sorted) {
             let placed = false;
             for (const lane of lanes) {
@@ -57,11 +57,11 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
                 lanes.push([event]);
             }
         }
-    
+
         const laneEvents = lanes.map((lane, laneIndex) => {
-            return lane.map(event => ({...event, lane: laneIndex}))
+            return lane.map(event => ({ ...event, lane: laneIndex }))
         }).flat();
-    
+
         return { lanes, laneEvents };
     }, [events]);
 
@@ -74,13 +74,12 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
         return { laneHeights, totalHeight };
     }, [lanes, allSizes]);
 
-    // useEffect(() => {
-    //     if (totalHeight > 0 && rowHeights[rowKey] !== totalHeight) {
-    //         updateRowHeight(rowKey, totalHeight);
-    //     } else if(totalHeight == 0 && rowHeights[rowKey] != ROW_ITEM_CONTAINER){
-    //         updateRowHeight(rowKey, parseInt(ROW_ITEM_CONTAINER, 10))
-    //     }
-    // }, [totalHeight, rowKey, rowHeights]);
+    useEffect(() => {
+        const currentHeight = rowHeights[rowKey];
+        if (totalHeight > 0 && currentHeight !== totalHeight) {
+            updateRowHeight(rowKey, totalHeight);
+        }
+    }, [totalHeight, rowKey]);
 
     return (
         <Box
@@ -117,19 +116,19 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
             {activeTool?.component?.(rowTemplate)}
 
             {events.filter((a) => a.draft).map((event) => {
-                 const { x } = dateToScreen(event.start);
-                 const { x: endX } = dateToScreen(event.end);
+                const { x } = dateToScreen(event.start);
+                const { x: endX } = dateToScreen(event.end);
 
-                 const width = endX - x;
-                 return <PlanItem
-                     key={event.id}
-                     left={x}
-                     width={width}
-                     height={rowHeights[rowKey] || ROW_ITEM_CONTAINER}
-                     item={event}
-                     selected={false}
-                     expanded={expanded}
-                     renderItem={() => renderItem({ ...event, expanded, selected: false })} />
+                const width = endX - x;
+                return <PlanItem
+                    key={event.id}
+                    left={x}
+                    width={width}
+                    //  height={rowHeights[rowKey] || ROW_ITEM_CONTAINER}
+                    item={event}
+                    selected={false}
+                    expanded={expanded}
+                    renderItem={() => renderItem({ ...event, expanded, selected: false })} />
             })}
 
             {laneEvents.map((event) => {
@@ -149,6 +148,7 @@ export const Row: React.FC<RowProps> = ({ renderItem, row: rowTemplate, expanded
                     // height={height}
                     selected={selected.indexOf(event.id) > -1}
                     onResize={(itemSize) => {
+                        console.log("Resize", {itemSize})
                         setAllSizes((currentSizes) => {
                             if (currentSizes[event.id] !== itemSize?.height) {
                                 return { ...currentSizes, [event.id]: itemSize?.height };

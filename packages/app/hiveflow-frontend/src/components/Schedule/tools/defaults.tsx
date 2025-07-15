@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSchedule } from "../context";
 import { ContentCut, Navigation, ViewTimeline } from '@mui/icons-material';
 import { useDateToScreen, useScreenToDate } from "../utils";
@@ -16,9 +16,22 @@ export const DEFAULT_TOOLS = [
             const dateToScreen = useDateToScreen();
             const screenToDate = useScreenToDate();
 
-
             const [hoverPos, setHoverPos] = useState<any>(null);
-            const [ isDragging, setIsDragging ] = useState(false);
+
+            const activePointerId = useRef<number | null>(null);
+            const captureElement = useRef<HTMLElement | null>(null);
+
+            useEffect(() => {
+                if (activePointerId.current !== null && captureElement.current) {
+                    try {
+                        if (!captureElement.current.hasPointerCapture(activePointerId.current)) {
+                            captureElement.current.setPointerCapture(activePointerId.current);
+                        }
+                    } catch (err) {
+                        console.warn('Failed to recapture pointer:', err);
+                    }
+                }
+            }, [activePointerId, captureElement, events]);
 
             const cancelCallback = (e: any) => {
                 if (e.key == 'Escape') {
@@ -40,7 +53,7 @@ export const DEFAULT_TOOLS = [
 
                 listeners: {
                     onMouseEnter: (target: any, e: any) => {
-                        if(isDragging) return
+                        // if(isDragging) return
                         if (target == 'row') {
                             setHoverPos(e.clientX);
                         } else {
@@ -92,7 +105,6 @@ export const DEFAULT_TOOLS = [
                             e.stopPropagation();
 
                             let moved = false;
-
                             let newSelection = selected?.slice();
 
                             if (e.metaKey || e.ctrlKey || e.shiftKey) {
@@ -111,77 +123,86 @@ export const DEFAULT_TOOLS = [
                             
                             if(!isEqual(selected, newSelection)) changeSelection(newSelection)
 
-                            const currentTarget = e.currentTarget;
+                            const startX = e.clientX;
+                            activePointerId.current = e.pointerId;
+                            captureElement.current = e.currentTarget;
 
-                            const start = e.clientX;
+                            const cleanup = () => {
+                                try {
+                                    if (captureElement.current && activePointerId.current !== null) {
+                                        captureElement.current.releasePointerCapture(activePointerId.current);
+                                         captureElement.current.removeEventListener('pointermove', move);
+                                        captureElement.current.removeEventListener('pointerup', up);
+                                        captureElement.current.removeEventListener('pointercancel', cleanup);
+                                    }
+                                    activePointerId.current = null;
+                                    captureElement.current = null
+                                } catch (err) {
+                                    console.warn('Cleanup error:', err);
+                                }
+                            };
 
-                            currentTarget.setPointerCapture(e.pointerId);
+                            const move = (e: any) => {
+                                let diff = e.clientX - startX;
+                                if(diff != 0){
+                                    newSelection.map((id) => {
+                                        let item = events?.find((a) => a.id == id);
 
-                            setIsDragging(true);
+                                        if (!item) return;
+                                        const { x: startX } = dateToScreen(item?.start)
+                                        const { x: endX } = dateToScreen(item?.end)
 
-                            let move = (e: any) => {
+                                        const startDate = screenToDate({ x: startX + diff });
+                                        const endDate = screenToDate({ x: endX + diff });
 
-                                let diff = e.clientX - start;
+                                        updateEvent({ id: item?.id, end: endDate, start: startDate }, true);
+                                    })
+
+                                    moved = true;
+                                }
+                            };
+
+                            const up = (e: any) => {
+                                e.stopPropagation();
+
+                                let diff = e.clientX - startX;
 
                                 newSelection.map((id) => {
                                     let item = events?.find((a) => a.id == id);
-
                                     if (!item) return;
                                     const { x: startX } = dateToScreen(item?.start)
                                     const { x: endX } = dateToScreen(item?.end)
 
                                     const startDate = screenToDate({ x: startX + diff });
                                     const endDate = screenToDate({ x: endX + diff });
-
-                                    updateEvent({ id: item?.id, end: endDate, start: startDate }, true);
-
-                                })
-                                moved = true;
-                            }
-
-                            let up = (e) => {
-                                e.stopPropagation()
-
-                                setIsDragging(false);
-
-                                let diff = e.clientX - start;
-
-
-                                newSelection.map((id) => {
-                                    let item = events?.find((a) => a.id == id);
-                                    if (!item) return;
-                                    const { x: startX } = dateToScreen(item?.start)
-                                    const { x: endX } = dateToScreen(item?.end)
-
-                                    const startDate = screenToDate({ x: startX + diff });
-                                    const endDate = screenToDate({ x: endX + diff });
-                                    if (start != e.clientX) {
-
+                                    if (startX != e.clientX) {
                                         updateEvent({ id: item?.id, end: endDate, start: startDate });
                                     }
-                                })
+                                });
 
                                 if (!e.metaKey && !e.ctrlKey && !e.shiftKey) {
                                     if (!moved) changeSelection([item.id])
-
                                 }
 
-                                currentTarget.releasePointerCapture(e.pointerId);
+                                cleanup();
+                            };
 
-                                currentTarget.removeEventListener('pointermove', move);
-                                currentTarget.removeEventListener('pointerup', up);
+                            // Set up the pointer capture and event listeners
+                            try {
+                                e.currentTarget.addEventListener('pointermove', move);
+                                e.currentTarget.addEventListener('pointerup', up);
+                                e.currentTarget.addEventListener('pointercancel', cleanup);
+                            } catch (err) {
+                                cleanup();
                             }
-
-                            currentTarget.addEventListener('pointermove', move);
-                            currentTarget.addEventListener('pointerup', up);
                         }
                     },
                     onMouseMove: (target: any, e: any) => {
-                        if(!isDragging) setHoverPos(e.clientX);
+                        setHoverPos(e.clientX);
 
                     },
                     onMouseLeave: (target: any, e: any) => {
-                        if(!isDragging) setHoverPos(null)
+                        setHoverPos(null)
                     },
 
                 },
@@ -226,6 +247,46 @@ export const DEFAULT_TOOLS = [
 
                         }
                     }
+
+                    // if(startDragging != null && selected.length > 0){
+                    //     let selectedEvents = selected.map((item) => events.find((a) => a.id == item))
+                    //     let eventGroup = selectedEvents.filter((a) => a.groupBy?.id == item.id);
+                    //     if (eventGroup.length > 0) {
+
+                    //         const positions = selectedEvents.map((item) => {
+
+                    //             let startX = dateToScreen(item.start).x
+                    //             let endX = dateToScreen(item.end).x
+
+                    //             return {
+                    //                 startX,
+                    //                 endX
+                    //             }
+                    //         });
+
+                    //         const min = Math.min(...positions.map((x) => x.startX))
+
+
+                    //         return eventGroup.map((item, ix) => {
+
+                    //             let startX = dateToScreen(item.start).x
+                    //             let endX = dateToScreen(item.end).x
+
+                    //             return <div style={{
+                    //                 pointerEvents: 'none',
+                    //                 position: 'absolute',
+                    //                 zIndex: 99,
+                    //                 // height: '30px',
+                    //                 minHeight: '100%',
+                    //                 left: (hoverPos - timelinePosition?.x) - startDragging + (startX - min),
+                    //                 width: endX - startX
+                    //             }}>
+                    //                 {renderItem({ ...item, expanded: expanded.indexOf(item.groupBy?.id) > -1 })}
+                    //             </div>
+                    //         })
+
+                    //     }
+                    // }
                     return null;
                 }
             }

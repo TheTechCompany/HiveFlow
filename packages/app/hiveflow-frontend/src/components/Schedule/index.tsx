@@ -8,12 +8,7 @@ import useResizeAware from "react-resize-aware";
 import { DEFAULT_TOOLS } from "./tools/defaults";
 import { ChevronLeft, ChevronRight, Filter, FilterList } from '@mui/icons-material'
 import moment from "moment";
-
-
-export interface Horizon {
-    start: Date;
-    end: Date;
-}
+import { Horizon, ScheduleEvent } from "./types";
 
 export interface ScheduleProps {
     horizon: Horizon;
@@ -26,17 +21,8 @@ export interface ScheduleProps {
 
     getRowGroup?: (event: any) => any
     sortRow?: (a: any, b: any) => any;
-    
-    events?: {
-        groupBy: {id: string};
-        start: Date;
-        end: Date;
 
-        data?: any;
-        
-        resizable?: boolean;
-        selectable?: boolean;
-    }[]
+    events?: ScheduleEvent[]
 
     createEvent?: (event: any, autocreate?: boolean) => void;
     updateEvent?: (event: any) => void;
@@ -44,7 +30,7 @@ export interface ScheduleProps {
     expanded?: string[]; //Rows to be expanded
 
     onSelectMenuItem?: (item: any) => void;
-    
+
     onClickEvent?: (event: any) => void;
     onDoubleClickEvent?: (event: any) => void;
 
@@ -64,14 +50,14 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
         let start = moment(props.horizon.start)
         let end = moment(props.horizon.end)
 
-        if(end.diff(start, 'days') < 2){
+        if (end.diff(start, 'days') < 2) {
             return 'hour';
-        }else if(end.diff(start, 'week') < 2){
+        } else if (end.diff(start, 'week') < 2) {
             return 'day';
-            
-        }else if(end.diff(start, 'months') < 6){
+
+        } else if (end.diff(start, 'months') < 6) {
             return 'month';
-        }else{
+        } else {
             return 'year';
         }
     }, [props.horizon])
@@ -89,9 +75,9 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
 
     const [events, setEvents] = useState<any[]>([]);
 
-    const [ dragItem, setDragItem ] = useState<any>(null);
+    const [dragItem, setDragItem] = useState<any>(null);
 
-    const [ _selected, setSelected ] = useState<any[]>([])
+    const [_selected, setSelected] = useState<any[]>([])
     const selected = _selected.filter((a) => events.findIndex((b) => b.id == a) > -1)
 
     useEffect(() => {
@@ -128,8 +114,8 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
     }, [rows, sizes]);
 
 
-    const [ copyItems, setCopyItems ] = useState<any[]>([]);
-    const [ pasteItems, setPasteItems ] = useState<any[]>([]);
+    const [copyItems, setCopyItems] = useState<any[]>([]);
+    const [pasteItems, setPasteItems] = useState<any[]>([]);
 
 
     return (
@@ -206,16 +192,17 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
                                 width: '200px',
                                 display: 'flex',
                             }}>
-                                <Sidebar 
+                                <Sidebar
                                     header={props.sidebarHeader}
                                     onExpand={props.onSelectMenuItem}
-                                    
+
                                     rows={timelineRows} />
                             </Paper>
-                            <div style={{ 
+                            <div style={{
                                 overflow: 'auto',
-                                
-                                position: 'relative', display: 'flex', flex: 1 }} ref={controlRef}>
+
+                                position: 'relative', display: 'flex', flex: 1
+                            }} ref={controlRef}>
                                 {resizeListener}
                                 <Timeline
                                     renderItem={props.renderItem}
@@ -227,7 +214,7 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
                                     rows={rows}
                                     onDeleteItem={() => {
                                         props.onDelete?.(selected)
-                                    }} 
+                                    }}
                                     onCopyItem={() => {
                                         props.onCopy?.(selected);
                                         setCopyItems(selected)
@@ -235,8 +222,8 @@ export const Schedule: React.FC<ScheduleProps> = (props) => {
                                     onPasteItem={() => {
                                         // props.onPaste?.();
                                         changeTool(DEFAULT_TOOLS.find((a) => a.name == 'select'))
-                                        setPasteItems(copyItems.map((x) => events.find((a) => a.id ==x)))
-                                    }}/>
+                                        setPasteItems(copyItems.map((x) => events.find((a) => a.id == x)))
+                                    }} />
                             </div>
                             <Paper>
                                 <Tools />

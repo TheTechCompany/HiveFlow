@@ -88,6 +88,7 @@
     "react-router-dom": "^6.2.1",
     "react-spreadsheet": "^0.7.2",
     "single-spa-react": "^4.2.0",
-    "styled-components": "^5.3.3"
+    "styled-components": "^5.3.3",
+    "valtio": "^1.13.2"
   }
 }

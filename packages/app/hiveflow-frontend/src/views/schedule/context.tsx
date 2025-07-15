@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import { Horizon } from "../../components/Schedule";
+import { Horizon } from "../../components/Schedule/types";
 
 export const ScheduleRootContext = createContext<{
     events?: any[];

@@ -46,7 +46,7 @@ test('Can drag timeline item', async ({page}) => {
 
   page.addStyleTag({content: 'div[id^=single-spa-application]{ height: 100vh; } body{padding: 0; margin: 0}'})
 
-  const items = page.locator('.plan-item');
+  const items = page.locator('.lane-item');
 
   const count = await items.count();
   
@@ -104,7 +104,7 @@ test('Can select item', async ({page}) => {
 
   page.addStyleTag({content: 'div[id^=single-spa-application]{ height: 100vh; } body{padding: 0; margin: 0}'})
 
-  const items = page.locator('.plan-item');
+  const items = page.locator('.lane-item');
 
   const count = await items.count();
   
@@ -117,7 +117,7 @@ test('Can select item', async ({page}) => {
   await page.mouse.down()
   await page.mouse.up()
 
-  await expect(page.locator('.plan-item.selected')).toBeVisible()
+  await expect(page.locator('.lane-item.selected')).toBeVisible()
 
 })
 
@@ -155,13 +155,15 @@ test('Can select multiple items', async ({page}) => {
 
   await page.goto('http://localhost:8080/dashboard/hive-flow');
 
-  const items = page.locator('.plan-item');
+  const items = page.locator('.lane-item');
   expect(await items.count()).toBe(2);
 
   // Simulate multi-select (e.g. with Ctrl/Cmd key)
   await items.nth(0).click({ modifiers: ['ControlOrMeta'] });
+  expect(await page.locator('.lane-item.selected').count()).toBe(1);
+
   await items.nth(1).click({ modifiers: ['ControlOrMeta'] });
 
   // Both should be selected
-  expect(await page.locator('.plan-item.selected').count()).toBe(2);
+  expect(await page.locator('.lane-item.selected').count()).toBe(2);
 })

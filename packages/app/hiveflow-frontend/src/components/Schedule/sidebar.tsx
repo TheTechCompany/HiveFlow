@@ -1,7 +1,8 @@
 import { Box, Button, Divider, Typography } from "@mui/material"
-import { useRowHeights } from "./context";
+import { EventHeightProxy, RowHeightProxy, useRowHeights } from "./context";
 import { useEffect, useRef } from "react";
 import { ROW_ITEM_CONTAINER } from "./row";
+import { useSnapshot } from "valtio";
 
 export interface SidebarProps {
     header?: any;
@@ -14,6 +15,8 @@ export interface SidebarProps {
 
 export const Sidebar : React.FC<SidebarProps> = (props) => {
     const { rowHeights, headerHeight, scrollTop } = useRowHeights();
+
+    const snapshot = useSnapshot(RowHeightProxy)
 
     const menuRef = useRef(null);
 
@@ -47,7 +50,7 @@ export const Sidebar : React.FC<SidebarProps> = (props) => {
                         style={{
                             display: 'flex',
                             alignItems: 'center',
-                            height: rowHeights?.[x?.id] || ROW_ITEM_CONTAINER,
+                            height: snapshot?.[x?.id] || ROW_ITEM_CONTAINER,
                             borderBottom: x.name ? '1px solid black' : '1px solid #dfdfdf',
                         }}>
                         

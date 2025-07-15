@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Row } from "./row";
 import { RowHeightProivder, useRowHeights, useSchedule, useTool } from "./context";
 import { Header } from "./header";
-import { Horizon } from ".";
+import { Horizon } from "./types";
+import { Lane } from "./lane";
 
 export interface TimelineProps {
 
@@ -28,7 +29,7 @@ export interface TimelineProps {
 
 export const Timeline: React.FC<TimelineProps> = (props) => {
 
-    const { timelineSize, changeSelection, setPasteItems } = useSchedule();
+    const { timelineSize,selected, changeSelection, setPasteItems } = useSchedule();
 
     const { activeTool } = useTool();
 
@@ -77,16 +78,54 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
 
         for (var i = 0; i < count; i++) {
 
-            outputRows.push(
-                <Row
-                    key={props.rows?.[i]?.id}
-                    filled={props.rows[i] != undefined}
-                    expanded={props.expanded?.indexOf(props.rows?.[i]?.id || i) > -1}
-                    row={{...props.rows?.[i], id: props.rows?.[i]?.id || i, index: i}}
-                    events={props.rows[i]?.events || []} 
+            const events = (props.rows?.[i]?.events || []).filter((a) => a.zIndex > 0);
 
-                    renderItem={props.renderItem}/>
-            )
+            const sorted = [...events].sort((a, b) => {
+                // if(selected.indexOf(a.id) > -1) return -1;
+                // if(selected.indexOf(b.id) > -1) return 1;
+
+                return new Date(a.start).getTime() - new Date(b.start).getTime()
+            });
+
+            const lanes: any[][] = []; // Each sub-array is a lane, containing events
+
+            for (const event of sorted) {
+                let placed = false;
+                for (const lane of lanes) {
+                    const hasOverlap = lane.some(existingEvent =>
+                        new Date(event.start) < new Date(existingEvent.end) && new Date(event.end) > new Date(existingEvent.start)
+                    );
+                    if (!hasOverlap) {
+                        //Add to lane if not overlapping
+                        lane.push(event);
+                        placed = true;
+                        break;
+                    }
+                }
+                if (!placed) {
+                    //Start a new lane
+                    lanes.push([event]);
+                }
+            }
+
+            const laneEvents = lanes.map((lane, laneIndex) => {
+                return lane.map(event => ({ ...event, lane: laneIndex }))
+            }).flat();
+
+            // lanes.forEach((lane, ix) => {
+                
+                outputRows.push(
+                    <Lane
+                        key={props.rows?.[i]?.id}
+                        id={props.rows?.[i]?.id}
+                        // filled={props.rows[i] != undefined}
+                        expanded={props.expanded?.indexOf(props.rows?.[i]?.id || i) > -1}
+                        lane={{...props.rows?.[i], id: props.rows?.[i]?.id || i, index: i}}
+                        events={props.rows?.[i]?.events || []} 
+                        renderItem={props.renderItem}/>
+                )
+                
+            // })
         }
         return outputRows;
     }, [timelineSize, props.renderItem, props.rows, props.expanded])
@@ -149,9 +188,10 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
                         }}
                         sx={{
                             position: 'absolute',
-                            marginTop: headerHeight + 'px',
+                            // marginTop: headerHeight + 'px',
                             overflowY: 'auto',
                             overflowX: 'hidden',
+                            top: headerHeight,
                             width: '100%',
                             height: '100%'
                         }}>

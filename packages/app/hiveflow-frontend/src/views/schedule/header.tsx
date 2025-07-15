@@ -2,7 +2,7 @@ import { Autocomplete, Box, Button, Checkbox, IconButton, Menu, MenuItem, Paper,
 import React, { useState } from "react"
 import { FilterList, ChevronLeft, ChevronRight } from '@mui/icons-material'
 import moment from "moment";
-import { Horizon } from "../../components/Schedule";
+import { Horizon } from "../../components/Schedule/types";
 
 export interface HeaderProps {
     horizon: Horizon;
