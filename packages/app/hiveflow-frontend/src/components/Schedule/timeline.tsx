@@ -192,8 +192,9 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
                             overflowY: 'auto',
                             overflowX: 'hidden',
                             top: headerHeight,
-                            width: '100%',
-                            height: '100%'
+                            bottom: 0,
+                            left: 0,
+                            right: 0
                         }}>
                         {rows}
                     </Box>

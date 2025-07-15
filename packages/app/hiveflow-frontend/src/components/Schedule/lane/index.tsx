@@ -100,12 +100,14 @@ export const Lane: React.FC<LaneProps> = (props) => {
     }, [props.events, eventHeights])
 
     useEffect(() => {
-        let maxHeight = 0;
+        let maxHeight = null;
         layerEvents.forEach((layer) => {
             let height = layer.heights.reduce((prev, curr) => prev + curr.height, 0)
             if(height > maxHeight) maxHeight = height;
         })
-        RowHeightProxy[props.id] = maxHeight;
+        if(maxHeight != null){
+            RowHeightProxy[props.id] = maxHeight;
+        }
     }, [layerEvents])
 
     const renderEvents = (events: ScheduleEvent[], heights: any[]) => {
@@ -189,7 +191,7 @@ export const Lane: React.FC<LaneProps> = (props) => {
             style={{
                 position: 'relative',
                 width: '100%',
-                height: measuredAll ? rowHeights?.[props.id] : undefined
+                height: measuredAll ? rowHeights?.[props.id] || '30px' : undefined
             }}
             onMouseEnter={(e) => {
                 activeTool?.listeners?.onMouseEnter?.('row', e, props.lane)
