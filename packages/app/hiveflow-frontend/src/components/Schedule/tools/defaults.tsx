@@ -24,6 +24,7 @@ export const DEFAULT_TOOLS = [
             useEffect(() => {
                 if (activePointerId.current !== null && captureElement.current) {
                     try {
+                        console.log("Cpature pointer")
                         if (!captureElement.current.hasPointerCapture(activePointerId.current)) {
                             captureElement.current.setPointerCapture(activePointerId.current);
                         }
@@ -31,7 +32,7 @@ export const DEFAULT_TOOLS = [
                         console.warn('Failed to recapture pointer:', err);
                     }
                 }
-            }, [activePointerId, captureElement, events]);
+            }, [activePointerId.current, captureElement.current, events]);
 
             const cancelCallback = (e: any) => {
                 if (e.key == 'Escape') {
@@ -144,6 +145,8 @@ export const DEFAULT_TOOLS = [
 
                             const move = (e: any) => {
                                 let diff = e.clientX - startX;
+                                console.log("Moving element");
+
                                 if(diff != 0){
                                     newSelection.map((id) => {
                                         let item = events?.find((a) => a.id == id);
@@ -189,10 +192,13 @@ export const DEFAULT_TOOLS = [
 
                             // Set up the pointer capture and event listeners
                             try {
+                                console.log("setting up listeners")
+
                                 e.currentTarget.addEventListener('pointermove', move);
                                 e.currentTarget.addEventListener('pointerup', up);
                                 e.currentTarget.addEventListener('pointercancel', cleanup);
                             } catch (err) {
+                                console.log("Error setting up listeners")
                                 cleanup();
                             }
                         }

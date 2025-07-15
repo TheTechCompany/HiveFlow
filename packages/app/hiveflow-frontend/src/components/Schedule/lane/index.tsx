@@ -114,7 +114,6 @@ export const Lane: React.FC<LaneProps> = (props) => {
         return events.sort((a: any, b: any) => a.laneIndex - b.laneIndex).map((event: any, ix) => {
             let lastIndex = (event.laneIndex) || 0
             const offsetY = heights.sort((a, b) => a.laneIndex - b.laneIndex).slice(0, lastIndex).reduce((p, c, cI) => p+c.height, 0)
-            console.log("OFFSET", offsetY, heights, event.laneIndex, lastIndex)
             return renderEvent(event, event.laneIndex, heights.find((a) => a.lane == event.laneIndex).height, offsetY)
         })
     }

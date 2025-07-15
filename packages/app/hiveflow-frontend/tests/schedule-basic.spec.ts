@@ -56,8 +56,17 @@ test('Can drag timeline item', async ({page}) => {
 
   await items.first().hover()
 
+  // await page.pause()
+
   await page.mouse.down()
-  await page.mouse.move(600, 200)
+
+  await page.waitForTimeout(100);
+
+  await page.mouse.move(600, 100)
+  await page.mouse.move(620, 100)
+
+  await page.waitForTimeout(100);
+
   await page.mouse.up()
 
   expect(updatedItem).toBe(true)
