@@ -1,5 +1,5 @@
 import { Timeline } from "@hexhive/ui";
-// import { stringToColor } from "@hexhive/utils";
+import { stringToColor } from "@hexhive/utils";
 import { refetch, useMutation } from "@hive-flow/api";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { EstimateSingleContext } from "../context";
@@ -99,8 +99,7 @@ export const TimelinePane = () => {
                   start: new Date(task.startDate),
                   end: new Date(task.endDate),
                   name: task.title,
-                  color: '#aaa',
-                  // color: stringToColor(task.title),
+                  color: stringToColor(task.title),
                   showLabel: true
               })).filter(filterTasks).sort((a, b) => a.timelineRank?.localeCompare(b.timelineRank) )
             }

@@ -1,123 +1,135 @@
-import { AvatarList, Kanban } from "@hexhive/ui";
-import React, { useContext, useEffect, useState } from "react";
-import { Subject } from '@mui/icons-material'
-import { Box, Paper, Typography } from '@mui/material'
+import React, { useContext, useMemo } from "react";
+import { CheckBoxOutlined, Subject } from '@mui/icons-material';
+import { AvatarList } from "@hexhive/ui";
+import { Box, Paper, Typography } from '@mui/material';
+import { KanbanBoard } from "../../../../components/KanbanBoard";
+import { KANBAN_STATUSES } from "../../../../types/kanban";
+import type { KanbanColumn, KanbanRow } from "../../../../types/kanban";
+import type { DropResult } from "react-beautiful-dnd";
 import { EstimateSingleContext } from "../context";
-import { stringToColor } from "@hexhive/utils";
+import { extractChecklistFromHtml } from '../../../../components/RichTextEditor';
 
-export const KanbanPane = () => {
+export const KanbanPane: React.FC = () => {
+  const {
+    tasks = [],
+    updateTaskStatus,
+    createTask,
+    finishTtl,
+    updateTask,
+  } = useContext(EstimateSingleContext);
 
-    const { tasks, updateTaskStatus, createTask, finishTtl, updateTask } = useContext(EstimateSingleContext)
+  // ── Derived columns ────────────────────────────────────────────
 
-    const [ kanbanTasks, setTasks ] = useState<any[]>([]);
+  const columns: KanbanColumn[] = useMemo(
+    () =>
+      KANBAN_STATUSES.map((status) => {
+        const rows: KanbanRow[] = (tasks ?? [])
+          .filter((t) => t.status === status)
+          .sort((a, b) =>
+            (a.columnRank ?? '').localeCompare(b.columnRank ?? ''),
+          )
+          .map((t) => ({
+            id: t.id,
+            title: t.title ?? t.name,
+            _task: t,
+            lastUpdated: t.lastUpdated ? new Date(t.lastUpdated) : undefined,
+          }));
+        return {
+          id: status,
+          title: status,
+          rows,
+          ttl: status === 'Finished' ? finishTtl : undefined,
+        };
+      }),
+    [tasks, finishTtl],
+  );
 
-    const STATUS = ["Backlog", "In Progress", "Reviewing", "Finished"];
+  // ── Handlers ───────────────────────────────────────────────────
 
-    useEffect(() => {
-        setTasks(tasks || [ ])
-    }, [JSON.stringify(tasks)])
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const newStatus =
+      KANBAN_STATUSES[parseInt(result.destination.droppableId, 10)];
+    if (!newStatus || newStatus === result.source?.droppableId) return;
 
-    console.log({tasks})
+    updateTaskStatus?.(
+      result.draggableId,
+      result.destination.index,
+      newStatus,
+    );
+  };
 
-    return (
-        <Box sx={{flex: 1, display: 'flex', bgcolor: '#bfbfbf'}}>
-        <Kanban
-            onSelectCard={(card) => {
-                console.log({card})
-                updateTask({
-                    ...card,
-                    start: new Date(card.startDate),
-                    end: new Date(card.endDate)
-                })
+  const handleSelectCard = (row: KanbanRow) => {
+    const card = row._task;
+    updateTask?.({
+      ...card,
+      start: card.startDate ? new Date(card.startDate) : undefined,
+      end: card.endDate ? new Date(card.endDate) : undefined,
+    });
+  };
+
+  const handleCreateCard = (columnId: string) => {
+    createTask?.({
+      status: columnId,
+      start: new Date(),
+      end: new Date(),
+    });
+  };
+
+  // ── Render ─────────────────────────────────────────────────────
+
+  return (
+    <Box sx={{ flex: 1, display: 'flex', bgcolor: 'background.default' }}>
+      <KanbanBoard
+        columns={columns}
+        onDragEnd={handleDragEnd}
+        onSelectCard={handleSelectCard}
+        onCreateCard={handleCreateCard}
+        renderCard={(row) => (
+          <Paper
+            sx={{
+              bgcolor: 'background.paper',
+              minHeight: '24px',
+              flexDirection: 'column',
+              display: 'flex',
+              padding: '6px',
+              boxShadow: 1,
             }}
-            onCreateCard={(col) => {
-                createTask({
-                    status: col,
-                    start: new Date(),
-                    end: new Date()
-                })
-            }}
-            onDrag={(result) => {
-                console.log({result})
-
-                // result.
-                const status = STATUS[parseInt(result.destination?.droppableId)]
-
-                updateTaskStatus(result.draggableId, result.destination?.index, status)
-
-                let newTasks = kanbanTasks.slice()
-
-                let ix = newTasks.map((x) => x.id).indexOf(result.draggableId)
-
-                newTasks[ix] ={
-                    ...newTasks[ix],
-                    status: status
-                };
-                setTasks(newTasks)
-
-            // console.log(result.destination?.droppableId)
-            // if (result.destination?.droppableId != undefined) {
-            //     let f = files.slice()
-            //     let f_ix = f.map((x) => x.id).indexOf(result.draggableId)
-            //     f[f_ix].status = STATUS[parseInt(result.destination?.droppableId || '')]
-            //     setFiles(f)
-
-            //     const loaded = UseLoading(result.draggableId)
-
-            //     // updateFile({args: {id: result.draggableId, status: STATUS[parseInt(result.destination?.droppableId)]}}).then(() => {
-
-            //     //   loaded()
-            //     //   setLoadingFiles(f)
-            //     // })
-
-
-            //     /*  utils.job.updateFile(job_id, result.draggableId, {status: STATUS[parseInt(result.destination?.droppableId)]}).then(() => {
-            //         //TODO reset if error  
-            //     })*/
-
-            // }
-            }}
-            renderCard={(item) => {
-                return (
-                    <Paper sx={{ /* background: stringToColor(item.title), */ background: '#aaa', minHeight: '24px', color: 'black', flexDirection: 'column', display: 'flex', padding: '6px', marginTop: '6px'}}>
-                        <Typography>
-                            {item.name || item.title}
+          >
+            <Typography variant="body2">{row.title}</Typography>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                mt: '4px',
+              }}
+            >
+              <Box>
+                {(() => {
+                  const checklist = extractChecklistFromHtml(row._task.description);
+                  if (checklist.length > 0) {
+                    const done = checklist.filter(i => i.checked).length;
+                    return (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                        <CheckBoxOutlined sx={{ fontSize: 13 }} />
+                        <Typography variant="caption" sx={{ fontSize: 11, fontWeight: 600 }}>
+                          {done}/{checklist.length}
                         </Typography>
-                        <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                            <Box>
-                                {item.description?.length > 0 && <Subject fontSize="small" />}
-                            </Box>
-                            <AvatarList
-                                size={20}
-                                users={item.members}
-                                />
-                        </Box>
-                    </Paper>
-                )
-            }}
-            columns={STATUS.map((x) => {
-                let rows = kanbanTasks.filter((a) => a.status == x)?.map((x) => ({...x, id: x.id, name: x.title}))?.sort((a, b) => a.columnRank?.localeCompare(b.columnRank)) //files.filter((a: any) => a.status == x).map((x) => ({ ...x }))
-
-                // if(x == 'Backlog') {
-                //     rows = rows.filter((a) => a.dependencyOn?.length < 1 || a.dependencyOn?.map((x) => x.status == "Reviewing" || x.status == "Finished")?.indexOf(true) > -1)
-                // }
-
-                return {
-                    id: x,
-                    title: x,
-                    // ttl: x == "Finished" ? finishTtl : undefined,
-                    menu: [
-                        { label: "Archive all cards", onClick: () => { } },
-                        {
-                        label: "Column Settings", onClick: () => {
-                            // showKanbanMenu(true)
-                            // setSelectedColumn(x)
-                        }
-                        }
-                    ],
-                    rows: rows 
-                }
-            })} />
-        </Box>
-    )
-}
+                      </Box>
+                    );
+                  }
+                  if ((row._task.description?.length ?? 0) > 0) {
+                    return <Subject fontSize="small" />;
+                  }
+                  return null;
+                })()}
+              </Box>
+              <AvatarList size={20} users={row._task.members ?? []} />
+            </Box>
+          </Paper>
+        )}
+      />
+    </Box>
+  );
+};

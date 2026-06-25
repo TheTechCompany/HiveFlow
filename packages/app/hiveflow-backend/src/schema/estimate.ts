@@ -51,6 +51,7 @@ export default (prisma: PrismaClient) => {
             price: Float
 
             lineItems: [EstimateLineItemInput]
+            managers: [String]
         }
 
         type Estimate  {
@@ -70,6 +71,8 @@ export default (prisma: PrismaClient) => {
             tasks : [EstimateTask]
 
             organisation: HiveOrganisation
+
+            managers: [HiveUser]
         }
 
        
@@ -88,6 +91,8 @@ export default (prisma: PrismaClient) => {
         below: String
         
         estimateId: String
+
+        handoverNote: String
     }
 
     type EstimateTask {
@@ -109,6 +114,8 @@ export default (prisma: PrismaClient) => {
         members: [HiveUser]
 
         createdBy: HiveUser
+
+        handoverNote: String
 
         lastUpdated: DateTime
 
@@ -180,7 +187,8 @@ export default (prisma: PrismaClient) => {
                         ...task,
                         createdBy: task.createdBy ? {id: task.createdBy} : undefined,
                         members: task.members?.map((member) => ({id: member}))
-                    }))
+                    })),
+                    managers: estimate.managers?.map((manager) => ({id: manager}))
                 }))
             }
         },
@@ -283,7 +291,8 @@ export default (prisma: PrismaClient) => {
                             expiry: args.input.expiry,
                             status: args.input.status,
                             price: args.input.price,
-                            organisation: context.jwt.organisation
+                            organisation: context.jwt.organisation,
+                            managers: args.input.managers?.length ? args.input.managers : [context.jwt.id]
                         }
                     })
                 }catch(e: any){
@@ -306,7 +315,8 @@ export default (prisma: PrismaClient) => {
                         companyName: args.input.companyName,
                         status: args.input.status,
                         price: args.input.price,
-                        organisation: context.jwt.organisation
+                        organisation: context.jwt.organisation,
+                        managers: args.input.managers || []
                     }
                 })
             },

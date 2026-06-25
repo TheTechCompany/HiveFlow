@@ -68,6 +68,7 @@ export interface EstimateInput {
   name?: InputMaybe<Scalars["String"]>;
   price?: InputMaybe<Scalars["Float"]>;
   status?: InputMaybe<Scalars["String"]>;
+  managers?: InputMaybe<Array<InputMaybe<Scalars["String"]>>>;
 }
 
 export interface EstimateLineItemInput {
@@ -108,6 +109,7 @@ export interface ProjectInput {
   name?: InputMaybe<Scalars["String"]>;
   startDate?: InputMaybe<Scalars["DateTime"]>;
   status?: InputMaybe<Scalars["String"]>;
+  managers?: InputMaybe<Array<InputMaybe<Scalars["String"]>>>;
 }
 
 export interface ProjectTaskInput {
@@ -247,6 +249,7 @@ export const generatedSchema = {
     price: { __type: "Float" },
     status: { __type: "String" },
     tasks: { __type: "[EstimateTask]" },
+    managers: { __type: "[HiveUser]" },
   },
   EstimateInput: {
     companyName: { __type: "String" },
@@ -257,6 +260,7 @@ export const generatedSchema = {
     name: { __type: "String" },
     price: { __type: "Float" },
     status: { __type: "String" },
+    managers: { __type: "[String]" },
   },
   EstimateLineItem: {
     __typename: { __type: "String!" },
@@ -323,7 +327,7 @@ export const generatedSchema = {
     schedule: { __type: "[ScheduleItem!]!" },
     timeline: { __type: "[TimelineItem!]!" },
   },
-  HiveUser: { __typename: { __type: "String!" }, id: { __type: "ID!" } },
+  HiveUser: { __typename: { __type: "String!" }, id: { __type: "ID!" }, name: { __type: "String" } },
   People: {
     __typename: { __type: "String!" },
     id: { __type: "ID!" },
@@ -346,6 +350,7 @@ export const generatedSchema = {
     startDate: { __type: "DateTime" },
     status: { __type: "String" },
     tasks: { __type: "[ProjectTask]" },
+    managers: { __type: "[HiveUser]" },
   },
   ProjectInput: {
     colour: { __type: "String" },
@@ -355,6 +360,7 @@ export const generatedSchema = {
     name: { __type: "String" },
     startDate: { __type: "DateTime" },
     status: { __type: "String" },
+    managers: { __type: "[String]" },
   },
   ProjectResult: {
     __typename: { __type: "String!" },
@@ -752,6 +758,7 @@ export interface Estimate {
   price?: Maybe<ScalarsEnums["Float"]>;
   status?: Maybe<ScalarsEnums["String"]>;
   tasks?: Maybe<Array<Maybe<EstimateTask>>>;
+  managers?: Maybe<Array<Maybe<HiveUser>>>;
 }
 
 export interface EstimateLineItem {
@@ -802,6 +809,7 @@ export interface HiveOrganisation {
 export interface HiveUser {
   __typename?: "HiveUser";
   id: ScalarsEnums["ID"];
+  name?: Maybe<ScalarsEnums["String"]>;
 }
 
 export interface People {
@@ -829,6 +837,7 @@ export interface Project {
   startDate?: Maybe<ScalarsEnums["DateTime"]>;
   status?: Maybe<ScalarsEnums["String"]>;
   tasks?: Maybe<Array<Maybe<ProjectTask>>>;
+  managers?: Maybe<Array<Maybe<HiveUser>>>;
 }
 
 export interface ProjectResult {
@@ -1164,6 +1173,9 @@ export interface Query {
   timelineItems: (args?: {
     where?: Maybe<TimelineItemWhere>;
   }) => Maybe<Array<Maybe<TimelineItem>>>;
+  users: (args?: {
+    active?: Maybe<Scalars["Boolean"]>;
+  }) => Maybe<Array<Maybe<HiveUser>>>;
 }
 
 export interface Subscription {

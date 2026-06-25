@@ -23,6 +23,7 @@ import { Outlet, Route, Routes, useLocation, useNavigate, useParams } from 'reac
 import { TimelinePane, FilePane, KanbanPane } from './panes';
 import { ProjectSingleProvider } from './context';
 import { TaskModal } from '../../../modals/new-task';
+import { BatchView } from '../../batches';
 
 import { arrayMove } from '@dnd-kit/sortable'
 // const FileExplorer = lazy(() => {
@@ -181,50 +182,15 @@ console.log({pathname})
       title: "Files",
       path: "files",
       element: <FilePane />
-      // (
-      // <SharedFiles
-      //   loading={loadingFiles}
-      //   uploading={uploadingFiles}
-
-      //   onClick={(item) => {
-      //     setShowFiles([item])
-      //     openDialog(true)
-      //   }}
-      //   files={(files || []).filter((a) => {
-      //     if(a.status == "Finished"){
-      //       let ttl = 14 * 24 * 60 * 60 * 1000;
-      //       return Date.now() - dateFromObjectID(a.id).getTime() < ttl;
-      //     }
-      //     return true;
-      //   })
-      // }
-      // onDelete={async (_files) => {
-      //   console.log(_files)
-      //   await Promise.all(_files.map(async (file) => {
-      //     // if(job?.id) await removeFile({args: {project: job?.id, id: file._id}})
-      //   }))
-
-      // }}
-      // onUpload={(files) => {
-      //   fileActions.addFilesToJob(job_id, files).then(async (result) => {
-      //     console.log("Upload result", result)
-      //     await refetch(query.projects({where: {id: job_id}}))
-      //   })
-      // }}
-      // onEdit={(files) => {
-      //   openDialog(true)
-      //   setShowFiles(files)
-      // }}
-      // onView={(files) => {
-      //   openDialog(true)
-      //   setShowFiles(files)
-      // }}
-      // onChange={(files) => setFiles(files)}
-      // jobId={job_id} />)
+    },
+    {
+      title: "Batches",
+      path: "batches/*",
+      element: <BatchView />
     },
   ]
 
-  const view = _tabs.find((a) => pathname.indexOf(a.path) > -1)?.path
+  const view = _tabs.find((a) => pathname.indexOf(a.path) > -1)?.path?.replace('/*', '')
 
   const UseLoading = (id: string) => {
     setLoadingFiles(Array.from(new Set([...loadingFiles, id])))
@@ -475,7 +441,7 @@ console.log({pathname})
           onChange={(e, value) => navigate(value)}
           value={view}>
           {_tabs.map((tab) => (
-            <Tab value={tab.path} label={tab.title} />
+            <Tab value={tab.path.replace('/*', '')} label={tab.title} />
           ))}
          
         </Tabs>

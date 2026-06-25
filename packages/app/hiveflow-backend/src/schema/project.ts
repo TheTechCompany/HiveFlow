@@ -84,6 +84,7 @@ export default (prisma: PrismaClient) => {
                         createdBy: task.createdBy ? {id: task.createdBy} : undefined,
                         members: task.members?.map((member) => ({id: member}))
                     })),
+		    managers: x.managers?.map((manager) => ({id: manager})),
 					organisation: {id: x.organisation}
 				}));            
             }
@@ -105,7 +106,8 @@ export default (prisma: PrismaClient) => {
                                     description: args.input.description,
                                     startDate: args.input.startDate,
                                     endDate: args.input.endDate,
-                                    status: args.input.status || 'draft'
+                                    status: args.input.status || 'draft',
+                                    managers: args.input.managers?.length ? args.input.managers : [context.jwt.id]
                                 }
                             })
                             return project
@@ -135,7 +137,8 @@ export default (prisma: PrismaClient) => {
                         startDate: args.input.startDate,
                         endDate: args.input.endDate,
                         description: args.input.description,
-                        status: args.input.status
+                        status: args.input.status,
+                        managers: args.input.managers || []
                     }
                 })
             },
@@ -636,6 +639,7 @@ export default (prisma: PrismaClient) => {
         startDate: DateTime
         endDate: DateTime
         status: String
+        managers: [String]
     }
 
     input ProjectWhere {
@@ -668,6 +672,8 @@ export default (prisma: PrismaClient) => {
         startDate: DateTime
         endDate: DateTime
         status: String
+
+        managers: [HiveUser]
     }
 
     input ProjectTaskInput {
@@ -686,6 +692,8 @@ export default (prisma: PrismaClient) => {
         below: String
         
         projectId: String
+
+        handoverNote: String
     }
 
     type ProjectTask {
@@ -708,6 +716,8 @@ export default (prisma: PrismaClient) => {
         requiredSkills: JSON
 
         createdBy: HiveUser
+
+        handoverNote: String
 
         lastUpdated: DateTime
 

@@ -36,6 +36,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
   })
 
   const projects = query.projects({})
+  const users = query.users?.({active: true})
 
   const history = useNavigate()
 
@@ -53,6 +54,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
     status?: string,
     startDate?: Date,
     endDate?: Date,
+    managers?: string[],
   }) => {
     const item = mutation.createProject({
       input: {
@@ -62,7 +64,8 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
         colour: args.colour,
         startDate: args.startDate?.toISOString(),
         endDate: args.endDate?.toISOString(),
-        status: args.status
+        status: args.status,
+        managers: args.managers
       }
     })
     return {
@@ -84,6 +87,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
     colour?: string,
     startDate?: Date,
     endDate?: Date,
+    managers?: string[],
   }) => {
     if(!args.id) return;
     const item = mutation.updateProject({
@@ -95,7 +99,8 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
         description: args.description, 
         startDate: args.startDate?.toISOString(),
         endDate: args.endDate?.toISOString(),
-        status: args.status
+        status: args.status,
+        managers: args.managers
       }
     })
     return {
@@ -176,6 +181,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
             selected={selected}
             error={modalError}
             statusList={statusList}
+            users={users || []}
             onClose={() => {
               openModal(false)
               setSelected(undefined)

@@ -1,0 +1,156 @@
+// ── Timeline — Grid lines ───────────────────────────────────────────
+// Renders vertical dividers and a "today" marker over the timeline area.
+
+import React, { useMemo } from 'react';
+import type { TimelineGeometry, TimelineStep } from './types';
+import { generateTierIntervals, dateToX } from './utils';
+import { HEADER_TIERS } from './constants';
+
+export interface TimelineGridProps {
+  geometry: TimelineGeometry;
+  start: Date;
+  end: Date;
+  step: TimelineStep;
+  totalHeight: number;
+  showToday?: boolean;
+  /** Left offset to skip sidebar area. */
+  sidebarWidth?: number;
+}
+
+// ── Module-level style constants ──────────────────────────────────
+
+const GRID_CONTAINER_STYLE: React.CSSProperties = {
+  position: 'absolute',
+  top: 0,
+  right: 0,
+  bottom: 0,
+  pointerEvents: 'none',
+  overflow: 'hidden',
+};
+
+const GRID_LINE_STYLE: React.CSSProperties = {
+  position: 'absolute',
+  top: 0,
+  width: '1px',
+  backgroundColor: '#f0f0f0',
+  pointerEvents: 'none',
+};
+
+const TODAY_LINE_STYLE: React.CSSProperties = {
+  position: 'absolute',
+  top: 0,
+  width: '2px',
+  backgroundColor: '#ea4335',
+  zIndex: 8,
+  pointerEvents: 'none',
+};
+
+const WEEKEND_STYLE: React.CSSProperties = {
+  position: 'absolute',
+  top: 0,
+  backgroundColor: 'rgba(0,0,0,0.03)',
+  pointerEvents: 'none',
+};
+
+// ── Component ───────────────────────────────────────────────────────
+
+export const TimelineGrid: React.FC<TimelineGridProps> = React.memo(
+  function TimelineGrid({
+    geometry,
+    start,
+    end,
+    step,
+    totalHeight,
+    showToday = true,
+    sidebarWidth = 0,
+  }) {
+    // Get the finest tier (last one) for grid lines
+    const tiers = useMemo(() => HEADER_TIERS[step], [step]);
+    const finestTier = tiers[tiers.length - 1];
+
+    const gridLines = useMemo(() => {
+      if (!finestTier) return null;
+      const intervals = generateTierIntervals(start, end, finestTier);
+
+      return intervals.map((interval, i) => {
+        const x = dateToX(interval.start, start, geometry.pxPerMs);
+        if (x < 0) return null;
+
+        return (
+          <div
+            key={i}
+            style={{
+              ...GRID_LINE_STYLE,
+              left: `${x}px`,
+              height: `${totalHeight}px`,
+            }}
+          />
+        );
+      });
+    }, [finestTier, start, end, geometry.pxPerMs, totalHeight]);
+
+    // Today marker
+    const todayLine = useMemo(() => {
+      if (!showToday) return null;
+      const now = new Date();
+      if (now < start || now > end) return null;
+
+      const x = dateToX(now, start, geometry.pxPerMs);
+
+      return (
+        <div
+          data-today-line
+          style={{
+            ...TODAY_LINE_STYLE,
+            left: `${x}px`,
+            height: `${totalHeight}px`,
+          }}
+        />
+      );
+    }, [showToday, start, end, geometry.pxPerMs, totalHeight]);
+
+    // Weekend shading (for day/week steps)
+    const weekendShading = useMemo(() => {
+      if (step === 'hour' || step === 'month' || step === 'year') return null;
+      const dayTier = { unit: 'day' as TimelineStep, format: 'ddd' };
+      const intervals = generateTierIntervals(start, end, dayTier);
+
+      return intervals
+        .filter((iv) => {
+          const day = iv.start.getDay();
+          return day === 0 || day === 6;
+        })
+        .map((iv, i) => {
+          const x = dateToX(iv.start, start, geometry.pxPerMs);
+          const w = dateToX(iv.end, start, geometry.pxPerMs) - x;
+          return (
+            <div
+              key={`we-${i}`}
+              style={{
+                ...WEEKEND_STYLE,
+                left: `${x}px`,
+                width: `${Math.max(0, w)}px`,
+                height: `${totalHeight}px`,
+              }}
+            />
+          );
+        });
+    }, [step, start, end, geometry.pxPerMs, totalHeight]);
+
+    return (
+      <div
+        data-timeline-grid
+        style={{
+          ...GRID_CONTAINER_STYLE,
+          left: `${sidebarWidth}px`,
+        }}
+      >
+        {weekendShading}
+        {gridLines}
+        {todayLine}
+      </div>
+    );
+  },
+);
+
+export default TimelineGrid;

@@ -1,264 +1,510 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Add, Close } from '@mui/icons-material'
-import { Autocomplete, Box, Button, CircularProgress, Collapse, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Menu, MenuItem, Paper, Popover, TextField, Typography } from '@mui/material'
-import { FormControl } from '@hexhive/ui'
-import { MemberList } from './members'
-import { DatePicker } from '@mui/x-date-pickers'
-import moment from 'moment'
+import React, { useEffect, useState } from 'react';
+import {
+  Add,
+  Close,
+  Edit,
+  Label,
+} from '@mui/icons-material';
+import {
+  Autocomplete,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  IconButton,
+  TextField,
+  Typography,
+} from '@mui/material';
+import { FormControl } from '@hexhive/ui';
+import { RichTextEditor } from '../../components/RichTextEditor';
+import { MemberList } from './members';
+import { DatePicker } from '@mui/x-date-pickers';
+import moment from 'moment';
 
-export const TaskModal = (props) => {
+// ── Types ───────────────────────────────────────────────────────────
 
-    const [skillRef, setSkillRef] = useState(null);
-
-    const [ loading, setLoading ] = useState(false);
-
-    const [ deleteLoading, setDeleteLoading ] = useState(false)
-
-    const [ task, setTask ] = useState<{
-        title?: string;
-        description?: string;
-        status?: string;
-        members?: string[];
-        requiredSkills?: any;
-        startDate?: Date;
-        endDate?: Date;
-        dependencyOn?: {title: string, status: string, endDate: Date}[];
-        dependencyOf?: {title: string, status: string, endDate: Date}[];
-    }>({
-        status: 'Backlog',
-        startDate: new Date(),
-        endDate: new Date()
-    });
-
-    useEffect(() => {
-        setTask({
-            status: 'Backlog',
-            startDate: new Date(),
-            endDate: new Date(),
-            ...props.selected,
-            members: props.selected?.members?.map((x) => x.id)
-        })
-    }, [props.selected])
-
-    const onDelete = async () => {
-        setDeleteLoading(true);
-        try{
-            await props.onDelete?.();
-            setTask({
-                status: 'Backlog',
-                startDate: new Date(),
-                endDate: new Date()
-            })
-            setDeleteLoading(false);
-        }catch(err){
-            setDeleteLoading(false);
-            //setError(true);
-        }
-    }
-
-    const submit = async () => {
-        setLoading(true);
-        try{
-            await props.onSubmit?.(task);
-            setTask({
-                status: 'Backlog',
-                startDate: new Date(),
-                endDate: new Date()
-            });
-            setLoading(false)
-        }catch(err){
-            setLoading(false);
-            //setError(true);
-        }
-    }
-
-    return (
-        <Dialog 
-            maxWidth="lg"
-            onClose={props.onClose}
-            open={props.open}>
-            <DialogTitle>
-                <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                    <Typography>Task</Typography>
-                    <MemberList
-                        data={props.users || []}
-                        members={props.users.filter((a) => task.members?.indexOf(a.id) > -1) || []}
-                        onMembersChanged={(members) => {
-                            setTask({...task, members: members.map((x) => x.id)})
-                        }}
-                        />
-                </Box>
-            </DialogTitle>
-            <DialogContent sx={{display: 'flex', gap: '8px', position: 'relative'}}>
-
-                {/* <Collapse in={task.dependencyOf?.length > 0 || task.dependencyOn?.length > 0} sx={{display: 'flex', flexDirection: 'column', padding: '3px', position: 'absolute', top: 0, bottom: 0, left: '-100%'}}>
-                    {task.dependencyOn?.length > 0 && <Paper>
-                        <Box sx={{padding: '3px', color: 'white', bgcolor: 'secondary.light'}}>
-                            <Typography>Needs</Typography>
-                        </Box>
-                        <Divider />
-                        <Box sx={{padding: '3px'}}>
-                            {task.dependencyOn?.filter((a) => a.status != "Done" && a.status != "Reviewing").map((dependency) => (
-                                <Box sx={{display: 'flex', alignItems: 'center'}}>
-                                {(new Date(dependency.endDate).getTime() < new Date().getTime()) ? <ColorDot size={8} color="red" /> : ""}
-                                <Typography>{dependency.title}</Typography>
-                                </Box>
-                            )).map((x) => [x, <Divider />])}
-                        </Box>
-                    </Paper>}
-                    {task.dependencyOf?.length > 0 && <Paper>
-                        <Box sx={{padding: '3px', color: 'white', bgcolor: 'secondary.light'}}>
-                            <Typography>Needed by</Typography>
-                        </Box>
-                        <Divider />
-                        <Box sx={{padding: '3px'}}>
-                            {task.dependencyOf?.filter((a) => a.status != "Done" && a.status != "Reviewing").map((dependency) => (
-                                <Box sx={{display: 'flex', alignItems: 'center'}}>
-                                    {(new Date(dependency.endDate).getTime() < new Date().getTime()) ? <ColorDot size={8} color="red" /> : ""}
-                                    <Typography>{dependency.title}</Typography>
-                                </Box>
-                            )).map((x) => [x, <Divider />])}
-                        </Box>
-                    </Paper>}
-                </Collapse> */}
-
-                <Box sx={{display: 'flex', flex: 1, flexDirection: 'column'}}>
-                    <TextField 
-                        sx={{marginTop: '8px'}}
-                        label="Title" 
-                        fullWidth 
-                        size="small"
-                        value={task.title}
-                        onChange={(e) => setTask({...task, title: e.target.value})}
-                            />
-                    <TextField 
-                        sx={{marginTop: '8px', marginBottom: '8px'}}
-                        multiline 
-                        minRows={3}
-                        label="Description" 
-                        fullWidth 
-                        value={task.description}
-                        onChange={(e) => setTask({...task, description: e.target.value})}
-                        size="small" />
-                    
-                    <FormControl
-                        placeholder='Status'
-                        value={task.status}
-                        onChange={(val) => setTask({...task, status: val})}
-                        labelKey='label'
-                        valueKey='id'
-                        options={["Backlog", "In Progress", "Reviewing", "Finished"].map((x) => ({id: x, label: x}))}
-                            />
-
-                    <Box sx={{marginTop: '8px', marginBottom: '3px', display: 'flex'}}>
-                        <DatePicker 
-                            format='DD/MM/YYYY'
-                            value={task.startDate ? moment(task.startDate) : null}
-                            onChange={(date) => {
-                                    // console.log({date, old: '12'})
-                                    setTask({...task, startDate: date.toDate() })
-
-                            
-                            }}
-                            slotProps={{
-                                textField: {
-                                    size: 'small'
-                                }
-                            }}
-                            label='Start Date' />
-                        <DatePicker 
-                            format='DD/MM/YYYY'
-                            value={task.endDate ? moment(task.endDate) : null}
-                            onChange={(date) => setTask({...task, endDate: date.toDate() })}
-                            slotProps={{
-                                textField: {
-                                    size: 'small'
-                                }
-                            }}
-                            label="End Date" />
-                    </Box>
-
-                    {task.requiredSkills ? (
-                        <Box>
-                            <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                                <Typography>Skills</Typography>
-                                <IconButton
-                                    onClick={() => {
-                                        setTask({
-                                            ...task,
-                                            requiredSkills: [...task.requiredSkills, {}]
-                                        })
-                                    }}
-                                    size="small"><Add /></IconButton>
-                            </Box>
-                            {task.requiredSkills?.map((skill, ix) => (
-                                <Box sx={{display: 'flex'}}>
-                                    <Autocomplete
-                                        fullWidth
-                                        value={skill.skill}
-                                        onChange={(e, newValue) => {
-                                            let requiredSkills = task.requiredSkills.slice();
-                                            requiredSkills[ix].skill = newValue
-                                            setTask({
-                                                ...task, 
-                                                requiredSkills
-                                            })
-                                        }}
-                                        options={props.skills || []}
-                                        getOptionLabel={(option) => typeof(option) == 'string' ? option : option.skill}
-                                        renderInput={(params) => <TextField {...params} size="small" />}
-                                        />
-                                    <TextField 
-                                        fullWidth
-                                        value={skill.hours}
-                                        onChange={(e) => {
-                                            let requiredSkills = task.requiredSkills.slice();
-                                            requiredSkills[ix].hours = e.target.value
-                                            setTask({
-                                                ...task, 
-                                                requiredSkills
-                                            })
-                                        }}
-                                        size="small" />
-                                    <IconButton size="small" onClick={() => {
-                                          let requiredSkills = task.requiredSkills.slice();
-                                          requiredSkills.splice(ix, 1)
-                                          setTask({
-                                              ...task, 
-                                              requiredSkills
-                                          })
-                                    }}>
-                                        <Close />
-                                    </IconButton>
-                                </Box>
-                            ))}
-                        </Box>
-                    ) : null}
-                </Box>
-                <Box sx={{paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
-
-                    <Button 
-                        variant="outlined"
-                        sx={{textTransform: 'none'}}>Members</Button>
-                    <Button 
-                        // ref={skillRef}
-                        onClick={(e) => {
-                            setTask({...task, requiredSkills: []})
-                        }}
-                        variant={task.requiredSkills ? 'contained' : "outlined"}
-                        sx={{textTransform: 'none'}}>Skills</Button>
-                   
-                </Box>
-            </DialogContent>
-            <DialogActions sx={{display: 'flex', justifyContent: props.selected?.id ? 'space-between' : undefined}}>
-                {props.selected?.id &&  <Box>
-                    <Button onClick={onDelete} disabled={deleteLoading} variant="contained" color="error">{deleteLoading ? <CircularProgress size="20px" /> : "Delete"}</Button>
-                </Box>}
-                <Box>
-                    <Button onClick={props.onClose}>Close</Button>
-                    <Button onClick={submit} disabled={loading} color="primary" variant="contained">{loading ? <CircularProgress size="20px" /> : "Save"}</Button>
-                </Box>
-            </DialogActions>
-        </Dialog>
-    )
+interface TaskModalProps {
+  open: boolean;
+  selected?: any;
+  users?: Array<{ id: string; name: string }>;
+  skills?: Array<{ id: string; skill: string }>;
+  onClose: () => void;
+  onSubmit?: (task: any) => Promise<void>;
+  onDelete?: () => Promise<void>;
+  /** Called when description changes from a checklist toggle — auto-saves immediately */
+  onAutoSaveDescription?: (html: string) => void;
 }
+
+interface TaskState {
+  title?: string;
+  description?: string;
+  status?: string;
+  members?: string[];
+  requiredSkills?: Array<{ skill?: string; hours?: string }>;
+  startDate?: Date;
+  endDate?: Date;
+  dependencyOn?: Array<{ title: string; status: string; endDate: Date }>;
+  dependencyOf?: Array<{ title: string; status: string; endDate: Date }>;
+}
+
+// ── Component ───────────────────────────────────────────────────────
+
+export const TaskModal: React.FC<TaskModalProps> = (props) => {
+  const [loading, setLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [editing, setEditing] = useState(!props.selected?.id);
+
+  const [task, setTask] = useState<TaskState>({
+    status: 'Backlog',
+    startDate: new Date(),
+    endDate: new Date(),
+  });
+
+  useEffect(() => {
+    const hasId = !!props.selected?.id;
+    setEditing(!hasId);
+    setTask({
+      status: 'Backlog',
+      startDate: new Date(),
+      endDate: new Date(),
+      ...props.selected,
+      members: props.selected?.members?.map((x: any) => x.id),
+      dependencyOn: props.selected?.dependencyOn ?? [],
+      dependencyOf: props.selected?.dependencyOf ?? [],
+    });
+  }, [props.selected]);
+
+  const onDelete = async () => {
+    setDeleteLoading(true);
+    try {
+      await props.onDelete?.();
+      setTask({ status: 'Backlog', startDate: new Date(), endDate: new Date() });
+    } catch {
+      // keep dialog open on failure
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const submit = async () => {
+    setLoading(true);
+    try {
+      await props.onSubmit?.(task);
+      setTask({ status: 'Backlog', startDate: new Date(), endDate: new Date() });
+    } catch {
+      // keep dialog open on failure
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const hasDependencies =
+    (task.dependencyOn?.length ?? 0) > 0 ||
+    (task.dependencyOf?.length ?? 0) > 0;
+
+  return (
+    <Dialog
+      maxWidth="md"
+      fullWidth
+      onClose={props.onClose}
+      open={props.open}
+      PaperProps={{ sx: { minHeight: '70vh' } }}
+    >
+      {/* ── Header ──────────────────────────────────────────────── */}
+      <DialogTitle sx={{ pb: 1 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="h6" fontWeight="bold">
+              {props.selected?.id
+                ? editing
+                  ? 'Edit Task'
+                  : 'Task Details'
+                : 'New Task'}
+            </Typography>
+          </Box>
+          <MemberList
+            editable={editing}
+            data={props.users || []}
+            members={
+              props.users?.filter((a) => task.members?.indexOf(a.id) > -1) ?? []
+            }
+            onMembersChanged={(members) =>
+              setTask({ ...task, members: members.map((x) => x.id) })
+            }
+          />
+        </Box>
+      </DialogTitle>
+      <Divider />
+
+      {/* ── Body ────────────────────────────────────────────────── */}
+      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2, pb: 1 }}>
+        {/* Title — with edit icon in view mode */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {editing ? (
+            <TextField
+              label="Title"
+              fullWidth
+              size="small"
+              value={task.title ?? ''}
+              onChange={(e) => setTask({ ...task, title: e.target.value })}
+              InputProps={{
+                startAdornment: <Label sx={{ mr: 1, color: 'text.secondary' }} />,
+              }}
+            />
+          ) : (
+            <>
+              <Typography variant="h5" fontWeight="bold">
+                {task.title || '(Untitled)'}
+              </Typography>
+              {props.selected?.id && (
+                <IconButton
+                  size="small"
+                  onClick={() => setEditing(true)}
+                  color="primary"
+                >
+                  <Edit fontSize="small" />
+                </IconButton>
+              )}
+            </>
+          )}
+        </Box>
+
+        {/* Description — with edit icon in view mode */}
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              Description
+            </Typography>
+            {!editing && props.selected?.id && (
+              <IconButton
+                size="small"
+                onClick={() => setEditing(true)}
+                color="primary"
+                sx={{ p: 0.25 }}
+              >
+                <Edit sx={{ fontSize: 14 }} />
+              </IconButton>
+            )}
+          </Box>
+          <RichTextEditor
+            editable={editing}
+            value={task.description ?? ''}
+            onChange={(html) =>
+              setTask({ ...task, description: html })
+            }
+            onChecklistToggle={props.onAutoSaveDescription
+              ? (ev) => {
+                  setTask({ ...task, description: ev.html });
+                  props.onAutoSaveDescription!(ev.html);
+                }
+              : undefined
+            }
+            placeholder="Add a description…"
+            minHeight={200}
+          />
+        </Box>
+
+        {/* Status — own row */}
+        <Box>
+          {editing ? (
+            <FormControl
+              placeholder="Status"
+              value={task.status}
+              onChange={(val) => setTask({ ...task, status: val })}
+              labelKey="label"
+              valueKey="id"
+              options={['Backlog', 'In Progress', 'Reviewing', 'Finished'].map(
+                (x) => ({ id: x, label: x }),
+              )}
+            />
+          ) : (
+            <>
+              <Typography variant="caption" color="text.secondary">
+                Status
+              </Typography>
+              <Typography variant="body2">{task.status ?? '—'}</Typography>
+            </>
+          )}
+        </Box>
+
+        {/* Dates — own row (two columns) */}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 1.5,
+          }}
+        >
+          {editing ? (
+            <DatePicker
+              format="DD/MM/YYYY"
+              value={task.startDate ? moment(task.startDate) : null}
+              onChange={(date) =>
+                date && setTask({ ...task, startDate: date.toDate() })
+              }
+              slotProps={{ textField: { size: 'small', label: 'Start Date' } }}
+            />
+          ) : (
+            <Box>
+              <Typography variant="caption" color="text.secondary">
+                Start Date
+              </Typography>
+              <Typography variant="body2">
+                {task.startDate
+                  ? moment(task.startDate).format('DD/MM/YYYY')
+                  : '—'}
+              </Typography>
+            </Box>
+          )}
+          {editing ? (
+            <DatePicker
+              format="DD/MM/YYYY"
+              value={task.endDate ? moment(task.endDate) : null}
+              onChange={(date) =>
+                date && setTask({ ...task, endDate: date.toDate() })
+              }
+              slotProps={{ textField: { size: 'small', label: 'End Date' } }}
+            />
+          ) : (
+            <Box>
+              <Typography variant="caption" color="text.secondary">
+                End Date
+              </Typography>
+              <Typography variant="body2">
+                {task.endDate
+                  ? moment(task.endDate).format('DD/MM/YYYY')
+                  : '—'}
+              </Typography>
+            </Box>
+          )}
+        </Box>
+
+        {/* Dependencies info — always read-only */}
+        {hasDependencies && (
+          <Box
+            sx={{
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1,
+              p: 1.5,
+            }}
+          >
+            <Typography variant="subtitle2" gutterBottom>
+              Dependencies
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              {task.dependencyOn?.length ? (
+                <Box sx={{ flex: 1 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    gutterBottom
+                  >
+                    Needs
+                  </Typography>
+                  {task.dependencyOn
+                    .filter((d) => d.status !== 'Finished')
+                    .map((dep, i) => (
+                      <Chip
+                        key={i}
+                        size="small"
+                        label={dep.title}
+                        color={
+                          new Date(dep.endDate).getTime() < Date.now()
+                            ? 'error'
+                            : 'default'
+                        }
+                        sx={{ mr: 0.5, mb: 0.5 }}
+                      />
+                    ))}
+                </Box>
+              ) : null}
+              {task.dependencyOf?.length ? (
+                <Box sx={{ flex: 1 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    gutterBottom
+                  >
+                    Needed by
+                  </Typography>
+                  {task.dependencyOf
+                    .filter((d) => d.status !== 'Finished')
+                    .map((dep, i) => (
+                      <Chip
+                        key={i}
+                        size="small"
+                        label={dep.title}
+                        color={
+                          new Date(dep.endDate).getTime() < Date.now()
+                            ? 'error'
+                            : 'default'
+                        }
+                        sx={{ mr: 0.5, mb: 0.5 }}
+                      />
+                    ))}
+                </Box>
+              ) : null}
+            </Box>
+          </Box>
+        )}
+
+        {/* Skills section */}
+          <Box
+            sx={{
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1,
+              p: 1.5,
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                mb: 1,
+              }}
+            >
+              <Typography variant="subtitle2">Required Skills</Typography>
+              {editing && (
+                <IconButton
+                  size="small"
+                  onClick={() =>
+                    setTask({
+                      ...task,
+                      requiredSkills: [
+                        ...(task.requiredSkills ?? []),
+                        { skill: '', hours: '0' },
+                      ],
+                    })
+                  }
+                >
+                  <Add fontSize="small" />
+                </IconButton>
+              )}
+            </Box>
+            {task.requiredSkills?.length === 0 && (
+              <Typography variant="body2" color="text.secondary">
+                No skills added yet{editing ? '. Click + to add one.' : '.'}
+              </Typography>
+            )}
+            {task.requiredSkills?.map((skill, ix) => (
+              <Box
+                key={ix}
+                sx={{
+                  display: 'flex',
+                  gap: 1,
+                  alignItems: 'center',
+                  mb: 1,
+                }}
+              >
+                {editing ? (
+                  <>
+                    <Autocomplete
+                      fullWidth
+                      size="small"
+                      value={skill.skill ?? ''}
+                      onChange={(_e, newValue) => {
+                        const skills = (task.requiredSkills ?? []).slice();
+                        skills[ix] = { ...skills[ix], skill: newValue ?? '' };
+                        setTask({ ...task, requiredSkills: skills });
+                      }}
+                      options={props.skills?.map((s) => s.skill) ?? []}
+                      renderInput={(params) => (
+                        <TextField {...params} placeholder="Skill" />
+                      )}
+                    />
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="Hours"
+                      sx={{ width: 100 }}
+                      value={skill.hours ?? ''}
+                      onChange={(e) => {
+                        const skills = (task.requiredSkills ?? []).slice();
+                        skills[ix] = { ...skills[ix], hours: e.target.value };
+                        setTask({ ...task, requiredSkills: skills });
+                      }}
+                    />
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        const skills = (task.requiredSkills ?? []).slice();
+                        skills.splice(ix, 1);
+                        setTask({
+                          ...task,
+                          requiredSkills:
+                            skills.length > 0 ? skills : undefined,
+                        });
+                      }}
+                    >
+                      <Close fontSize="small" />
+                    </IconButton>
+                  </>
+                ) : (
+                  <Typography variant="body2">
+                    {skill.skill || '(unnamed)'}
+                    {skill.hours ? ` — ${skill.hours}h` : ''}
+                  </Typography>
+                )}
+              </Box>
+            ))}
+          </Box>
+
+      </DialogContent>
+
+      {/* ── Footer ────────────────────────────────────────────────── */}
+      <DialogActions
+        sx={{
+          px: 3,
+          pb: 2,
+          display: 'flex',
+          justifyContent: props.selected?.id ? 'space-between' : 'flex-end',
+        }}
+      >
+        {props.selected?.id && (
+          <Button
+            onClick={onDelete}
+            disabled={deleteLoading}
+            variant="contained"
+            color="error"
+            size="small"
+          >
+            {deleteLoading ? <CircularProgress size={18} /> : 'Delete'}
+          </Button>
+        )}
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button onClick={props.onClose} size="small">
+            {editing ? 'Cancel' : 'Close'}
+          </Button>
+          {editing && (
+            <Button
+              onClick={submit}
+              disabled={loading}
+              color="primary"
+              variant="contained"
+              size="small"
+            >
+              {loading ? (
+                <CircularProgress size={18} sx={{ mr: 0.5 }} />
+              ) : null}
+              {props.selected?.id ? 'Save' : 'Create'}
+            </Button>
+          )}
+        </Box>
+      </DialogActions>
+    </Dialog>
+  );
+};

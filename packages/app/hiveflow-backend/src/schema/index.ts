@@ -8,6 +8,7 @@ import schedule from './schedule';
 import equipment from './equipment';
 import reports from './reports';
 import assignment from './assignment';
+import planbatch from './planbatch';
 
 import { JSONDefinition, JSONResolver } from 'graphql-scalars';
 
@@ -19,6 +20,7 @@ export default (prisma: PrismaClient) => {
 	const { typeDefs: scheduleTypeDefs, resolvers: scheduleResolvers } = schedule(prisma);
 	const { typeDefs: equipmentTypeDefs, resolvers: equipmentResolvers } = equipment(prisma);
 	const { typeDefs: reportTypeDefs, resolvers: reportResolvers } = reports(prisma);
+	const { typeDefs: planBatchTypeDefs, resolvers: planBatchResolvers } = planbatch(prisma);
 
 
 	const resolvers = {
@@ -94,6 +96,7 @@ export default (prisma: PrismaClient) => {
 			estimateTypeDefs,
 			equipmentTypeDefs,
 			reportTypeDefs,
+			planBatchTypeDefs,
 			scheduleTypeDefs
 		]),
 		resolvers: mergeResolvers([
@@ -104,6 +107,7 @@ export default (prisma: PrismaClient) => {
 			equipmentResolvers,
 			estimateResolvers,
 			reportResolvers,
+			planBatchResolvers,
 			scheduleResolvers
 		])
 	}

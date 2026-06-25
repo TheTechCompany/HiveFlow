@@ -34,6 +34,8 @@ import Timeline from '../timeline/Timeline'
 import { ProjectView } from '../projects';
 import { PeopleView } from '../people';
 import { Assignments } from '../assignments';
+import { BatchView } from '../batches';
+import { TimelineHarness } from '../demo/TimelineHarness';
 
 // const Schedule = React.lazy(() => import('../schedule'))
 // const Quotes = React.lazy(() => import('../quotes'))
@@ -161,6 +163,12 @@ export const Dashboard = (props: any) => {
       component: <Assignments />
     },
     {
+      path: 'timeline-demo',
+      label: 'Timeline Demo',
+      icon: <TimelineIcon filter="invert(1)" />,
+      component: <TimelineHarness />
+    },
+    {
       path: '',
       label: 'Schedule',
       icon: <Schedule filter="invert(1)" />,
@@ -240,7 +248,7 @@ export const Dashboard = (props: any) => {
                 <Route path={`people/:id`} element={<PeopleSingle/>} />
 
                 <Route path={`equipment`} element={<EquipmentList/>} />
-                <Route path={`timeline`} element={<Timeline/>} />
+
               </Routes>
             </React.Suspense>
             </Box> */}

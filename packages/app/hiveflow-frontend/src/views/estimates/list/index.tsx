@@ -48,15 +48,17 @@ export const EstimateList: React.FC<any> = (props) => {
   })
 
   const listData = query.estimates();
+  const users = query.users?.({active: true});
 
   const statusList = Array.from(new Set((listData || []).map((x: any) => x.status || '')))?.filter((a) => a != '');
 
-  const [ createEstimate ] = useMutation((mutation, args: {displayId: string, name: string, status?: string}) => {
+  const [ createEstimate ] = useMutation((mutation, args: {displayId: string, name: string, status?: string, managers?: string[]}) => {
     const item = mutation.createEstimate({
       input: {
           id: args.displayId,
           name: args.name,
           status: args.status,
+          managers: args.managers
       }
         
     })
@@ -70,13 +72,14 @@ export const EstimateList: React.FC<any> = (props) => {
     refetchQueries: [query.estimates()]
   })
 
-  const [ updateEstimate ] = useMutation((mutation, args: {displayId: string, name: string, status?: string}) => {
+  const [ updateEstimate ] = useMutation((mutation, args: {displayId: string, name: string, status?: string, managers?: string[]}) => {
     if(!args.displayId) return;
     const item = mutation.updateEstimate({
       id: args.displayId,
       input: {
         name: args.name,
-        status: args.status
+        status: args.status,
+        managers: args.managers
       }
     })
     return {
@@ -184,6 +187,7 @@ export const EstimateList: React.FC<any> = (props) => {
         selected={selected}
         statusList={statusList}
         error={modalError}
+        users={users || []}
         onDelete={() => {
           deleteEstimate({args: {id: selected?.displayId}}).then(()=> {
             openModal(false)
@@ -197,7 +201,8 @@ export const EstimateList: React.FC<any> = (props) => {
             updateEstimate({args: {
               displayId: project.displayId,
               name: project.name,
-              status: project.status
+              status: project.status,
+              managers: project.managers
             }}).then(() => {
               openModal(false);
               setSelected(undefined)
@@ -208,7 +213,8 @@ export const EstimateList: React.FC<any> = (props) => {
               args: {
                 displayId: project.displayId,
                 name: project.name,
-                status: project.status
+                status: project.status,
+                managers: project.managers
               }
             }).then(() => {
               openModal(false);

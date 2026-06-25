@@ -7,11 +7,17 @@ export interface Estimate {
     displayId?: string;
     name?: string;
     status?: string;
+    managers?: string[];
 }
 
 interface EstimateStatusOption {
     text: string;
     inputValue?: string;
+}
+
+interface UserOption {
+    id: string;
+    name?: string;
 }
 
 export interface EstimateModalProps {
@@ -20,6 +26,7 @@ export interface EstimateModalProps {
     error?: any;
 
     statusList?: string[];
+    users?: UserOption[];
 
     selected?: Estimate;
     onSubmit?: (estimate: Estimate) => void;
@@ -122,7 +129,20 @@ export const EstimateModal: React.FC<EstimateModalProps> = (props) => {
                         value={estimateStatusList?.find((a) => a.text == estimate?.status) || null}
                         renderInput={(params) => <TextField {...params} size="small" label="Status" />}
                     />
-                
+
+                    <Autocomplete
+                        multiple
+                        sx={{ marginBottom: '6px' }}
+                        options={props.users || []}
+                        getOptionLabel={(option) => option.name || option.id}
+                        isOptionEqualToValue={(option, value) => option.id === value.id}
+                        value={(props.users || []).filter(u => estimate.managers?.includes(u.id))}
+                        onChange={(ev, newValue) => {
+                            setEstimate({ ...estimate, managers: newValue.map(u => u.id) })
+                        }}
+                        filterSelectedOptions
+                        renderInput={(params) => <TextField {...params} size="small" label="Managers" />}
+                    />
                 </Box>
             </DialogContent>
             <DialogActions sx={{ display: 'flex', justifyContent: props.selected ? 'space-between' : 'flex-end' }}>

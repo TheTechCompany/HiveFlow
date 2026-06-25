@@ -1,6 +1,7 @@
 const { merge } = require("webpack-merge");
 const singleSpaDefaults = require("webpack-config-single-spa-react-ts");
 const webpack = require('webpack')
+const path = require('path');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 module.exports = (webpackConfigEnv, argv) => {
@@ -25,6 +26,11 @@ module.exports = (webpackConfigEnv, argv) => {
       ]
     },
     resolve: {
+      alias: {
+        // pdfjs-dist (pulled by react-pdf → react-doc-viewer → @hexhive/ui)
+        // crashes the single-spa bootstrap. Stub it so the app can load.
+        'pdfjs-dist': path.resolve(__dirname, 'src/__mocks__/pdfjs-dist'),
+      },
       fallback: {
         "process": require.resolve('process/browser')
       },
