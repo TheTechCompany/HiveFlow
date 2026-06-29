@@ -1,5 +1,6 @@
 export { default as Calendar } from './Calendar'
 export { default as Calender } from './Calender'
+export { default as Compliance } from './Compliance'
 export { default as Equipment } from './Equipment'
 export { default as Estimates } from './Estimates'
 export { default as Hiveflow } from './Hiveflow'

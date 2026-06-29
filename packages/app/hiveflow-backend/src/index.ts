@@ -2,6 +2,7 @@ import { config } from "dotenv";
 config();
 import { HiveGraph } from '@hexhive/graphql-server'
 import express from "express";
+import path from "path";
 import schema from "./schema";
 import { PrismaClient } from '@prisma/client'
 
@@ -45,6 +46,9 @@ const prisma = new PrismaClient();
 	await graphServer.init()
 
   const app = express();
+
+  // Serve cached compliance PDFs
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   app.use(graphServer.middleware)
 

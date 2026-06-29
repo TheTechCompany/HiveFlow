@@ -48,7 +48,7 @@ export const DataTable: React.FC<DataTableProps> = (props) => {
                             width: column.size ? getSize(column.size) : column.width,
                             justifyContent: column.align == "center" ? "center" : "flex-start",
                             color: 'white',
-                            padding: '8px !important'
+                            padding: '6px 8px !important'
                         }}
                     // sortDirection={props.orderBy === column.property ? props.order : false}
                     >
@@ -88,12 +88,12 @@ export const DataTable: React.FC<DataTableProps> = (props) => {
                              onClick={() => props.onClickRow?.(data)}
                             sx={{
                                 padding: 0, 
-                                minHeight: '42px'
+                                minHeight: '36px'
                             }}>
                                 {props.columns?.map((column, ix) => (
                                     <Box
                                         sx={{
-                                            padding: '8px',
+                                            padding: '4px 8px',
                                             // paddingLeft:  ix ==0 &&'32px',
                                             // height: '42px',
                                             // paddingLeft: '8px',
@@ -103,7 +103,7 @@ export const DataTable: React.FC<DataTableProps> = (props) => {
                                             width: column.size ? getSize(column.size) : column.width,
                                             justifyContent: column.align == "center" ? "center" : "flex-start",
                                         }}>
-                                            <Box sx={{marginLeft: '25px'}}>
+                                            <Box sx={{marginLeft: '8px'}}>
                                             {column.render ? column.render?.(data || {}) : data?.[column.property]}
 
                                             </Box>

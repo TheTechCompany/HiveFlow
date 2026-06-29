@@ -18,10 +18,12 @@ import {
   Equipment,
   Hiveflow,
   Assigned,
-  Recurring as RecurringIcon
+  Recurring as RecurringIcon,
+  Compliance as ComplianceIcon
 } from '../../assets'
 
 import { Box } from '@mui/material'
+import { Dashboard as ManagementIcon } from '@mui/icons-material'
 
 import { ProjectList } from '../projects/list';
 import { ProjectSingle } from '../projects/single';
@@ -37,6 +39,8 @@ import { PeopleView } from '../people';
 import { Assignments } from '../assignments';
 import { BatchView } from '../batches';
 import { RecurringView } from '../recurring';
+import { ComplianceView } from '../compliance';
+import { ManagementView } from '../management';
 
 // const Schedule = React.lazy(() => import('../schedule'))
 // const Quotes = React.lazy(() => import('../quotes'))
@@ -204,6 +208,18 @@ export const Dashboard = (props: any) => {
       label: 'Recurring',
       icon: <RecurringIcon filter="invert(1)" />,
       component: <RecurringView />
+    },
+    {
+      path: 'compliance',
+      label: 'Compliance',
+      icon: <ComplianceIcon filter="invert(1)" />,
+      component: <ComplianceView />
+    },
+    {
+      path: 'management',
+      label: 'Management',
+      icon: <ManagementIcon sx={{ color: 'white' }} />,
+      component: <ManagementView />
     }
   ]
       return (
