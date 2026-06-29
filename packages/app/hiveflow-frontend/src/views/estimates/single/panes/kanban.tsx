@@ -7,7 +7,7 @@ import { KANBAN_STATUSES } from "../../../../types/kanban";
 import type { KanbanColumn, KanbanRow } from "../../../../types/kanban";
 import type { DropResult } from "react-beautiful-dnd";
 import { EstimateSingleContext } from "../context";
-import { extractChecklistFromHtml } from '../../../../components/RichTextEditor';
+import { extractChecklistFromHtml } from '@hive-flow/ui';
 
 export const KanbanPane: React.FC = () => {
   const {

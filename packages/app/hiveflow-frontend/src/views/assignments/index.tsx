@@ -29,7 +29,7 @@ import {
 import { useAssignments } from '../../hooks/use-assignments';
 import { TaskModal } from '../../modals/new-task';
 import { HandoverModal } from '../../components/HandoverModal';
-import { extractChecklistFromHtml } from '../../components/RichTextEditor';
+import { extractChecklistFromHtml } from '@hive-flow/ui';
 import type {
   KanbanTask,
   KanbanRow,

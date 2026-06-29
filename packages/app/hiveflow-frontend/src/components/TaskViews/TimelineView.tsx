@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { Box } from '@mui/material';
-import { Timeline } from '../../components/Timeline';
-import type { TimelineItem, TimelineGroup } from '../../components/Timeline';
+import { Timeline } from '@hive-flow/ui';
+import type { TimelineItem, TimelineGroup } from '@hive-flow/ui';
 import { stringToColor } from '@hexhive/utils';
 import type { KanbanColumn, KanbanRow, KanbanTask } from '../../types/kanban';
 

@@ -5,7 +5,7 @@ import React, {
 
 // import utils from '../../../utils';
 import moment from 'moment';
-import { DataTable } from '../../../components/DataTable'
+import { DataTable } from '@hive-flow/ui'
 import { PlantHeader } from './header';
 import { useMutation, useQuery } from '@hive-flow/api';
 import { useTypeConfiguration } from '../../../context';

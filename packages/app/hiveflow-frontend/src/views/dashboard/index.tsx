@@ -17,7 +17,8 @@ import {
   Projects,
   Equipment,
   Hiveflow,
-  Assigned
+  Assigned,
+  Recurring as RecurringIcon
 } from '../../assets'
 
 import { Box } from '@mui/material'
@@ -35,7 +36,7 @@ import { ProjectView } from '../projects';
 import { PeopleView } from '../people';
 import { Assignments } from '../assignments';
 import { BatchView } from '../batches';
-import { TimelineHarness } from '../demo/TimelineHarness';
+import { RecurringView } from '../recurring';
 
 // const Schedule = React.lazy(() => import('../schedule'))
 // const Quotes = React.lazy(() => import('../quotes'))
@@ -163,12 +164,6 @@ export const Dashboard = (props: any) => {
       component: <Assignments />
     },
     {
-      path: 'timeline-demo',
-      label: 'Timeline Demo',
-      icon: <TimelineIcon filter="invert(1)" />,
-      component: <TimelineHarness />
-    },
-    {
       path: '',
       label: 'Schedule',
       icon: <Schedule filter="invert(1)" />,
@@ -203,6 +198,12 @@ export const Dashboard = (props: any) => {
       label: 'Equipment',
       icon: <Equipment filter="invert(1)" />,
       component: <EquipmentList />
+    },
+    {
+      path: 'recurring',
+      label: 'Recurring',
+      icon: <RecurringIcon filter="invert(1)" />,
+      component: <RecurringView />
     }
   ]
       return (

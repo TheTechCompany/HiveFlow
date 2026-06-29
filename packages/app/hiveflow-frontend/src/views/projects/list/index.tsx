@@ -6,7 +6,7 @@ import React, {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { DataTable } from '../../../components/DataTable'
+import { DataTable } from '@hive-flow/ui'
 
 // import { useQuery } from '../../../gqless';
 import { Header } from './header';

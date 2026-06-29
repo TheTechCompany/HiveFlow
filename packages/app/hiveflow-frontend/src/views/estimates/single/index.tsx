@@ -4,7 +4,7 @@ import { ChevronLeft as Previous, Download } from '@mui/icons-material';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, Routes, Route, useLocation } from 'react-router-dom';
 import Spreadsheet, { createEmptyMatrix } from "react-spreadsheet";
-import { QuoteBuilder } from '../../../components/QuoteBuilder';
+import { QuoteBuilder } from '@hive-flow/ui';
 import { client, refetch, useMutation } from '@hive-flow/api';
 import { debounce, throttle } from 'lodash';
 import { KanbanPane, TimelinePane } from './panes';

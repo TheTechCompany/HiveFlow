@@ -2,7 +2,7 @@ import React, { Component, useState } from 'react';
 
 import { Box, Text, TextInput } from 'grommet'
 
-import { DataTable } from '../../../components/DataTable'
+import { DataTable } from '@hive-flow/ui'
 
 import {
    Search as IoSearch

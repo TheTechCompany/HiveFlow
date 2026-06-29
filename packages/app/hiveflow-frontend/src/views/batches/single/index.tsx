@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Box, Paper, Typography, Button, TextField, IconButton } from '@mui/material';
-import { Edit } from '@mui/icons-material';
+import { Edit, Save } from '@mui/icons-material';
 import { useParams } from 'react-router-dom';
 import { gql, useQuery, useMutation } from '@apollo/client';
 import { BatchSingleProvider } from './context';
@@ -135,6 +135,28 @@ export const BatchSingle: React.FC = () => {
     const [titleDraft, setTitleDraft] = useState('');
     const hasAutoEdited = useRef(false);
 
+    // ── Save-from-header state ───────────────────────────────────
+    const saveFnRef = useRef<(() => Promise<void>) | null>(null);
+    const [hasPending, setHasPending] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const registerSave = useCallback((fn: (() => Promise<void>) | null) => {
+        saveFnRef.current = fn;
+    }, []);
+
+    const onPendingChange = useCallback((pending: boolean, saving: boolean) => {
+        setHasPending(pending);
+        setIsSaving(saving);
+    }, []);
+
+    const handleSave = useCallback(async () => {
+        if (saveFnRef.current) {
+            setIsSaving(true);
+            try { await saveFnRef.current(); } catch {}
+            setIsSaving(false);
+        }
+    }, []);
+
     // Auto-enable edit mode for freshly-created batches ("Untitled Batch")
     useEffect(() => {
         if (!hasAutoEdited.current && batch?.title === 'Untitled Batch') {
@@ -174,10 +196,12 @@ export const BatchSingle: React.FC = () => {
         <BatchSingleProvider
             value={{
                 batchId: batchId || '',
-                projectId: batch?.project?.id,
+                projectId: batch?.project?.displayId || batch?.project?.id,
                 batch,
                 items,
                 refetch,
+                registerSave,
+                onPendingChange,
             }}>
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 {/* Header bar */}
@@ -206,6 +230,18 @@ export const BatchSingle: React.FC = () => {
                                 />
                             ) : (
                                 <>
+                                    <Box
+                                        sx={{
+                                            background: statusCfg.color,
+                                            color: 'white',
+                                            padding: '1px 8px',
+                                            borderRadius: '10px',
+                                            fontSize: '0.7rem',
+                                            fontWeight: 'bold',
+                                            flexShrink: 0,
+                                        }}>
+                                        {statusCfg.label}
+                                    </Box>
                                     <Typography color="navigation.main" fontWeight="bold">
                                         {batch.project?.displayId} / Batch — {batch.title}
                                     </Typography>
@@ -225,26 +261,17 @@ export const BatchSingle: React.FC = () => {
                             </Typography>
                         )}
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Box
-                            sx={{
-                                background: statusCfg.color,
-                                color: 'white',
-                                padding: '2px 10px',
-                                borderRadius: '12px',
-                                fontSize: '0.75rem',
-                                fontWeight: 'bold',
-                            }}>
-                            {statusCfg.label}
-                        </Box>
-                        {statusCfg.next && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '6px' }}>
+                        {hasPending && (
                             <Button
                                 size="small"
                                 variant="contained"
-                                color="primary"
-                                onClick={advanceStatus}
-                                sx={{ marginRight: '4px' }}>
-                                Move to {STATUS_FLOW[statusCfg.next]?.label}
+                                color="warning"
+                                startIcon={<Save />}
+                                disabled={isSaving}
+                                onClick={handleSave}
+                            >
+                                {isSaving ? 'Saving…' : 'Save All'}
                             </Button>
                         )}
                     </Box>

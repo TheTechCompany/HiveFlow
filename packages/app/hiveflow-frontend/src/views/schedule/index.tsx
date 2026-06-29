@@ -12,7 +12,7 @@ import { Menu, ChevronLeft as Previous, ChevronRight as Next, X } from '@mui/ico
 import { DraftPane } from './draft-pane';
 import { useQuery as useApollo, useMutation as useApolloMutation, gql, useApolloClient } from '@apollo/client';
 import { ScheduleItem, ScheduleModal } from '../../modals/schedule';
-import { Schedule as ScheduleView } from '../../components/Schedule';
+import { Timeline, type TimelineItem, type TimelineGroup, type TimelineStep, type ItemChange } from '@hive-flow/ui';
 import { SchedulingModal } from './modal';
 import { mergeDateRanges } from './utils';
 import { Collapse, Typography, Button, Box, Paper, Popover, Menu as UIMenu, MenuItem } from '@mui/material';
@@ -22,7 +22,6 @@ import { useAPIData, useAPIFunctions } from './api';
 import { AvatarList } from '@hexhive/ui';
 import { useNavigate, useNavigation } from 'react-router';
 import { Header } from './header';
-import { SchedulerHeaderItem } from './schedule-components/header';
 import { ScheduleRootProvider } from './context';
 import { LeaveModal } from './leave-modal';
 import { stringToColor } from '@hexhive/utils';
@@ -97,9 +96,6 @@ export const Schedule: React.FC<any> = (props) => {
   const { createCalendarItem, updateCalendarItem, deleteCalendarItem } = useAPIFunctions();
   const { calendarData } = useAPIData(horizon);
 
-  const [headerHandle, setHeaderHandle] = useState(false);
-  const [headerHeight, setHeaderHeight] = useState(0);
-
   const [tasks, setTasks] = useState<any[]>([]);
 
   const estimates = (slowData?.estimates || []).map((estimate) => {
@@ -114,17 +110,9 @@ export const Schedule: React.FC<any> = (props) => {
     return { ...project, draftSchedule: mergeDateRanges(tasks) };
   }); // query.projects({})?.map((x) => ({...x})) || [];
 
-  const unscheduled = projects.filter((project) => {
-    return (project.tasks || []).length == 0 && (calendarData?.calendarItems || []).filter((item) => item.groupBy?.id == project.id)?.length == 0
-  });
-
-  const [unscheduledElem, setUnscheduleElem] = useState<any>(null)
-
   const rowOptions = projects.map((x) => ({ ...x, project: true })).concat(
     estimates.map((x) => ({ ...x, project: false }))
   )
-
-  const [expanded, setExpanded] = useState<any>(rowOptions?.map((x, ix) => x.id) || []);
 
   const router = useNavigate()
 
@@ -246,6 +234,111 @@ export const Schedule: React.FC<any> = (props) => {
   return result.filter(r => r.data.length); // Remove empty ranges
   }, [leave])
 
+  // ── Timeline step derived from horizon ──────────────────────────
+  const step = useMemo((): TimelineStep => {
+    const start = moment(horizon.start);
+    const end = moment(horizon.end);
+    if (end.diff(start, 'days') < 2) return 'hour';
+    else if (end.diff(start, 'week') < 2) return 'day';
+    else if (end.diff(start, 'months') < 6) return 'month';
+    else return 'year';
+  }, [horizon]);
+
+  // ── Build timeline groups from rowOptions ───────────────────────
+  const timelineGroups = useMemo((): TimelineGroup[] => {
+    const groups: TimelineGroup[] = rowOptions.map((x) => ({
+      id: x.id,
+      label: `${x.displayId ? x.displayId + ' - ' : ''}${x.name}`,
+    }));
+    // Add On Leave group for leave items
+    groups.push({ id: 'on-leave', label: 'On Leave' });
+    return groups;
+  }, [rowOptions]);
+
+  // ── Build timeline items from events ────────────────────────────
+  const timelineItems = useMemo((): TimelineItem[] => {
+    // Draft schedule items (background layer)
+    const drafts: TimelineItem[] = rowOptions.flatMap((x) =>
+      (x.draftSchedule || []).map((sched, ix) => ({
+        id: `draft-${x.id}-${ix}`,
+        start: new Date(sched.start),
+        end: new Date(sched.end),
+        groupId: x.id,
+        color: x.colour || stringToColor(`${x.id} - ${x.name}`),
+        zIndex: 0,
+        selectable: false,
+        movable: false,
+        resizable: false,
+        data: {
+          ...sched,
+          groupBy: { ...x },
+          zIndex: 0,
+          selectable: false,
+          draft: true,
+        },
+      }))
+    ).filter((x) =>
+      x.start.getTime() < horizon.end.getTime() &&
+      x.end.getTime() > horizon.start.getTime()
+    );
+
+    // Real calendar items (foreground layer)
+    const items: TimelineItem[] = (calendarData?.calendarItems || []).map((x) => {
+      const project = rowOptions.find((a) => a.id === x.groupBy?.id);
+      const groupId = x.groupBy?.id === 'on-leave' ? 'on-leave' : (x.groupBy?.id || 'unknown');
+      return {
+        id: x.id,
+        start: new Date(x.start),
+        end: new Date(x.end),
+        groupId,
+        color: project?.colour || stringToColor(`${x.groupBy?.id}`),
+        zIndex: 1,
+        selectable: x.selectable !== false,
+        data: {
+          ...x,
+          zIndex: 1,
+        },
+      };
+    });
+
+    return [...drafts, ...items];
+  }, [rowOptions, calendarData, horizon]);
+
+  // ── Helper: find project by item ────────────────────────────────
+  const getProjectForItem = (item: TimelineItem): any => {
+    const data: any = item.data;
+    const groupById = data?.groupBy?.id;
+    if (!groupById || groupById === 'on-leave') return null;
+    return rowOptions?.find((a) => a.id === groupById);
+  };
+
+  // ── Helper: open scheduling modal for an item ───────────────────
+  const openModalForItem = (item: TimelineItem) => {
+    const orig: any = item.data;
+    if (orig?.selectable === false) return;
+    if (orig?.groupBy?.id === 'on-leave') {
+      openLeave(true);
+      return;
+    }
+    let tasks = rowOptions.reduce((prev, curr) =>
+      prev.concat((curr.tasks || []).map((task) => ({
+        ...task,
+        startDate: new Date(task.startDate),
+        endDate: new Date(task.endDate),
+        project: curr,
+      }))), []);
+    tasks = (tasks || []).filter((task: any) => {
+      return task.endDate?.getTime() > new Date(orig?.start)?.getTime() &&
+        task.startDate?.getTime() < new Date(orig?.end)?.getTime();
+    });
+    if (orig?.groupBy) {
+      tasks = (tasks || []).filter((a: any) => a.project?.id == orig?.groupBy?.id);
+    }
+    setTasks(tasks);
+    setSelected(orig);
+    openModal(true);
+  };
+
   // const mergedLeave = useMemo(() => {
 
   //   let outputLeave = [];
@@ -317,21 +410,9 @@ export const Schedule: React.FC<any> = (props) => {
     setConfirmCallback({ message, cb });
   }
 
-  const [headerCapacity, setHeaderCapacity] = useState<any>({});
-
-  useEffect(() => {
-    if (moment(horizon.end).diff(moment(horizon.start), 'days') < 10) {
-      setExpanded(rowOptions.map((x, ix) => x.id).concat(['on-leave']))
-    } else {
-      setExpanded([])
-    }
-  }, [JSON.stringify(rowOptions), JSON.stringify(mergedLeave), JSON.stringify(horizon)])
-
   const [graphType, setGraphType] = useState<any>('Capacity');
 
   const [leaveOpen, openLeave] = useState(false);
-
-  console.log(JSON.stringify(leave))
 
   return (
     <Box
@@ -446,227 +527,191 @@ export const Schedule: React.FC<any> = (props) => {
             setHorizon(horizon)
           }} />
 
-        <ScheduleView
-          onSelectMenuItem={(item) => {
-            let project = rowOptions?.find((a) => a.id == item?.id);
-
-            if (project)
-              router(`/${project?.project ? "projects" : "estimates"}/${project.displayId}/timeline`)
-          }}
-          createEvent={(event, autocreate) => {
-
-            if (autocreate) {
-              createCalendarItem({
+        <Timeline
+          items={timelineItems}
+          groups={timelineGroups}
+          start={horizon.start}
+          end={horizon.end}
+          step={step}
+          itemHeight={80}
+          headerHeight={60}
+          sidebarWidth={220}
+          resizable={true}
+          movable={true}
+          showLinks={false}
+          showToday={true}
+          fitContainer
+          callbacks={{
+            onItemChange: (change: ItemChange) => {
+              updateCalendarItem({
                 variables: {
+                  id: change.id,
                   input: {
-                    start: event.start,
-                    end: event.end,
-                    groupBy: event.groupBy,
-                    data: {
-                      people: event.data.people,
-                      // comments: schedule.comments,
-                      tasks: event.data.tasks,
-                    }
+                    ...(change.start ? { start: change.start } : {}),
+                    ...(change.end ? { end: change.end } : {}),
                   }
                 }
-              })
-              return;
-            }
-
-            if (event.groupBy?.id == 'on-leave') {
-              openLeave(true);
-              return;
-            }
-
-            let tasks = rowOptions.reduce((prev, curr) => prev.concat(curr.tasks.map((task) => ({ ...task, startDate: new Date(task.startDate), endDate: new Date(task.endDate), project: curr }))), [])
-            tasks = (tasks || []).filter((task) => {
-              return task.endDate?.getTime() > event.start?.getTime() && task.startDate?.getTime() < event.end?.getTime();
-              // return task.start.getTime() < event.start.getTime() && task.end.getTime() > event.end.getTime()
-            })
-            if (event?.groupBy) {
-              tasks = (tasks || []).filter((a) => a.project?.id == event?.groupBy?.id)
-            }
-
-            setModalDate(event.start)
-            setTasks(tasks);
-            setSelected(event);
-            openModal(true);
-            // }
-          }}
-          updateEvent={(event) => {
-            updateCalendarItem({
-              variables: {
-                id: event.id,
-                input: {
-                  start: event.start,
-                  end: event.end
-                }
+              });
+            },
+            onItemCreate: (start: Date, end: Date, groupId?: string) => {
+              if (groupId === 'on-leave') {
+                openLeave(true);
+                return;
               }
-            })
-
-          }}
-          horizon={horizon}
-          onHorizonChanged={({ start, end }) => {
-            setHorizon({ start, end })
-            setHeaderCapacity({})
-            client.refetchQueries({ include: ['CalendarItems', 'Slow'] })
-          }}
-          onDoubleClickEvent={(event) => {
-            if (event.selectable != false) {
-
-              let tasks = rowOptions.reduce((prev, curr) => prev.concat(curr.tasks.map((task) => ({ ...task, startDate: new Date(task.startDate), endDate: new Date(task.endDate), project: curr }))), [])
-              tasks = (tasks || []).filter((task) => {
-                return task.endDate?.getTime() > new Date(event.start)?.getTime() && task.startDate?.getTime() < new Date(event.end)?.getTime();
-              })
-              tasks = (tasks || []).filter((a) => a.project?.id == event?.groupBy?.id)
-
+              const project = rowOptions?.find((a: any) => a.id === groupId);
+              let tasks: any[] = rowOptions.reduce((prev: any[], curr: any) =>
+                prev.concat((curr.tasks || []).map((task: any) => ({
+                  ...task,
+                  startDate: new Date(task.startDate),
+                  endDate: new Date(task.endDate),
+                  project: curr,
+                }))), []);
+              tasks = (tasks || []).filter((task: any) => {
+                return task.endDate?.getTime() > start.getTime() &&
+                  task.startDate?.getTime() < end.getTime();
+              });
+              if (groupId) {
+                tasks = (tasks || []).filter((a: any) => a.project?.id == groupId);
+              }
+              const event = {
+                start,
+                end,
+                groupBy: project ? { id: project.id, displayId: project.displayId, name: project.name } : undefined,
+                data: { people: [], tasks: [] },
+              };
+              setModalDate(start);
               setTasks(tasks);
-              setSelected(event)
+              setSelected(event);
               openModal(true);
-            }
+            },
+            onHorizonChange: (start: Date, end: Date) => {
+              setHorizon({ start, end });
+              client.refetchQueries({ include: ['CalendarItems', 'Slow'] });
+            },
+            onNavigate: (direction: 'prev' | 'next' | 'today') => {
+              const span = moment(horizon.end).diff(moment(horizon.start), 'milliseconds');
+              let newStart: Date;
+              switch (direction) {
+                case 'prev':
+                  newStart = moment(horizon.start).subtract(span, 'milliseconds').toDate();
+                  break;
+                case 'next':
+                  newStart = moment(horizon.start).add(span, 'milliseconds').toDate();
+                  break;
+                case 'today':
+                  newStart = moment().startOf('isoWeek').toDate();
+                  break;
+              }
+              const newEnd = moment(newStart).add(span, 'milliseconds').toDate();
+              setHorizon({ start: newStart, end: newEnd });
+              client.refetchQueries({ include: ['CalendarItems', 'Slow'] });
+            },
+            onItemDoubleClick: (itemId: string) => {
+              const item = timelineItems.find((i) => i.id === itemId);
+              if (item) openModalForItem(item);
+            },
+            onDelete: (itemIds: string[]) => {
+              raiseConfirm(`You are about to delete ${itemIds.length} item`, () => {
+                Promise.all(itemIds.map((id) =>
+                  deleteCalendarItem?.({ variables: { id } })
+                ));
+              });
+            },
           }}
-          expanded={expanded}
-          sidebarHeader={(
-            <>
-              <UIMenu
-                onClose={() => setUnscheduleElem(null)}
-                open={Boolean(unscheduledElem)}
-                anchorEl={unscheduledElem}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-                {unscheduled.map((item) =>
-                  <MenuItem dense>{item.displayId} - {item.name}</MenuItem>
-                )}
-              </UIMenu>
-              <Button
-                onClick={(event) => setUnscheduleElem(event.currentTarget)}
-                fullWidth
-                style={{ textTransform: 'none', height: '100%', textAlign: 'center' }}>
-                <div>{unscheduled.length} unscheduled</div>
+          renderers={{
+            renderItem: (item: TimelineItem) => {
+              const project = getProjectForItem(item);
+              const eventData: any = item.data;
+              const eventPeople = (eventData?.data?.people || []).map((x: string) => {
+                return allUsers?.find((a: any) => a.id == x);
+              });
 
-              </Button>
-            </>)}
-          renderHeader={SchedulerHeaderItem}
-          renderItem={(item) => {
+              const isDraft = eventData?.zIndex === 0;
+              const projectColor = project?.colour
+                ? project.colour
+                : stringToColor(`${project?.id} - ${project?.name}`);
 
-            let project = rowOptions?.find((a) => a.id == item.groupBy?.id);
-
-            let eventPeople = (item.data?.people || []).map((x) => {
-              return allUsers?.find((a) => a.id == x)
-            })
-
-       
-            return (
-              <Paper
-                elevation={3}
-                style={{
-                  marginTop: item.zIndex == 0 ? '4px' : '8px',
-                  marginBottom: item.zIndex == 0 ? '4px' : '8px',
-                  
-                  flex: 1,
-                  // height: item.draft ? '80%' : undefined,
-                  borderRadius: '12px',
-                  boxShadow: item.selected ? '0px 0px 0px 2px blue' : `0px 0px 0px 2px ${(project?.colour ? project?.colour : stringToColor(`${project?.id} - ${project?.name}`)) || 'rgb(127, 127, 0, 1)'}`,
-                  zIndex: item.zIndex == 0 ? 0 : 99,
-                  // background: '#FFF8F2',
-                  overflow: 'hidden'
-                }}>
-                {
-                  (item.expanded) ?
-                    <Box sx={{
-                      display: item.expanded ? 'flex' : 'none',
-                      flex: 1,
-                      height: item.expanded ? '100%' : 0
-                    }}>
-                      {item.zIndex == 0 ? (
-                        <div style={{
-                          height: '100%',
-                          width: '100%',
-                          background: 'rgba(186, 186, 186, 0.8)'
-                        }}></div>
-                      ) : (
-                        <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column' }}>
-                          {project && <Box sx={{
-                            background: ((project?.colour ? project.colour : stringToColor(`${project?.id} - ${project.name}`)) || 'rgb(127, 127, 0, 1)'),
-                            color: 'white'
-                          }}>
-                            <Typography fontSize={'small'} textAlign={'center'}>{project?.displayId}</Typography>
-                          </Box>}
-                          <Box sx={{
-                            // padding: '8px',
-                            display: 'flex',
-                            flex: 1,
-                            flexDirection: 'column',
-                            // gap: '4px',
-                            textAlign: 'center'
-                          }}>
-                            <Typography fontSize={'small'} fontWeight={"bold"}>{project?.name}</Typography>
-                            {eventPeople.map((person) => (
-                              <Typography fontSize={'small'}>{person?.name}</Typography>
-                            ))}
-                          </Box>
-                          {(item.permissions?.length > 0 || item.createdBy) &&
-                            <Box sx={{ padding: '8px' }}>
-                              <AvatarList
-                                size={20}
-                                users={(item.permissions?.map((x) => x.user)?.concat(item.createdBy ? [item.createdBy] : [])).map((x) => ({...x, color: stringToColor(x.id)}))} />
-                            </Box>
-                          }
+              return (
+                <Paper
+                  elevation={isDraft ? 0 : 3}
+                  style={{
+                    flex: 1,
+                    height: '100%',
+                    borderRadius: '12px',
+                    boxShadow: isDraft
+                      ? 'none'
+                      : `0px 0px 0px 2px ${projectColor || 'rgb(127, 127, 0, 1)'}`,
+                    overflow: 'hidden',
+                    background: isDraft ? 'rgba(186, 186, 186, 0.8)' : undefined,
+                  }}
+                >
+                  {isDraft ? (
+                    <div style={{
+                      height: '100%',
+                      width: '100%',
+                      background: 'rgba(186, 186, 186, 0.8)',
+                    }} />
+                  ) : (
+                    <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', height: '100%' }}>
+                      {project && (
+                        <Box sx={{
+                          background: projectColor || 'rgb(127, 127, 0, 1)',
+                          color: 'white',
+                        }}>
+                          <Typography fontSize={'small'} textAlign={'center'}>
+                            {project?.displayId}
+                          </Typography>
                         </Box>
                       )}
-                    </Box> : <div style={{
-                      height: '30px',
-                      background: item?.zIndex == 0 ? 'rgba(186, 186, 186, 0.4)' : (project?.colour || 'rgb(127, 127, 0, 1)')
-                    }} />}
-              </Paper>
-            )
+                      <Box sx={{
+                        display: 'flex',
+                        flex: 1,
+                        flexDirection: 'column',
+                        textAlign: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Typography fontSize={'small'} fontWeight={"bold"}>
+                          {project?.name}
+                        </Typography>
+                        {eventPeople.map((person: any) => (
+                          <Typography fontSize={'small'} key={person?.id}>
+                            {person?.name}
+                          </Typography>
+                        ))}
+                      </Box>
+                      {(eventData?.permissions?.length > 0 || eventData?.createdBy) && (
+                        <Box sx={{ padding: '4px' }}>
+                          <AvatarList
+                            size={16}
+                            users={(eventData.permissions?.map((x: any) => x.user)
+                              ?.concat(eventData.createdBy ? [eventData.createdBy] : []))
+                              .map((x: any) => ({ ...x, color: stringToColor(x.id) }))}
+                          />
+                        </Box>
+                      )}
+                    </Box>
+                  )}
+                </Paper>
+              );
+            },
+            renderGroupHeader: (group: TimelineGroup, _expanded: boolean) => (
+              <Typography
+                fontSize={'small'}
+                sx={{
+                  cursor: 'pointer',
+                  '&:hover': { textDecoration: 'underline' },
+                }}
+                onClick={() => {
+                  const project = rowOptions?.find((a: any) => a.id === group.id);
+                  if (project && group.id !== 'on-leave') {
+                    router(`/${project?.project ? "projects" : "estimates"}/${project.displayId}/timeline`);
+                  }
+                }}
+              >
+                {group.label}
+              </Typography>
+            ),
           }}
-          getRowGroup={(event) => {
-            if (event.groupBy?.id == 'on-leave') return 'On Leave';
-            const group = rowOptions?.find((a) => a.id == event.groupBy?.id);
-            return `${group?.displayId ? group?.displayId + ' - ' : ''}${group?.name}`;
-          }}
-          onDelete={(items) => {
-            raiseConfirm(`You are about to delete ${items.length} item`, () => {
-
-              Promise.all(items.map((item) => {
-                deleteCalendarItem?.({ variables: { id: item } })
-              }))
-
-            });
-
-          }}
-          events={
-            /*
-              {
-                id: '1',
-                start: new Date(),
-                end: moment(new Date()).add(1, 'day').toDate(),
-                selectable: false,
-                groupBy: {
-                  id: 'on-leave',
-                } 
-              }
-            */
-          
-              rowOptions.map((x) =>
-                x.draftSchedule.map((sched, ix) => ({
-                  ...sched,
-                  id: `${x.name}-${ix}`,
-                  zIndex: 0,
-                  selectable: false,
-                  groupBy: { ...x }
-                }))
-              ).reduce((prev, curr) => prev.concat(curr), []).filter((x) => {
-                return (x.start.getTime() < horizon.end.getTime()) && (x.end.getTime() > horizon.start.getTime())
-              }).concat(
-                (calendarData?.calendarItems || []).map((x) => ({
-                  ...x,
-                  zIndex: 1
-                }))
-              )
-            
-
-          }
         />
       </ScheduleRootProvider>
     </Box>

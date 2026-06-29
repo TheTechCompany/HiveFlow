@@ -15,7 +15,7 @@ import {
   ArrowForward,
 } from '@mui/icons-material';
 import { AvatarList } from '@hexhive/ui';
-import { extractChecklistFromHtml } from '../RichTextEditor';
+import { extractChecklistFromHtml } from '@hive-flow/ui';
 import type { KanbanColumn, KanbanRow, KanbanTask } from '../../types/kanban';
 
 // ── Types ───────────────────────────────────────────────────────────

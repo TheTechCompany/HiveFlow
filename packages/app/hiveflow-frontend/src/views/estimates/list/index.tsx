@@ -3,7 +3,7 @@ import React, {
   useEffect, useState
 } from 'react';
 import { useMutation, useQuery } from '@hive-flow/api';
-import { DataTable } from '../../../components/DataTable'
+import { DataTable } from '@hive-flow/ui'
 // import utils from '../../utils';
 import { QuoteHeader } from './header';
 import { useTypeConfiguration } from '../../../context';

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Paper } from '@mui/material';
 import { gql, useQuery, useMutation } from '@apollo/client';
-import { DataTable } from '../../../components/DataTable';
+import { DataTable } from '@hive-flow/ui';
 import { BatchHeader } from './header';
 import { BatchModal, BatchFormData } from '../../../modals/batch';
 

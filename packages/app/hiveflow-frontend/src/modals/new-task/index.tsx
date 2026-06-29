@@ -21,7 +21,7 @@ import {
   Typography,
 } from '@mui/material';
 import { FormControl } from '@hexhive/ui';
-import { RichTextEditor } from '../../components/RichTextEditor';
+import { RichTextEditor } from '@hive-flow/ui';
 import { MemberList } from './members';
 import { DatePicker } from '@mui/x-date-pickers';
 import moment from 'moment';
