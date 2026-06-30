@@ -10,6 +10,8 @@ export default (prisma: PrismaClient) => {
             calendarItems(where: CalendarWhere): [CalendarItem]
             scheduleItems(where: ScheduleWhere): [ScheduleItem]
             timelineItems(where: TimelineItemWhere): [TimelineItem]
+            recurringSchedules: [RecurringSchedule!]!
+            recurringSchedule(id: ID!): RecurringSchedule
         }
 
         type Mutation {
@@ -43,6 +45,13 @@ export default (prisma: PrismaClient) => {
             cloneScheduleItem(id: ID, dates: [DateTime]): [ScheduleItem]
             joinScheduleItem(id: ID): ScheduleItem
             leaveScheduleItem(id: ID): ScheduleItem
+
+            createRecurringSchedule(input: RecurringScheduleInput!): RecurringSchedule!
+            updateRecurringSchedule(id: ID!, input: RecurringScheduleUpdateInput!): RecurringSchedule!
+            deleteRecurringSchedule(id: ID!): RecurringSchedule!
+            createRecurringEvent(scheduleId: ID!, input: RecurringEventInput!): RecurringEvent!
+            updateRecurringEvent(id: ID!, input: RecurringEventUpdateInput!): RecurringEvent!
+            deleteRecurringEvent(id: ID!): RecurringEvent!
         }
         
         input CalendarWhere {
@@ -213,6 +222,61 @@ export default (prisma: PrismaClient) => {
 
             organisation: HiveOrganisation 
         }
+
+        type RecurringSchedule {
+            id: ID!
+            displayId: String
+            name: String
+            description: String
+            events: [RecurringEvent!]!
+            eventCount: Int
+            createdBy: HiveUser
+            createdAt: DateTime
+            updatedAt: DateTime
+            organisation: HiveOrganisation
+        }
+
+        type RecurringEvent {
+            id: ID!
+            schedule: RecurringSchedule
+            scheduleId: ID!
+            parent: RecurringEvent
+            parentId: ID
+            children: [RecurringEvent!]!
+            name: String
+            description: String
+            frequency: String
+            startDate: String
+            assignedTo: String
+        }
+
+        input RecurringScheduleInput {
+            name: String!
+            description: String
+        }
+
+        input RecurringScheduleUpdateInput {
+            name: String
+            description: String
+        }
+
+        input RecurringEventInput {
+            name: String!
+            description: String
+            frequency: String
+            startDate: String
+            assignedTo: String
+            parentId: ID
+        }
+
+        input RecurringEventUpdateInput {
+            name: String
+            description: String
+            frequency: String
+            startDate: String
+            assignedTo: String
+            parentId: ID
+        }
     `
 
     const resolvers = {
@@ -259,6 +323,11 @@ export default (prisma: PrismaClient) => {
                 console.log({root})
                 return root?.user ? {id: root?.user} : null;
             }
+        },
+        RecurringSchedule: {
+            eventCount: (root: any) => {
+                return root.events?.length ?? 0;
+            },
         },
         Query: {
             calendarItems: async (root: any, args: any, context: any) => {
@@ -330,7 +399,22 @@ export default (prisma: PrismaClient) => {
                         requires: true
                     }
                 })
-            }
+            },
+
+            recurringSchedules: async (root: any, args: any, context: any) => {
+                return prisma.recurringSchedule.findMany({
+                    where: { organisation: context?.jwt?.organisation },
+                    include: { events: true },
+                    orderBy: { createdAt: 'desc' },
+                });
+            },
+
+            recurringSchedule: async (root: any, args: any, context: any) => {
+                return prisma.recurringSchedule.findFirst({
+                    where: { id: args.id, organisation: context?.jwt?.organisation },
+                    include: { events: true },
+                });
+            },
         },
         Mutation: {
             joinCalendarItem: async (root: any, args: any, context: any) => {
@@ -725,7 +809,76 @@ export default (prisma: PrismaClient) => {
                 return await prisma.scheduleItem.delete({
                     where: {id: args.id}
                 })
-            }
+            },
+
+            // ── Recurring Schedules ──────────────────────────
+
+            createRecurringSchedule: async (root: any, args: any, context: any) => {
+                return prisma.recurringSchedule.create({
+                    data: {
+                        id: nanoid(),
+                        name: args.input.name,
+                        description: args.input.description,
+                        createdBy: context?.jwt?.id,
+                        organisation: context?.jwt?.organisation,
+                    },
+                    include: { events: true },
+                });
+            },
+
+            updateRecurringSchedule: async (root: any, args: any, context: any) => {
+                return prisma.recurringSchedule.update({
+                    where: { id: args.id },
+                    data: {
+                        name: args.input.name ?? undefined,
+                        description: args.input.description ?? undefined,
+                    },
+                    include: { events: true },
+                });
+            },
+
+            deleteRecurringSchedule: async (root: any, args: any, context: any) => {
+                return prisma.recurringSchedule.delete({
+                    where: { id: args.id },
+                    include: { events: true },
+                });
+            },
+
+            createRecurringEvent: async (root: any, args: any, context: any) => {
+                return prisma.recurringEvent.create({
+                    data: {
+                        id: nanoid(),
+                        scheduleId: args.scheduleId,
+                        name: args.input.name,
+                        description: args.input.description,
+                        frequency: args.input.frequency || 'monthly',
+                        startDate: args.input.startDate || new Date().toISOString().slice(0, 10),
+                        assignedTo: args.input.assignedTo,
+                        parentId: args.input.parentId || undefined,
+                        organisation: context?.jwt?.organisation,
+                    },
+                });
+            },
+
+            updateRecurringEvent: async (root: any, args: any, context: any) => {
+                return prisma.recurringEvent.update({
+                    where: { id: args.id },
+                    data: {
+                        name: args.input.name ?? undefined,
+                        description: args.input.description ?? undefined,
+                        frequency: args.input.frequency ?? undefined,
+                        startDate: args.input.startDate ?? undefined,
+                        assignedTo: args.input.assignedTo ?? undefined,
+                        parentId: args.input.parentId ?? undefined,
+                    },
+                });
+            },
+
+            deleteRecurringEvent: async (root: any, args: any, context: any) => {
+                return prisma.recurringEvent.delete({
+                    where: { id: args.id },
+                });
+            },
         }
     };
 

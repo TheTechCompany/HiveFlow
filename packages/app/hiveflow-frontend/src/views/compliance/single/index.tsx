@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { gql, useMutation } from '@apollo/client';
+import { gql, useMutation, useQuery } from '@apollo/client';
 import { PdfViewer } from './PdfViewer';
 
 import {
@@ -70,6 +70,7 @@ interface BreakoutPoint {
   title: string;
   summary: string;
   pageRef?: number;
+  markdownSnippet?: string | null;
   understanding: Understanding;
   reviewedBy?: string;
   reviewedAt?: string;
@@ -106,162 +107,6 @@ interface Regulation {
   updatedAt: string;
 }
 
-// ── Seed data (shared ref — same as list) ────────────────────────
-
-const SEED_REGULATIONS: Regulation[] = [
-  {
-    id: 'r1',
-    title: 'Health and Safety at Work Act 2015',
-    description: 'Primary legislation governing workplace health and safety in New Zealand.',
-    type: 'act',
-    source: 'https://legislation.govt.nz/act/public/2015/0070/latest/DLM5976660.html',
-    storedMarkdown: `## Health and Safety at Work Act 2015
-
-### Part 1 — Preliminary provisions
-
-The main purpose of this Act is to provide for a balanced framework to secure the health and safety of workers and workplaces.
-
-### s.36 — Primary duty of care
-
-A PCBU must ensure, so far as is reasonably practicable, the health and safety of workers who work for the PCBU, while the workers are at work in the business or undertaking.
-
-This includes providing and maintaining a work environment that is without risks to health and safety, and ensuring safe plant and structures, safe systems of work, and adequate facilities.
-
-### s.37 — Duty to notify of notifiable event
-
-A PCBU must ensure that the regulator is notified immediately after becoming aware that a notifiable event arising out of the conduct of the business or undertaking has occurred.
-
-### s.44 — Duty to consult workers
-
-A PCBU must, so far as is reasonably practicable, consult with workers who carry out work for the business or undertaking who are directly affected by a health and safety matter.
-
-### Part 2 — Health and safety duties
-
-- (1) A person conducting a business or undertaking must ensure the health and safety of workers
-- (2) Duty extends to other persons affected by the work
-- (3) Multiple duties may apply concurrently
-
-### s.58 — Requirement to preserve sites
-
-A person with management or control of a workplace must ensure, so far as is reasonably practicable, that the site where a notifiable event has occurred is not disturbed until authorised by an inspector.`,
-    category: 'Health & Safety',
-    isoClause: 'ISO 45001 §4.1',
-    status: 'active',
-    linkStatus: 'verified',
-    storedHash: 'abc123def',
-    lastVerifiedAt: '2025-06-15T10:30:00Z',
-    currentVersion: 2,
-    versions: [
-      { id: 'v1', regulationId: 'r1', version: 1, changes: 'Initial upload', createdAt: '2025-01-10T08:00:00Z' },
-      { id: 'v2', regulationId: 'r1', version: 2, changes: 'Updated to reflect 2024 amendment', createdAt: '2025-06-15T10:30:00Z' },
-    ],
-    breakouts: [
-      { id: 'b1', regulationId: 'r1', sectionRef: 's.36', title: 'Primary duty of care', summary: 'PCBU must ensure health and safety of workers and others affected by work, so far as reasonably practicable.', pageRef: 24, understanding: 'acknowledged', reviewedBy: 'Alice Chang', reviewedAt: '2025-06-16T09:00:00Z' },
-      { id: 'b2', regulationId: 'r1', sectionRef: 's.37', title: 'Duty to notify of notifiable event', summary: 'PCBU must notify regulator immediately of notifiable events (death, serious injury, incident).', understanding: 'pending' },
-      { id: 'b3', regulationId: 'r1', sectionRef: 's.44', title: 'Duty to consult workers', summary: 'PCBU must consult with workers on health and safety matters, including H&S representatives.', understanding: 'acknowledged', reviewedBy: 'Bob Matthews', reviewedAt: '2025-05-20T14:00:00Z' },
-    ],
-    proofs: [
-      { id: 'p1', regulationId: 'r1', userName: 'Alice Chang', action: 'viewed', timestamp: '2025-06-16T09:00:00Z' },
-      { id: 'p2', regulationId: 'r1', userName: 'Alice Chang', action: 'acknowledged', timestamp: '2025-06-16T09:05:00Z' },
-      { id: 'p3', regulationId: 'r1', userName: 'Bob Matthews', action: 'viewed', timestamp: '2025-05-20T14:00:00Z' },
-    ],
-    createdAt: '2025-01-10T08:00:00Z',
-    updatedAt: '2025-06-15T10:30:00Z',
-  },
-  {
-    id: 'r2',
-    title: 'Privacy Act 2020',
-    description: 'Governs the collection, use, storage, and disclosure of personal information.',
-    type: 'act',
-    source: 'https://legislation.govt.nz/act/public/2020/0031/latest/LMS23223.html',
-    category: 'Privacy & Data',
-    isoClause: 'ISO 27001 §A.18.1.4',
-    status: 'active',
-    linkStatus: 'verified',
-    storedHash: 'def456ghi',
-    lastVerifiedAt: '2025-06-10T11:00:00Z',
-    currentVersion: 1,
-    versions: [
-      { id: 'v3', regulationId: 'r2', version: 1, changes: 'Initial upload', createdAt: '2025-02-20T09:00:00Z' },
-    ],
-    breakouts: [
-      { id: 'b4', regulationId: 'r2', sectionRef: 'IPPs 1-4', title: 'Collection of personal information', summary: 'Only collect necessary information directly from the individual, with transparency about purpose.', understanding: 'needs-review' },
-      { id: 'b5', regulationId: 'r2', sectionRef: 'IPP 5', title: 'Storage and security', summary: 'Personal information must be protected by reasonable security safeguards against loss, misuse, and unauthorised access.', understanding: 'pending' },
-    ],
-    proofs: [
-      { id: 'p4', regulationId: 'r2', userName: 'Alice Chang', action: 'viewed', timestamp: '2025-06-10T11:00:00Z' },
-    ],
-    createdAt: '2025-02-20T09:00:00Z',
-    updatedAt: '2025-06-10T11:00:00Z',
-  },
-  {
-    id: 'r3',
-    title: 'Resource Management Act 1991',
-    description: 'Governs land use, resource consents, and environmental impact management.',
-    type: 'act',
-    source: 'https://legislation.govt.nz/act/public/1991/0069/latest/DLM230265.html',
-    category: 'Environmental',
-    isoClause: 'ISO 14001 §6.1.2',
-    status: 'under-review',
-    linkStatus: 'stale',
-    storedHash: 'ghi789jkl',
-    lastVerifiedAt: '2025-03-01T08:00:00Z',
-    currentVersion: 1,
-    versions: [
-      { id: 'v4', regulationId: 'r3', version: 1, changes: 'Initial upload', createdAt: '2025-03-01T08:00:00Z' },
-    ],
-    breakouts: [
-      { id: 'b6', regulationId: 'r3', sectionRef: 's.9', title: 'Restricted discretionary activities', summary: 'Activities that require resource consent where council discretion is restricted to specific matters.', understanding: 'pending' },
-    ],
-    proofs: [],
-    createdAt: '2025-03-01T08:00:00Z',
-    updatedAt: '2025-03-01T08:00:00Z',
-  },
-  {
-    id: 'r4',
-    title: 'Electricity (Safety) Regulations 2010',
-    description: 'Prescribes safety requirements for electrical works and equipment.',
-    type: 'regulation',
-    source: 'https://legislation.govt.nz/regulation/public/2010/0036/latest/DLM2776601.html',
-    category: 'Energy',
-    isoClause: 'ISO 45001 §8.1.2',
-    status: 'active',
-    linkStatus: 'unchecked',
-    currentVersion: 1,
-    versions: [
-      { id: 'v5', regulationId: 'r4', version: 1, changes: 'Initial upload', createdAt: '2025-04-15T10:00:00Z' },
-    ],
-    breakouts: [],
-    proofs: [],
-    createdAt: '2025-04-15T10:00:00Z',
-    updatedAt: '2025-04-15T10:00:00Z',
-  },
-  {
-    id: 'r5',
-    title: 'Building Code (Schedule 1 of Building Regulations 1992)',
-    description: 'Performance-based code setting minimum standards for building work in New Zealand.',
-    type: 'code',
-    source: 'https://www.building.govt.nz/building-code-compliance/',
-    category: 'Building & Construction',
-    status: 'active',
-    linkStatus: 'verified',
-    lastVerifiedAt: '2025-05-28T15:00:00Z',
-    currentVersion: 1,
-    versions: [
-      { id: 'v6', regulationId: 'r5', version: 1, changes: 'Initial upload', createdAt: '2025-01-05T13:00:00Z' },
-    ],
-    breakouts: [
-      { id: 'b7', regulationId: 'r5', sectionRef: 'B1', title: 'Structure', summary: 'Buildings must withstand the combination of loads they are likely to experience.', understanding: 'acknowledged', reviewedBy: 'Chris Turner', reviewedAt: '2025-05-28T15:00:00Z' },
-      { id: 'b8', regulationId: 'r5', sectionRef: 'C1-C6', title: 'Fire safety', summary: 'Protect occupants, fire service, and neighbouring property from fire hazard.', understanding: 'acknowledged', reviewedBy: 'Chris Turner', reviewedAt: '2025-05-28T15:00:00Z' },
-    ],
-    proofs: [
-      { id: 'p5', regulationId: 'r5', userName: 'Chris Turner', action: 'viewed', timestamp: '2025-05-28T15:00:00Z' },
-      { id: 'p6', regulationId: 'r5', userName: 'Chris Turner', action: 'acknowledged', timestamp: '2025-05-28T15:05:00Z' },
-    ],
-    createdAt: '2025-01-05T13:00:00Z',
-    updatedAt: '2025-05-28T15:00:00Z',
-  },
-];
 
 // ── Icons ────────────────────────────────────────────────────────
 
@@ -299,12 +144,61 @@ const PROOF_ICONS: Record<ProofEntry['action'], React.ReactNode> = {
 
 // ── Main ────────────────────────────────────────────────────────
 
+const GET_REGULATION = gql`
+  query GetRegulation($id: ID!) {
+    complianceRegulation(id: $id) {
+      id
+      title
+      description
+      type
+      source
+      storedPdf
+      storedMarkdown
+      category
+      isoClause
+      status
+      linkStatus
+      lastVerifiedAt
+      currentVersion
+      createdAt
+      updatedAt
+      versions {
+        id
+        version
+        changes
+        createdAt
+      }
+      breakouts {
+        id
+        sectionRef
+        title
+        summary
+        pageRef
+        markdownSnippet
+        understanding
+        reviewedBy
+        reviewedAt
+      }
+      proofs {
+        id
+        userName
+        action
+        timestamp
+      }
+    }
+  }
+`;
+
 export const ComplianceSingle: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [regulations, setRegulations] = useState<Regulation[]>(SEED_REGULATIONS);
 
-  const regulation = regulations.find((r) => r.id === id);
+  const { data, loading, refetch } = useQuery(GET_REGULATION, {
+    variables: { id },
+    skip: !id,
+  });
+
+  const regulation: Regulation | undefined = data?.complianceRegulation;
 
   // ── Dialog state ─────────────────────────────────────────────
   const [breakoutDialogOpen, setBreakoutDialogOpen] = useState(false);
@@ -316,45 +210,13 @@ export const ComplianceSingle: React.FC = () => {
   // ── Right pane tabs ──────────────────────────────────────────
   const [rightTab, setRightTab] = useState(0);
 
-  // ── Fetch versions from legislation API ──────────────────────
-  const [fetchingVersions, setFetchingVersions] = useState(false);
-  const handleFetchVersions = useCallback(async () => {
-    if (!regulation) return;
-    setFetchingVersions(true);
-    try {
-      // Parse source URL: /act/public/2015/0070/latest/DLM5976660.html
-      const match = regulation.source.match(/\/(act|regulation|bill)\/public\/(\d+)\/(\d+)\//);
-      if (!match) throw new Error('Cannot parse legislation URL');
-      const [, legType, year, number] = match;
-      const apiUrl = `https://www.legislation.govt.nz/${legType}/public/${year}/${number}/versions.json`;
-      const res = await fetch(apiUrl);
-      if (!res.ok) throw new Error(`API returned ${res.status}`);
-      const data = await res.json();
-      const fetchedVersions: RegulationVersion[] = (data.versions || []).map((v: any, i: number) => ({
-        id: `api-v-${i}`,
-        regulationId: regulation.id,
-        version: v.version || i + 1,
-        changes: v.title || `Version as at ${v.date || 'unknown date'}`,
-        createdAt: v.date || new Date().toISOString(),
-      }));
-      if (fetchedVersions.length > 0) {
-        setRegulations((prev) =>
-          prev.map((r) =>
-            r.id === id ? { ...r, versions: fetchedVersions, currentVersion: fetchedVersions.length } : r,
-          ),
-        );
-      }
-    } catch (err: any) {
-      console.warn('Failed to fetch versions:', err.message);
-    } finally {
-      setFetchingVersions(false);
-    }
-  }, [regulation, id]);
+  // ── Selected breakout for snippet display ────────────────────
+  const [selectedBreakout, setSelectedBreakout] = useState<string | null>(null);
 
+  // ── Fetch versions from legislation API ──────────────────────
   // ── PDF viewer ───────────────────────────────────────────────
   const [showPdf, setShowPdf] = useState(false);
   const [pdfPage, setPdfPage] = useState<number | null>(null);
-  const [caching, setCaching] = useState(false);
 
   const pdfUrl = regulation?.storedPdf || regulation?.source.replace(/DLM\d+\.html$/, 'whole.pdf');
 
@@ -384,47 +246,60 @@ export const ComplianceSingle: React.FC = () => {
 
   const [ generateBreakouts, { loading: generating } ] = useMutation(GENERATE_BREAKOUTS);
 
-  const handleCachePdf = async () => {
-    if (!regulation || regulation.storedPdf) return;
-    setCaching(true);
-    try {
-      const url = regulation.source.replace(/DLM\d+\.html$/, 'whole.pdf');
-      const { data } = await cacheRegulationPdf({
-        variables: { id: regulation.id, url },
-      });
-      if (data?.cacheRegulationPdf) {
-        setRegulations((prev) =>
-          prev.map((r) =>
-            r.id === id ? {
-              ...r,
-              storedPdf: data.cacheRegulationPdf.pdfUrl,
-              storedMarkdown: data.cacheRegulationPdf.markdown,
-            } : r,
-          ),
-        );
+  const ACKNOWLEDGE_BREAKOUT = gql`
+    mutation AcknowledgeBreakout($id: ID!, $understanding: String!, $userName: String!) {
+      acknowledgeBreakout(id: $id, understanding: $understanding, userName: $userName) {
+        id
+        understanding
+        reviewedBy
+        reviewedAt
       }
-    } catch (err: any) {
-      console.warn('Failed to cache PDF:', err.message);
-    } finally {
-      setCaching(false);
     }
-  };
+  `;
 
-  // ── Simulate verifying link ──────────────────────────────────
-  const [verifying, setVerifying] = useState(false);
-  const handleVerify = useCallback(() => {
-    setVerifying(true);
-    setTimeout(() => {
-      setRegulations((prev) =>
-        prev.map((r) =>
-          r.id === id
-            ? { ...r, linkStatus: 'verified' as LinkStatus, lastVerifiedAt: new Date().toISOString() }
-            : r,
-        ),
-      );
-      setVerifying(false);
-    }, 800);
-  }, [id]);
+  const [ acknowledgeBreakout ] = useMutation(ACKNOWLEDGE_BREAKOUT);
+
+  const FETCH_REGULATION_VERSIONS = gql`
+    mutation FetchRegulationVersions($id: ID!, $source: String!) {
+      fetchRegulationVersions(id: $id, source: $source) {
+        id
+        version
+        changes
+        createdAt
+      }
+    }
+  `;
+
+  const [ fetchRegulationVersions ] = useMutation(FETCH_REGULATION_VERSIONS);
+
+  // ── Refresh: re-fetch PDF + versions + verify link ────────────
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    if (!regulation) return;
+    setRefreshing(true);
+    try {
+      await cacheRegulationPdf({
+        variables: { id: regulation.id, url: regulation.source },
+      });
+      // Also fetch version history from the legislation API
+      await fetchRegulationVersions({
+        variables: { id: regulation.id, source: regulation.source },
+      });
+      refetch();
+    } catch (err: any) {
+      console.warn('Refresh failed:', err.message);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [regulation, cacheRegulationPdf, refetch]);
+
+  if (loading) {
+    return (
+      <Box sx={{ p: 4, textAlign: 'center' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   if (!regulation) {
     return (
@@ -446,11 +321,7 @@ export const ComplianceSingle: React.FC = () => {
       pageRef: newPageRef ? parseInt(newPageRef) : undefined,
       understanding: 'pending',
     };
-    setRegulations((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, breakouts: [...r.breakouts, breakout] } : r,
-      ),
-    );
+    refetch();
     setBreakoutDialogOpen(false);
     setNewSectionRef('');
     setNewSectionTitle('');
@@ -458,40 +329,25 @@ export const ComplianceSingle: React.FC = () => {
     setNewPageRef('');
   };
 
-  const handleToggleUnderstanding = (breakoutId: string) => {
-    setRegulations((prev) =>
-      prev.map((r) => {
-        if (r.id !== id) return r;
-        return {
-          ...r,
-          breakouts: r.breakouts.map((b) => {
-            if (b.id !== breakoutId) return b;
-            const cycle: Understanding[] = ['pending', 'acknowledged', 'needs-review'];
-            const next = cycle[(cycle.indexOf(b.understanding) + 1) % cycle.length];
-            return {
-              ...b,
-              understanding: next,
-              ...(next === 'acknowledged' ? { reviewedBy: 'You', reviewedAt: new Date().toISOString() } : {}),
-            };
-          }),
-        };
-      }),
-    );
+  const handleToggleUnderstanding = async (breakoutId: string) => {
+    const breakout = regulation?.breakouts?.find((b: any) => b.id === breakoutId);
+    if (!breakout) return;
+    const cycle: Understanding[] = ['pending', 'acknowledged', 'needs-review'];
+    const next = cycle[(cycle.indexOf(breakout.understanding) + 1) % cycle.length];
+    try {
+      await acknowledgeBreakout({
+        variables: { id: breakoutId, understanding: next, userName: 'You' },
+      });
+      refetch();
+    } catch (err: any) {
+      console.warn('Failed to acknowledge breakout:', err.message);
+    }
   };
 
-  const handleAddProof = (action: ProofEntry['action']) => {
-    setRegulations((prev) =>
-      prev.map((r) => {
-        if (r.id !== id) return r;
-        return {
-          ...r,
-          proofs: [
-            ...r.proofs,
-            { id: `p-${Date.now()}`, regulationId: r.id, userName: 'You', action, timestamp: new Date().toISOString() },
-          ],
-        };
-      }),
-    );
+  const handleAddProof = (_action: ProofEntry['action']) => {
+    // Proof entries are created server-side via acknowledgeBreakout.
+    // For standalone proof creation, a dedicated mutation is needed (future).
+    refetch();
   };
 
   return (
@@ -547,11 +403,12 @@ export const ComplianceSingle: React.FC = () => {
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={verifying ? <CircularProgress size={14} /> : <RefreshIcon />}
-                onClick={handleVerify}
-                disabled={verifying}
+                startIcon={refreshing ? <CircularProgress size={14} /> : <RefreshIcon />}
+                onClick={handleRefresh}
+                disabled={refreshing}
+                color={regulation.storedPdf ? 'success' : 'inherit'}
               >
-                {verifying ? 'Verifying...' : 'Verify Link'}
+                {refreshing ? 'Refreshing...' : regulation.storedPdf ? 'Refresh' : 'Cache & Verify'}
               </Button>
               <Button size="small" variant="outlined" startIcon={<UploadIcon />} component="label">
                 Upload PDF
@@ -566,16 +423,6 @@ export const ComplianceSingle: React.FC = () => {
                 disabled={!regulation.storedPdf && !regulation.storedMarkdown}
               >
                 {showPdf ? 'Hide' : regulation.storedMarkdown ? 'View Legislation' : 'View PDF'}
-              </Button>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={caching ? <CircularProgress size={14} /> : <VerifiedUser />}
-                onClick={handleCachePdf}
-                disabled={caching || !!regulation.storedPdf}
-                color={regulation.storedPdf ? 'success' : 'inherit'}
-              >
-                {regulation.storedPdf ? 'PDF Cached' : caching ? 'Caching...' : 'Cache PDF'}
               </Button>
             </Stack>
             </Box>
@@ -631,13 +478,7 @@ export const ComplianceSingle: React.FC = () => {
                         variables: { id: regulation.id },
                       });
                       if (data?.generateBreakoutPoints) {
-                        setRegulations((prev) =>
-                          prev.map((r) =>
-                            r.id === id
-                              ? { ...r, breakouts: [...r.breakouts, ...data.generateBreakoutPoints] }
-                              : r,
-                          ),
-                        );
+                        refetch();
                       }
                     } catch (err: any) {
                       console.warn('Failed to generate breakouts:', err.message);
@@ -655,61 +496,68 @@ export const ComplianceSingle: React.FC = () => {
             ) : (
               <Stack spacing={1}>
                 {regulation.breakouts.map((b) => (
-                  <Paper
-                    key={b.id}
-                    variant="outlined"
-                    sx={{ p: 1.5, cursor: 'pointer' }}
-                    onClick={() => handleToggleUnderstanding(b.id)}
-                  >
-                    <Stack direction="row" alignItems="flex-start" spacing={1}>
-                      <Box sx={{ mt: 0.3 }}>{UNDERSTANDING_ICONS[b.understanding]}</Box>
-                      <Stack flex={1}>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <Chip label={b.sectionRef} size="small" color="primary" variant="outlined" />
-                          <Typography variant="body2" fontWeight={600}>{b.title}</Typography>
-                          {b.pageRef && (
-                            <Chip label={`p.${b.pageRef}`} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} />
-                          )}
-                          <Chip
-                            label={UNDERSTANDING_LABELS[b.understanding]}
-                            size="small"
-                            color={b.understanding === 'acknowledged' ? 'success' : b.understanding === 'needs-review' ? 'error' : 'warning'}
-                            variant="outlined"
-                          />
-                        </Stack>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{b.summary}</Typography>
-                        {b.reviewedBy && (
-                          <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 0.5 }}>
-                            <PersonIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
-                            <Typography variant="caption" color="text.secondary">
-                              {b.reviewedBy} — {b.reviewedAt ? moment(b.reviewedAt).format('D MMM YYYY') : ''}
-                            </Typography>
+                  <Box key={b.id}>
+                    <Paper
+                      variant="outlined"
+                      sx={{ p: 1.5, cursor: 'pointer' }}
+                      onClick={() => setSelectedBreakout(selectedBreakout === b.id ? null : b.id)}
+                    >
+                      <Stack direction="row" alignItems="flex-start" spacing={1}>
+                        <Box sx={{ mt: 0.3 }}>{UNDERSTANDING_ICONS[b.understanding]}</Box>
+                        <Stack flex={1}>
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <Chip label={b.sectionRef} size="small" color="primary" variant="outlined" />
+                            <Typography variant="body2" fontWeight={600}>{b.title}</Typography>
+                            <Chip
+                              label={UNDERSTANDING_LABELS[b.understanding]}
+                              size="small"
+                              color={b.understanding === 'acknowledged' ? 'success' : b.understanding === 'needs-review' ? 'error' : 'warning'}
+                              variant="outlined"
+                            />
                           </Stack>
-                        )}
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{b.summary}</Typography>
+                          {b.reviewedBy && (
+                            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 0.5 }}>
+                              <PersonIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
+                              <Typography variant="caption" color="text.secondary">
+                                {b.reviewedBy} — {b.reviewedAt ? moment(b.reviewedAt).format('D MMM YYYY') : ''}
+                              </Typography>
+                            </Stack>
+                          )}
+                        </Stack>
+                        <Tooltip title="Toggle understanding">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleUnderstanding(b.id);
+                            }}
+                          >
+                            <RefreshIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
                       </Stack>
-                      <Tooltip title={b.pageRef ? `Jump to page ${b.pageRef} in PDF` : 'Jump to legislation section'}>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (b.pageRef) {
-                              setShowPdf(true);
-                              setPdfPage(b.pageRef);
-                            } else {
-                              window.open(regulation.source, '_blank');
-                            }
-                          }}
-                        >
-                          <OpenInNew fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Edit">
-                        <IconButton size="small" onClick={(e) => e.stopPropagation()}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
-                  </Paper>
+                    </Paper>
+                    {/* ── Markdown snippet ──────────────────────── */}
+                    {selectedBreakout === b.id && b.markdownSnippet && (
+                      <Paper
+                        variant="outlined"
+                        sx={{
+                          mt: 0.5,
+                          p: 1.5,
+                          bgcolor: 'grey.50',
+                          fontFamily: 'monospace',
+                          fontSize: '0.8rem',
+                          whiteSpace: 'pre-wrap',
+                          maxHeight: 200,
+                          overflow: 'auto',
+                          borderColor: 'primary.light',
+                        }}
+                      >
+                        {b.markdownSnippet}
+                      </Paper>
+                    )}
+                  </Box>
                 ))}
               </Stack>
             )}
@@ -728,17 +576,6 @@ export const ComplianceSingle: React.FC = () => {
                   <Typography variant="subtitle2" fontWeight={600}>Versions</Typography>
                   <Chip label={`v${regulation.currentVersion} current`} size="small" color="primary" variant="outlined" />
                 </Stack>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={handleFetchVersions}
-                  disabled={fetchingVersions}
-                  startIcon={fetchingVersions ? <CircularProgress size={14} /> : <RefreshIcon />}
-                  sx={{ mb: 1 }}
-                  fullWidth
-                >
-                  {fetchingVersions ? 'Fetching...' : 'Fetch from legislation.govt'}
-                </Button>
                 {regulation.versions.length === 0 ? (
                   <Typography variant="body2" color="text.secondary">No version history.</Typography>
                 ) : (

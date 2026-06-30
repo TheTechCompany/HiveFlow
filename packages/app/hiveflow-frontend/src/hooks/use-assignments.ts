@@ -261,6 +261,7 @@ export function useAssignments(): UseAssignmentsReturn {
     { status: 'Backlog', title: 'Up Next' },
     { status: 'In Progress', title: 'In Progress' },
     { status: 'Reviewing', title: 'In Review', variant: 'subtle' },
+    { status: 'my-reviews', title: 'My Reviews' },
     { status: 'Finished', title: 'Finished', variant: 'collapsed' },
   ];
 
@@ -268,7 +269,7 @@ export function useAssignments(): UseAssignmentsReturn {
     (filters: TaskFilterOption[], groupBy: 'none' | 'project' = 'none'): KanbanColumn[] =>
       COLUMN_DEFS.map(({ status, title, variant }) => {
         const filtered = tasks.filter(
-          (t) => t.status === status && taskMatchesFilter(t, filters),
+          (t) => (status === 'my-reviews' ? t.status === 'Reviewing' : t.status === status) && taskMatchesFilter(t, filters),
         );
 
         const sorted =
@@ -322,8 +323,8 @@ export function useAssignments(): UseAssignmentsReturn {
 
       if (!taskType) return;
 
-      // Intercept drops into Reviewing — show handover modal
-      if (newStatus === 'Reviewing') {
+      // Intercept drops into Reviewing (including via My Reviews column) — show handover modal
+      if (newStatus === 'Reviewing' || newStatus === 'my-reviews') {
         setPendingHandover(task);
         return;
       }

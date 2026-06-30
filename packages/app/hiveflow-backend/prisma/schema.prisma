@@ -394,3 +394,118 @@ model PlanBatchItem {
 
   organisation String
 }
+
+// ── Recurring Schedules ─────────────────────────────────────
+
+model RecurringSchedule {
+  id        String  @id
+  displayId String?
+
+  name        String
+  description String?
+
+  events RecurringEvent[]
+
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organisation String
+
+  @@unique([organisation, displayId])
+}
+
+model RecurringEvent {
+  id String @id
+
+  schedule   RecurringSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  scheduleId String
+
+  parent   RecurringEvent? @relation("RecurringEventChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  parentId String?
+  children RecurringEvent[] @relation("RecurringEventChildren")
+
+  name        String
+  description String?
+  frequency   String @default("monthly") // daily, weekly, monthly, quarterly, yearly
+  startDate   String
+  assignedTo  String?
+
+  organisation String
+}
+
+// ── Compliance ──────────────────────────────────────────────
+
+model Regulation {
+  id String @id
+
+  title       String
+  description String?
+  type        String   // act | regulation | code | standard
+  source      String
+  category    String?
+  isoClause   String?
+
+  status     String @default("draft") // active | under-review | superseded | draft
+  linkStatus String @default("unchecked") // verified | stale | broken | unchecked
+
+  storedHash      String?
+  storedPdf       String?
+  storedMarkdown  String?
+
+  lastVerifiedAt DateTime?
+
+  currentVersion Int @default(1)
+
+  versions  RegulationVersion[]
+  breakouts BreakoutPoint[]
+  proofs    ProofEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organisation String
+}
+
+model RegulationVersion {
+  id String @id
+
+  regulation   Regulation @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+  regulationId String
+
+  version  Int
+  changes  String?
+  file     String?
+
+  createdAt DateTime @default(now())
+}
+
+model BreakoutPoint {
+  id String @id
+
+  regulation   Regulation @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+  regulationId String
+
+  sectionRef String
+  title      String
+  summary    String?
+  pageRef    Int?
+  markdownSnippet String?
+
+  understanding String @default("pending") // acknowledged | pending | needs-review
+  reviewedBy    String?
+  reviewedAt    DateTime?
+
+  createdAt DateTime @default(now())
+}
+
+model ProofEntry {
+  id String @id
+
+  regulation   Regulation @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+  regulationId String
+
+  userName  String
+  action    String // viewed | acknowledged | reviewed
+  timestamp DateTime @default(now())
+}

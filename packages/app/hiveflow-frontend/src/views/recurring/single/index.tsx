@@ -2,10 +2,12 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
+  Paper,
   Typography,
   Button,
   IconButton,
   Chip,
+  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -20,6 +22,7 @@ import {
   Event,
 } from '@mui/icons-material';
 import { GanttView, type TimelineItem, type TimelineGroup, type TimelineStep, TreeBranchVSCode, VSCODE_TWISTY_WIDTH, DEPTH_BORDER_WIDTH } from '@hive-flow/ui';
+import { gql, useQuery, useMutation } from '@apollo/client';
 import moment from 'moment';
 
 // ── Types ───────────────────────────────────────────────────────
@@ -52,43 +55,55 @@ const FREQUENCIES: { value: FrequencyOption; label: string }[] = [
   { value: 'yearly', label: 'Yearly' },
 ];
 
-// ── Seed data (shared reference — in real app comes from backend) ──
+// ── GraphQL ────────────────────────────────────────────────────
 
-const SEED_SCHEDULES: Schedule[] = [
-  {
-    id: 's1',
-    name: 'ISO 27001 Audit',
-    description: 'Annual information security management audit cycle',
-    events: [
-      { id: 'e1', scheduleId: 's1', name: 'Risk assessment review', description: 'Review and update risk register', frequency: 'quarterly', startDate: '2025-01-15', assignedTo: 'Security Team' },
-      { id: 'e2', scheduleId: 's1', parentId: 'e1', name: 'Asset inventory update', description: 'Update hardware and software asset list', frequency: 'quarterly', startDate: '2025-01-20', assignedTo: 'IT Operations' },
-      { id: 'e3', scheduleId: 's1', parentId: 'e1', name: 'Threat assessment', description: 'Re-evaluate threat landscape', frequency: 'quarterly', startDate: '2025-01-22', assignedTo: 'Security Team' },
-      { id: 'e4', scheduleId: 's1', name: 'Internal audit evidence collection', description: 'Gather evidence for Annex A controls', frequency: 'yearly', startDate: '2025-03-01', assignedTo: 'Audit Committee' },
-      { id: 'e4a', scheduleId: 's1', parentId: 'e4', name: 'Control testing', description: 'Test Annex A controls', frequency: 'yearly', startDate: '2025-03-15', assignedTo: 'Audit Committee' },
-      { id: 'e5', scheduleId: 's1', name: 'Management review meeting', description: 'Formal ISMS management review', frequency: 'yearly', startDate: '2025-06-01', assignedTo: 'CISO' },
-    ],
-  },
-  {
-    id: 's2',
-    name: 'SOC 2 Compliance',
-    description: 'Annual SOC 2 Type II control monitoring',
-    events: [
-      { id: 'e5', scheduleId: 's2', name: 'Access control review', description: 'Review system access, remove stale accounts', frequency: 'monthly', startDate: '2025-01-05', assignedTo: 'IT Operations' },
-      { id: 'e6', scheduleId: 's2', name: 'Change management audit', description: 'Audit change requests against policy', frequency: 'weekly', startDate: '2025-01-06', assignedTo: 'Engineering Lead' },
-      { id: 'e7', scheduleId: 's2', name: 'Vendor security review', description: 'Review third-party vendor posture', frequency: 'quarterly', startDate: '2025-02-01', assignedTo: 'Procurement' },
-      { id: 'e8', scheduleId: 's2', name: 'Backup & DR test', description: 'Test backup restoration and DR plan', frequency: 'quarterly', startDate: '2025-03-15', assignedTo: 'Platform Team' },
-    ],
-  },
-  {
-    id: 's3',
-    name: 'Equipment Maintenance',
-    description: 'Routine maintenance checks',
-    events: [
-      { id: 'e9', scheduleId: 's3', name: 'Safety inspection', description: 'Monthly safety inspection', frequency: 'monthly', startDate: '2025-01-01', assignedTo: 'Operations' },
-      { id: 'e10', scheduleId: 's3', name: 'Calibration check', description: 'Verify measurement instruments', frequency: 'quarterly', startDate: '2025-02-15', assignedTo: 'Quality Assurance' },
-    ],
-  },
-];
+const GET_SCHEDULE = gql`
+  query GetSchedule($id: ID!) {
+    recurringSchedule(id: $id) {
+      id
+      name
+      description
+      events {
+        id
+        scheduleId
+        parentId
+        name
+        description
+        frequency
+        startDate
+        assignedTo
+      }
+    }
+  }
+`;
+
+const CREATE_EVENT = gql`
+  mutation CreateEvent($scheduleId: ID!, $input: RecurringEventInput!) {
+    createRecurringEvent(scheduleId: $scheduleId, input: $input) {
+      id
+      name
+      frequency
+      startDate
+    }
+  }
+`;
+
+const UPDATE_EVENT = gql`
+  mutation UpdateEvent($id: ID!, $input: RecurringEventUpdateInput!) {
+    updateRecurringEvent(id: $id, input: $input) {
+      id
+      name
+    }
+  }
+`;
+
+const DELETE_EVENT = gql`
+  mutation DeleteEvent($id: ID!) {
+    deleteRecurringEvent(id: $id) {
+      id
+    }
+  }
+`;
 
 // ── Helpers ─────────────────────────────────────────────────────
 
@@ -131,9 +146,16 @@ export const ScheduleSingle: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // For now use seed data; in a real app this would be fetched
-  const [schedules, setSchedules] = useState<Schedule[]>(SEED_SCHEDULES);
-  const schedule = schedules.find((s) => s.id === id);
+  const { data, loading, error, refetch } = useQuery(GET_SCHEDULE, {
+    variables: { id },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  const [createEvent] = useMutation(CREATE_EVENT, { refetchQueries: ['GetSchedule'] });
+  const [updateEvent] = useMutation(UPDATE_EVENT);
+  const [deleteEvent] = useMutation(DELETE_EVENT);
+
+  const schedule: Schedule | undefined = data?.recurringSchedule;
 
   // Default horizon: current year
   const [horizon, setHorizon] = useState({
@@ -197,7 +219,6 @@ export const ScheduleSingle: React.FC = () => {
     const events = schedule.events;
     const idx = events.findIndex((e) => e.id === eventId);
     if (idx <= 0) return;
-    // Find previous sibling at same depth
     const event = events[idx];
     const depth = treeInfo.flat.find((f) => f.id === eventId)?.depth ?? 0;
     let prevSibling: RecurringEvent | undefined;
@@ -207,19 +228,18 @@ export const ScheduleSingle: React.FC = () => {
       if (d < depth) break;
     }
     if (prevSibling) {
-      event.parentId = prevSibling.id;
-      setSchedules([...SEED_SCHEDULES]);
+      updateEvent({ variables: { id: eventId, input: { parentId: prevSibling.id } } }).then(() => refetch());
     }
-  }, [schedule, treeInfo]);
+  }, [schedule, treeInfo, updateEvent, refetch]);
 
   const outdentEvent = useCallback((eventId: string) => {
     if (!schedule) return;
     const event = schedule.events.find((e) => e.id === eventId);
     if (!event?.parentId) return;
     const parent = schedule.events.find((e) => e.id === event.parentId);
-    event.parentId = parent?.parentId || undefined;
-    setSchedules([...SEED_SCHEDULES]);
-  }, [schedule]);
+    const grandParentId = parent?.parentId || undefined;
+    updateEvent({ variables: { id: eventId, input: { parentId: grandParentId as any } } }).then(() => refetch());
+  }, [schedule, updateEvent, refetch]);
 
   // ── Inline drafts (spreadsheet-style creation) ─────────────
   const [drafts, setDrafts] = useState<RecurringEvent[]>(() => {
@@ -245,14 +265,20 @@ export const ScheduleSingle: React.FC = () => {
     setDrafts((prev) => {
       const draft = prev.find((d) => d.id === draftId);
       const valid = draft && draft.name.trim() && draft.startDate;
-      // Mutate seed data if valid
-      if (valid) {
-        const idx = SEED_SCHEDULES.findIndex((s) => s.id === draft!.scheduleId);
-        if (idx !== -1) {
-          SEED_SCHEDULES[idx].events.push({ ...draft!, id: `e${Date.now()}` });
-        }
+      if (valid && schedule) {
+        createEvent({
+          variables: {
+            scheduleId: schedule.id,
+            input: {
+              name: draft!.name.trim(),
+              description: draft!.description,
+              frequency: draft!.frequency,
+              startDate: draft!.startDate,
+              assignedTo: draft!.assignedTo || undefined,
+            },
+          },
+        }).then(() => refetch());
       }
-      // Always replace with a fresh blank row (never let the draft row disappear)
       const scheduleId = draft?.scheduleId ?? schedule?.id ?? '';
       const newDraft: RecurringEvent = {
         id: `draft-${Date.now()}`,
@@ -265,12 +291,8 @@ export const ScheduleSingle: React.FC = () => {
       };
       return prev.map((d) => (d.id === draftId ? newDraft : d));
     });
-    if (drafts.find((d) => d.id === draftId)?.name.trim()) {
-      setSchedules([...SEED_SCHEDULES]);
-    }
-    // Focus the new draft row's name input after render
     setTimeout(() => draftInputRef.current?.focus(), 0);
-  }, [drafts, schedule]);
+  }, [drafts, schedule, createEvent, refetch]);
 
   // ── Edit modal (kept for editing existing events) ──────────
   const [eventModalOpen, setEventModalOpen] = useState(false);
@@ -291,14 +313,21 @@ export const ScheduleSingle: React.FC = () => {
     setEventModalOpen(true);
   };
 
-  const saveEvent = () => {
+  const saveEvent = async () => {
     if (editingEvent) {
-      editingEvent.name = eventFormName;
-      editingEvent.description = eventFormDesc;
-      editingEvent.frequency = eventFormFrequency;
-      editingEvent.startDate = eventFormStartDate;
-      editingEvent.assignedTo = eventFormAssigned || undefined;
-      setSchedules([...SEED_SCHEDULES]);
+      await updateEvent({
+        variables: {
+          id: editingEvent.id,
+          input: {
+            name: eventFormName,
+            description: eventFormDesc,
+            frequency: eventFormFrequency,
+            startDate: eventFormStartDate,
+            assignedTo: eventFormAssigned || undefined,
+          },
+        },
+      });
+      refetch();
     }
     setEventModalOpen(false);
     setEditingEvent(null);
@@ -562,8 +591,7 @@ export const ScheduleSingle: React.FC = () => {
               defaultValue={event.name}
               onBlur={(e) => {
                 if (e.target.value !== event.name && e.target.value.trim()) {
-                  // In a real app this would mutate via backend
-                  event.name = e.target.value;
+                  updateEvent({ variables: { id: event.id, input: { name: e.target.value } } }).then(() => refetch());
                 }
               }}
               onKeyDown={(e) => {
@@ -585,7 +613,7 @@ export const ScheduleSingle: React.FC = () => {
               variant="standard"
               defaultValue={event.frequency}
               onChange={(e) => {
-                event.frequency = e.target.value as FrequencyOption;
+                updateEvent({ variables: { id: event.id, input: { frequency: e.target.value } } }).then(() => refetch());
               }}
               onClick={(e) => e.stopPropagation()}
               sx={{ flex: 1, height: '100%', '& .MuiInputBase-root': { py: 0, fontSize: '0.7rem', height: '100%' }, '& .MuiInputBase-input': { px: '4px', py: '2px' } }}
@@ -607,7 +635,7 @@ export const ScheduleSingle: React.FC = () => {
               defaultValue={event.startDate}
               onBlur={(e) => {
                 if (e.target.value && e.target.value !== event.startDate) {
-                  event.startDate = e.target.value;
+                  updateEvent({ variables: { id: event.id, input: { startDate: e.target.value } } }).then(() => refetch());
                 }
               }}
               onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
@@ -625,7 +653,7 @@ export const ScheduleSingle: React.FC = () => {
               defaultValue={event.assignedTo || ''}
               placeholder="—"
               onBlur={(e) => {
-                event.assignedTo = e.target.value || undefined;
+                updateEvent({ variables: { id: event.id, input: { assignedTo: e.target.value || ('' as any) } } }).then(() => refetch());
               }}
               onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
               onClick={(e) => e.stopPropagation()}
@@ -638,6 +666,22 @@ export const ScheduleSingle: React.FC = () => {
     [schedule, drafts, updateDraftField, commitDraft, treeInfo, collapsed, toggleCollapse, indentEvent, outdentEvent],
   );
 
+  if (loading) {
+    return (
+      <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography color="error">Failed to load schedule: {error.message}</Typography>
+      </Box>
+    );
+  }
+
   if (!schedule) {
     return (
       <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -648,9 +692,16 @@ export const ScheduleSingle: React.FC = () => {
 
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      {/* ── Breadcrumb / header ─────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      {/* ── Header bar ──────────────────────────────────────── */}
+      <Paper
+        sx={{
+          display: 'flex',
+          bgcolor: 'secondary.main',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1 }}>
           <IconButton size="small" onClick={() => navigate('..')}>
             <ArrowBack fontSize="small" />
           </IconButton>
@@ -665,26 +716,28 @@ export const ScheduleSingle: React.FC = () => {
             sx={{ ml: 1 }}
           />
         </Box>
-      </Box>
+      </Paper>
 
-      {/* ── Zoom toolbar ─────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 0.5, bgcolor: '#f5f5f5', borderBottom: '1px solid', borderColor: 'grey.300', gap: 0.5, flexShrink: 0 }}>
-        <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', mr: 1 }}>Zoom:</Typography>
-        {(['day', 'week', 'month'] as const).map((s) => (
-          <Button
-            key={s}
-            size="small"
-            variant={step === s ? 'contained' : 'outlined'}
-            onClick={() => handleZoom(s)}
-            sx={{ textTransform: 'capitalize', fontSize: '0.7rem', py: 0.25, px: 1, minWidth: 0 }}
-          >
-            {s}
-          </Button>
-        ))}
-      </Box>
+      {/* ── Content ─────────────────────────────────────────── */}
+      <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column', marginTop: '4px', overflow: 'hidden' }}>
+        {/* ── Zoom toolbar ──────────────────────────────────── */}
+        <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 0.5, bgcolor: '#f5f5f5', borderBottom: '1px solid', borderColor: 'grey.300', gap: 0.5, flexShrink: 0 }}>
+          <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', mr: 1 }}>Zoom:</Typography>
+          {(['day', 'week', 'month'] as const).map((s) => (
+            <Button
+              key={s}
+              size="small"
+              variant={step === s ? 'contained' : 'outlined'}
+              onClick={() => handleZoom(s)}
+              sx={{ textTransform: 'capitalize', fontSize: '0.7rem', py: 0.25, px: 1, minWidth: 0 }}
+            >
+              {s}
+            </Button>
+          ))}
+        </Box>
 
-      {/* ── Gantt view: sidebar rows + timeline side by side ─── */}
-      <GanttView
+        {/* ── Gantt view: sidebar rows + timeline side by side */}
+        <GanttView
         sidebarWidth={SIDEBAR_W}
         items={timelineItems}
         groups={timelineGroups}
@@ -727,6 +780,7 @@ export const ScheduleSingle: React.FC = () => {
           },
         }}
       />
+      </Paper>
 
       {/* ── Event create / edit dialog ────────────────────────── */}
       <Dialog

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Paper,
-  Typography,
   Button,
   Dialog,
   DialogTitle,
@@ -11,10 +10,60 @@ import {
   DialogActions,
   TextField,
   Stack,
+  Typography,
+  CircularProgress,
 } from '@mui/material';
-import { Add as AddIcon, Repeat as RepeatIcon } from '@mui/icons-material';
 import { DataTable } from '@hive-flow/ui';
+import { gql, useQuery, useMutation } from '@apollo/client';
 import moment from 'moment';
+import { ScheduleHeader } from './header';
+
+// ── GraphQL ────────────────────────────────────────────────────
+
+const GET_SCHEDULES = gql`
+  query GetSchedules {
+    recurringSchedules {
+      id
+      name
+      description
+      eventCount
+      events {
+        id
+        name
+        frequency
+        startDate
+      }
+    }
+  }
+`;
+
+const CREATE_SCHEDULE = gql`
+  mutation CreateSchedule($input: RecurringScheduleInput!) {
+    createRecurringSchedule(input: $input) {
+      id
+      name
+      description
+    }
+  }
+`;
+
+const UPDATE_SCHEDULE = gql`
+  mutation UpdateSchedule($id: ID!, $input: RecurringScheduleUpdateInput!) {
+    updateRecurringSchedule(id: $id, input: $input) {
+      id
+      name
+      description
+    }
+  }
+`;
+
+const DELETE_SCHEDULE = gql`
+  mutation DeleteSchedule($id: ID!) {
+    deleteRecurringSchedule(id: $id) {
+      id
+    }
+  }
+`;
 
 // ── Types ───────────────────────────────────────────────────────
 
@@ -32,6 +81,7 @@ interface Schedule {
   id: string;
   name: string;
   description: string;
+  eventCount: number;
   events: RecurringEvent[];
 }
 
@@ -68,61 +118,43 @@ function nextOccurrence(event: RecurringEvent): Date {
 }
 
 function upcomingLabel(events: RecurringEvent[]): string {
-  if (events.length === 0) return '—';
+  if (!events || events.length === 0) return '—';
   const soonest = events
     .map((e) => ({ event: e, next: nextOccurrence(e) }))
     .sort((a, b) => a.next.getTime() - b.next.getTime())[0];
   return `${soonest.event.name} — ${moment(soonest.next).format('D MMM')}`;
 }
 
-// ── Seed data ───────────────────────────────────────────────────
-
-const SEED_SCHEDULES: Schedule[] = [
-  {
-    id: 's1',
-    name: 'ISO 27001 Audit',
-    description: 'Annual information security management audit cycle',
-    events: [
-      { id: 'e1', scheduleId: 's1', name: 'Risk assessment review', description: 'Review and update risk register', frequency: 'quarterly', startDate: '2025-01-15', assignedTo: 'Security Team' },
-      { id: 'e2', scheduleId: 's1', name: 'Internal audit evidence collection', description: 'Gather evidence for Annex A controls', frequency: 'yearly', startDate: '2025-03-01', assignedTo: 'Audit Committee' },
-      { id: 'e3', scheduleId: 's1', name: 'Management review meeting', description: 'Formal ISMS management review', frequency: 'yearly', startDate: '2025-06-01', assignedTo: 'CISO' },
-      { id: 'e4', scheduleId: 's1', name: 'External audit prep', description: 'Prepare for external auditor', frequency: 'yearly', startDate: '2025-09-01', assignedTo: 'Security Team' },
-    ],
-  },
-  {
-    id: 's2',
-    name: 'SOC 2 Compliance',
-    description: 'Annual SOC 2 Type II control monitoring',
-    events: [
-      { id: 'e5', scheduleId: 's2', name: 'Access control review', description: 'Review system access, remove stale accounts', frequency: 'monthly', startDate: '2025-01-05', assignedTo: 'IT Operations' },
-      { id: 'e6', scheduleId: 's2', name: 'Change management audit', description: 'Audit change requests against policy', frequency: 'weekly', startDate: '2025-01-06', assignedTo: 'Engineering Lead' },
-      { id: 'e7', scheduleId: 's2', name: 'Vendor security review', description: 'Review third-party vendor posture', frequency: 'quarterly', startDate: '2025-02-01', assignedTo: 'Procurement' },
-      { id: 'e8', scheduleId: 's2', name: 'Backup & DR test', description: 'Test backup restoration and DR plan', frequency: 'quarterly', startDate: '2025-03-15', assignedTo: 'Platform Team' },
-    ],
-  },
-  {
-    id: 's3',
-    name: 'Equipment Maintenance',
-    description: 'Routine maintenance checks',
-    events: [
-      { id: 'e9', scheduleId: 's3', name: 'Safety inspection', description: 'Monthly safety inspection', frequency: 'monthly', startDate: '2025-01-01', assignedTo: 'Operations' },
-      { id: 'e10', scheduleId: 's3', name: 'Calibration check', description: 'Verify measurement instruments', frequency: 'quarterly', startDate: '2025-02-15', assignedTo: 'Quality Assurance' },
-    ],
-  },
-];
-
 // ── Main ────────────────────────────────────────────────────────
 
 export const ScheduleList: React.FC = () => {
-  const [schedules, setSchedules] = useState<Schedule[]>(SEED_SCHEDULES);
+  const navigate = useNavigate();
+
+  const { data, loading, error, refetch } = useQuery(GET_SCHEDULES, {
+    fetchPolicy: 'cache-and-network',
+  });
+
+  const [createSchedule] = useMutation(CREATE_SCHEDULE, {
+    refetchQueries: ['GetSchedules'],
+  });
+
+  const [updateSchedule] = useMutation(UPDATE_SCHEDULE, {
+    refetchQueries: ['GetSchedules'],
+  });
+
+  const [deleteSchedule] = useMutation(DELETE_SCHEDULE, {
+    refetchQueries: ['GetSchedules'],
+  });
+
+  const schedules: Schedule[] = data?.recurringSchedules || [];
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
   const [direction, setDirection] = useState<'asc' | 'desc'>('asc');
   const [property, setProperty] = useState('name');
-
-  const navigate = useNavigate();
+  const [search, setSearch] = useState('');
 
   const openCreate = () => {
     setEditingSchedule(null);
@@ -134,40 +166,46 @@ export const ScheduleList: React.FC = () => {
   const openEdit = (s: Schedule) => {
     setEditingSchedule(s);
     setFormName(s.name);
-    setFormDesc(s.description);
+    setFormDesc(s.description || '');
     setModalOpen(true);
   };
 
-  const save = () => {
+  const save = async () => {
     if (!formName.trim()) return;
     if (editingSchedule) {
-      setSchedules((prev) =>
-        prev.map((s) =>
-          s.id === editingSchedule.id ? { ...s, name: formName.trim(), description: formDesc.trim() } : s,
-        ),
-      );
+      await updateSchedule({
+        variables: {
+          id: editingSchedule.id,
+          input: { name: formName.trim(), description: formDesc.trim() },
+        },
+      });
     } else {
-      setSchedules((prev) => [
-        ...prev,
-        { id: String(Date.now()), name: formName.trim(), description: formDesc.trim(), events: [] },
-      ]);
+      await createSchedule({
+        variables: {
+          input: { name: formName.trim(), description: formDesc.trim() },
+        },
+      });
     }
     setModalOpen(false);
     setEditingSchedule(null);
   };
 
-  const deleteSchedule = (id: string) => {
-    setSchedules((prev) => prev.filter((s) => s.id !== id));
+  const handleDelete = async (id: string) => {
+    await deleteSchedule({ variables: { id } });
   };
 
-  const rows = schedules.map((s) => ({
-    id: s.id,
-    name: s.name,
-    description: s.description,
-    eventCount: s.events.length,
-    frequencies: [...new Set(s.events.map((e) => FREQUENCIES.find((f) => f.value === e.frequency)?.label ?? e.frequency))].join(', '),
-    nextUp: upcomingLabel(s.events),
-  }));
+  const rows = schedules
+    .filter((s) => !search || s.name.toLowerCase().includes(search.toLowerCase()))
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      description: s.description,
+      eventCount: s.eventCount ?? s.events?.length ?? 0,
+      frequencies: s.events?.length
+        ? [...new Set(s.events.map((e) => FREQUENCIES.find((f) => f.value === e.frequency)?.label ?? e.frequency))].join(', ')
+        : '—',
+      nextUp: upcomingLabel(s.events),
+    }));
 
   const sorted = [...rows].sort((a: any, b: any) => {
     const va = a[property] ?? '';
@@ -179,57 +217,46 @@ export const ScheduleList: React.FC = () => {
 
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      {/* ── Header ──────────────────────────────────────────── */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          px: 2,
-          py: 1,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <RepeatIcon sx={{ color: 'navigation.main' }} />
-          <Typography sx={{ color: 'navigation.main' }} fontWeight="bold" variant="h6">
-            Schedules
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<AddIcon />}
-          onClick={openCreate}
-          sx={{ textTransform: 'none' }}
-        >
-          New Schedule
-        </Button>
-      </Box>
+      <ScheduleHeader
+        search={search}
+        onSearchChange={setSearch}
+        onCreate={openCreate}
+      />
 
       {/* ── DataTable ───────────────────────────────────────── */}
       <Paper sx={{ flex: 1, display: 'flex', marginTop: '3px' }}>
-        <DataTable
-          order={direction}
-          orderBy={property}
-          onSort={(_property) => {
-            if (property === _property) {
-              setDirection(direction === 'asc' ? 'desc' : 'asc');
-            } else {
-              setProperty(_property);
-              setDirection('asc');
-            }
-          }}
-          columns={[
-            { property: 'name', header: 'Name', width: '30%', sortable: true },
-            { property: 'description', header: 'Description', width: '25%' },
-            { property: 'eventCount', header: 'Events', size: 'xsmall', align: 'center' },
-            { property: 'frequencies', header: 'Frequencies', size: 'small' },
-            { property: 'nextUp', header: 'Next Up', size: 'medium' },
-          ]}
-          onEditRow={(schedule) => openEdit(schedule)}
-          onClickRow={(schedule) => navigate(`${schedule.id}`)}
-          data={sorted}
-        />
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Box sx={{ p: 3 }}>
+            <Typography color="error">Failed to load schedules: {error.message}</Typography>
+          </Box>
+        ) : (
+          <DataTable
+            order={direction}
+            orderBy={property}
+            onSort={(_property) => {
+              if (property === _property) {
+                setDirection(direction === 'asc' ? 'desc' : 'asc');
+              } else {
+                setProperty(_property);
+                setDirection('asc');
+              }
+            }}
+            columns={[
+              { property: 'name', header: 'Name', width: '30%', sortable: true },
+              { property: 'description', header: 'Description', width: '25%' },
+              { property: 'eventCount', header: 'Events', size: 'xsmall', align: 'center' },
+              { property: 'frequencies', header: 'Frequencies', size: 'small' },
+              { property: 'nextUp', header: 'Next Up', size: 'medium' },
+            ]}
+            onEditRow={(schedule) => openEdit(schedule)}
+            onClickRow={(schedule) => navigate(`${schedule.id}`)}
+            data={sorted}
+          />
+        )}
       </Paper>
 
       {/* ── Create / Edit schedule dialog ────────────────────── */}

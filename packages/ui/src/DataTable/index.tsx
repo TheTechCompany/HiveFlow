@@ -1,4 +1,4 @@
-import { TableContainer, Table, TableHead, TableRow, TableBody, TableCell, TableSortLabel, IconButton, Box, List, ListItem, ListItemButton, Typography } from '@mui/material';
+import { TableContainer, Table, TableHead, TableRow, TableBody, TableCell, TableSortLabel, IconButton, Box, Typography } from '@mui/material';
 import React from 'react';
 import { MoreVert } from '@mui/icons-material'
 
@@ -38,155 +38,87 @@ export const DataTable: React.FC<DataTableProps> = (props) => {
         }
     }
 
+    const hasActions = Boolean(props.onEditRow);
+
     return (
-        <Box sx={{ flex: 1, flexDirection: 'column', display: 'flex' }}>
-            <Box sx={{ display: 'flex', bgcolor: 'secondary.main', paddingRight: props.onEditRow ? '48px' : null }}>
-                {props.columns?.map((column) => (
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            width: column.size ? getSize(column.size) : column.width,
-                            justifyContent: column.align == "center" ? "center" : "flex-start",
-                            color: 'white',
-                            padding: '6px 8px !important'
-                        }}
-                    // sortDirection={props.orderBy === column.property ? props.order : false}
-                    >
-                        {column.sortable &&
-                            <TableSortLabel
-                                sx={{ '& svg': { color: 'white !important' } }}
-                                active={props.orderBy === column.property}
-                                direction={props.orderBy === column.property ? props.order : 'asc'}
-                                onClick={createSortHandler(column.property)} />}
-                        <Typography>{column.header || column.property}</Typography>
-                    </Box>
-                ))}
-             
-            </Box>
-            <Box sx={{overflowY: 'auto', flex: 1}}>
-                <List>
-                    {props.data?.map((data) => (
-                        <ListItem
-                            key={data.id}
-                            disablePadding
-                            secondaryAction={props.onEditRow ? (
-
-                                <IconButton
-                                    sx={{ zIndex: 12 }}
-                                    onClick={() => props.onEditRow?.(data)}>
-                                    <MoreVert />
-                                </IconButton>
-                            ) : null}
-                            sx={{ 
-                                cursor: props.onClickRow ? 'pointer' : 'initial',
-                                borderBottom: '1px solid rgb(224, 224, 224)',
-                                fontSize: '0.875rem'
-                            }}
-                            // hover={Boolean(props.onClickRow)}
-                           >
-                            <ListItemButton 
-                             onClick={() => props.onClickRow?.(data)}
-                            sx={{
-                                padding: 0, 
-                                minHeight: '36px'
-                            }}>
-                                {props.columns?.map((column, ix) => (
-                                    <Box
-                                        sx={{
-                                            padding: '4px 8px',
-                                            // paddingLeft:  ix ==0 &&'32px',
-                                            // height: '42px',
-                                            // paddingLeft: '8px',
-                                            // paddingRight: '8px',
-                                            display: 'flex',
-                                            height: '100%',
-                                            width: column.size ? getSize(column.size) : column.width,
-                                            justifyContent: column.align == "center" ? "center" : "flex-start",
-                                        }}>
-                                            <Box sx={{marginLeft: '8px'}}>
-                                            {column.render ? column.render?.(data || {}) : data?.[column.property]}
-
-                                            </Box>
-                                    </Box>
-                                ))}
-                            </ListItemButton>
-
-
-
-
-                        </ListItem>
-                    ))}
-                </List>
-            </Box>
-        </Box>
-
-    )
-
-
-}
-
-
-/*
- <TableContainer sx={{flex: 1}}>
-            <Table>
-                <TableHead >
-                    <TableRow >
+        <TableContainer sx={{ flex: 1 }}>
+            <Table size="small" stickyHeader>
+                <TableHead>
+                    <TableRow>
                         {props.columns?.map((column) => (
-                            <TableCell 
-                                size={column.size}
-                                align={column.align == "center" ? "center" : "left"}
-                                sx={{color: 'white', width: column.width, padding: '8px !important'}}
+                            <TableCell
+                                key={column.property}
+                                size={column.size || 'small'}
+                                align={(column.align === "center" ? "center" : "left") as any}
+                                sx={{
+                                    color: 'white',
+                                    bgcolor: 'secondary.main',
+                                    width: column.size ? getSize(column.size) : column.width,
+                                    padding: '6px 8px !important',
+                                    fontWeight: 600,
+                                }}
                                 sortDirection={props.orderBy === column.property ? props.order : false}
-                                >
-                                {column.sortable && 
-                                    <TableSortLabel 
-                                        sx={{'& svg': {color: 'white !important'}}}
-                                        active={props.orderBy === column.property} 
-                                        direction={props.orderBy === column.property ? props.order : 'asc'} 
-                                        onClick={createSortHandler(column.property)} />}
-                                {column.header || column.property}
+                            >
+                                {column.sortable ? (
+                                    <TableSortLabel
+                                        sx={{ '& svg': { color: 'white !important' } }}
+                                        active={props.orderBy === column.property}
+                                        direction={props.orderBy === column.property ? props.order : 'asc'}
+                                        onClick={createSortHandler(column.property)}
+                                    >
+                                        <Typography variant="body2" fontWeight={600}>
+                                            {column.header || column.property}
+                                        </Typography>
+                                    </TableSortLabel>
+                                ) : (
+                                    <Typography variant="body2" fontWeight={600}>
+                                        {column.header || column.property}
+                                    </Typography>
+                                )}
                             </TableCell>
                         ))}
-                            {props.onEditRow ? (
-                                <TableCell size='small'></TableCell>
-                            ): null}
+                        {hasActions && (
+                            <TableCell size="small" sx={{ bgcolor: 'secondary.main', width: 48, padding: 0 }} />
+                        )}
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {props.data?.map((data) => (
-                        <>
-                        <TableRow 
-                            sx={{cursor: props.onClickRow ? 'pointer': 'initial'}}
+                    {props.data?.map((row) => (
+                        <TableRow
+                            key={row.id}
                             hover={Boolean(props.onClickRow)}
-                            onClick={() => props.onClickRow?.(data)}>
+                            sx={{
+                                cursor: props.onClickRow ? 'pointer' : 'initial',
+                                '&:last-child td': { borderBottom: 0 },
+                            }}
+                            onClick={() => props.onClickRow?.(row)}
+                        >
                             {props.columns?.map((column) => (
-                                <TableCell 
+                                <TableCell
+                                    key={column.property}
                                     padding="none"
-                                    sx={{paddingLeft: '32px', height: '42px', width: column.width}}
-                                    size={column.size}
-                                    align={column.align == "center" ? "center" : "left"}>
-                                        {column.render ? column.render?.(data || {}) : data?.[column.property]}
+                                    size={column.size || 'small'}
+                                    align={(column.align === "center" ? "center" : "left") as any}
+                                    sx={{
+                                        px: 1,
+                                        py: 0.5,
+                                        width: column.size ? getSize(column.size) : column.width,
+                                    }}
+                                >
+                                    {column.render ? column.render(row) : row?.[column.property]}
                                 </TableCell>
                             ))}
-                            {props.onEditRow ? (
-                                <TableCell
-                                    padding="none"
-                                    align='right' 
-                                    sx={{width: '40px', position: 'relative'}}>
-                            
+                            {hasActions && (
+                                <TableCell padding="none" sx={{ width: 48, textAlign: 'right', pr: 0.5 }}>
+                                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); props.onEditRow?.(row); }}>
+                                        <MoreVert fontSize="small" />
+                                    </IconButton>
                                 </TableCell>
-                            ) : null}
-
-
-<IconButton
-                                sx={{zIndex: 12, position: 'absolute', top: 0, right: 0}}
-                                onClick={() => props.onEditRow?.(data)}>
-                                <MoreVert />
-                            </IconButton>
+                            )}
                         </TableRow>
-                        </>
                     ))}
                 </TableBody>
             </Table>
         </TableContainer>
-*/
+    )
+}
