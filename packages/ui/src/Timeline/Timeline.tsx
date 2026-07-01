@@ -114,6 +114,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
     fullHeight = false,
     stickyHeader = false,
     sidebarWidth: sidebarWidthProp,
+    sidebarPadding,
     callbacks,
     renderers,
     loading,
@@ -623,6 +624,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
             renderGroupHeader={renderers?.renderGroupHeader}
             showSidebar={hasGroups}
             onDoubleClickItem={handleItemDoubleClick}
+            sidebarPadding={sidebarPadding}
           />
         ))}
         {Array.from({ length: emptyRowCount }, (_, i) => (
@@ -636,6 +638,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
             sidebarWidth={sidebarW}
             showSidebar={hasGroups}
             isPlaceholder
+            sidebarPadding={sidebarPadding}
           />
         ))}
       </div>

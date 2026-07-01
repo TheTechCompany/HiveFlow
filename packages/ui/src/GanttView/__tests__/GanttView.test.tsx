@@ -132,4 +132,26 @@ describe('GanttView', () => {
     );
     expect(screen.getByTestId('custom-header')).toBeInTheDocument();
   });
+
+  it('renders with a sidebar node', () => {
+    const sidebar = <div data-testid="the-sidebar">My Sidebar</div>;
+    render(
+      <div style={{ width: 800, height: 400 }}>
+        <GanttView {...defaultProps} sidebar={sidebar} />
+      </div>,
+    );
+    expect(screen.getByTestId('the-sidebar')).toBeInTheDocument();
+  });
+
+  it('renders sidebar + contextMenu together', () => {
+    const sidebar = <div data-testid="the-sidebar">Sidebar</div>;
+    const menu = <div data-testid="ctx-menu">Menu</div>;
+    render(
+      <div style={{ width: 800, height: 400 }}>
+        <GanttView {...defaultProps} sidebar={sidebar} contextMenu={menu} />
+      </div>,
+    );
+    expect(screen.getByTestId('the-sidebar')).toBeInTheDocument();
+    expect(screen.getByTestId('ctx-menu')).toBeInTheDocument();
+  });
 });

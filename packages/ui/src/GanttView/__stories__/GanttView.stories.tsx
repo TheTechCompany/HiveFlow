@@ -5,6 +5,8 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { GanttView } from '../GanttView';
 import type { TimelineItem, TimelineGroup } from '../../Timeline';
 import { d, makeItem, makeGroup } from '../../Timeline/__stories__/mockData';
+import { Spreadsheet } from '../../Spreadsheet';
+import type { SpreadsheetColumn } from '../../Spreadsheet';
 
 // ── Meta ─────────────────────────────────────────────────────────────
 
@@ -137,5 +139,80 @@ export const WithContextMenu: Story = {
         Right-click a row for actions
       </div>
     ),
+  },
+};
+
+// ── Spreadsheet sidebar stories ─────────────────────────────────────
+
+const spreadsheetColumns: SpreadsheetColumn[] = [
+  { key: 'label', header: 'Task', width: 180, editable: true },
+  { key: 'group', header: 'Phase', width: 100 },
+  { key: 'start', header: 'Start', width: 100 },
+  { key: 'end', header: 'End', width: 100 },
+  { key: 'progress', header: '%', width: 50, align: 'center' },
+];
+
+function buildSpreadsheetRows(items: TimelineItem[], groups: TimelineGroup[]) {
+  const groupMap = new Map(groups.map((g) => [g.id, g.label ?? g.id]));
+  return items.map((i) => ({
+    id: i.id,
+    label: i.label ?? i.id,
+    group: groupMap.get(i.groupId ?? '') ?? '—',
+    start: i.start.toISOString().slice(0, 10),
+    end: i.end.toISOString().slice(0, 10),
+    progress: i.progress != null ? `${i.progress}%` : '',
+  }));
+}
+
+const spreadsheetRows = buildSpreadsheetRows(demoItems, demoGroups);
+
+/** Gantt with a Spreadsheet sidebar — spreadsheet replaces the default sidebar. */
+export const WithSpreadsheet: Story = {
+  args: {
+    items: demoItems,
+    groups: demoGroups,
+    start: demoRange.start,
+    end: demoRange.end,
+    step: 'day',
+    itemHeight: 30,
+    headerHeight: 48,
+    showToday: true,
+    fitContainer: true,
+    sidebarFlex: '380px',
+    sidebar: (
+      <Spreadsheet
+        columns={spreadsheetColumns}
+        rows={spreadsheetRows}
+        rowHeight={30}
+        headerHeight={48}
+      />
+    ),
+  },
+};
+
+/** Gantt with Spreadsheet — showing selection wired between the two. */
+export const SpreadsheetWithSelection: Story = {
+  args: {
+    ...WithSpreadsheet.args,
+  },
+  render: (args) => {
+    const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+
+    return (
+      <GanttView
+        {...args}
+        selectedItemIds={selectedIds}
+        sidebar={
+          <Spreadsheet
+            columns={spreadsheetColumns}
+            rows={spreadsheetRows}
+            rowHeight={30}
+            headerHeight={48}
+            selectedRowIds={selectedIds}
+            onSelectionChange={setSelectedIds}
+          />
+        }
+      />
+    );
   },
 };

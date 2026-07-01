@@ -12,6 +12,7 @@ import { render, act } from '@testing-library/react';
 // ── Mock state (set per test) ────────────────────────────────────────
 
 const mockRefetchQueries = jest.fn();
+const mockCreateProjectTask = jest.fn();
 const mockUpdateProjectTask = jest.fn();
 const mockUpdateEstimateTask = jest.fn();
 const mockDeleteProjectTask = jest.fn();
@@ -115,6 +116,7 @@ function makeEstimateTask(overrides: Record<string, unknown> = {}) {
 //   gqty unwraps and passes the inner object to fn as the second argument.
 function mockGqtyUseMutation(fn: any): [jest.Mock] {
   const mutations = {
+    createProjectTask: mockCreateProjectTask,
     updateProjectTask: mockUpdateProjectTask,
     updateEstimateTask: mockUpdateEstimateTask,
     deleteProjectTask: mockDeleteProjectTask,
@@ -136,6 +138,7 @@ describe('useAssignments hook', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRefetchQueries.mockReset();
+    mockCreateProjectTask.mockReset();
     mockUpdateProjectTask.mockReset();
     mockUpdateEstimateTask.mockReset();
     mockDeleteProjectTask.mockReset();
@@ -464,6 +467,16 @@ describe('useAssignments hook', () => {
     });
     expect(mockDeleteEstimateTask).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'et-1' }),
+    );
+  });
+
+  it('createTask calls the createProjectTask mutation', async () => {
+    const { result } = renderUseAssignments();
+    await act(async () => {
+      await result.createTask({ title: 'New Task', status: 'Backlog' });
+    });
+    expect(mockCreateProjectTask).toHaveBeenCalledWith(
+      expect.objectContaining({ input: { title: 'New Task', status: 'Backlog' } }),
     );
   });
 });

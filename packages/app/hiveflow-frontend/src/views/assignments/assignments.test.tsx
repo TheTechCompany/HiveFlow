@@ -131,6 +131,7 @@ function defaultHookReturn(overrides: Record<string, unknown> = {}) {
     ]),
     onDrag: jest.fn(),
     updateTask: jest.fn().mockResolvedValue(undefined),
+    createTask: jest.fn().mockResolvedValue(undefined),
     deleteProjectTask: jest.fn().mockResolvedValue(undefined),
     deleteEstimateTask: jest.fn().mockResolvedValue(undefined),
     refetch: jest.fn(),

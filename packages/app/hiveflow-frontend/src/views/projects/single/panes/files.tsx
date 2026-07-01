@@ -1,6 +1,6 @@
 import { FileExplorer, FileDialog } from "@hexhive/ui";
 import { createTheme, Divider, Menu, MenuItem, ThemeProvider } from "@mui/material";
-import { Box } from "grommet";
+import { Box } from "@mui/material";
 import React, { useRef, useState } from "react";
 import { mutate, useMutation } from "@hive-flow/api";
 import { useMutation as useApolloMutation, useQuery, gql, useApolloClient } from "@apollo/client";
@@ -156,7 +156,7 @@ export const FilePane = () => {
 
     return (
 
-        <Box flex>
+        <Box sx={{ flex: 1 }}>
           <ExplorerModal
               open={Boolean(moveOpen)}
               onClose={() => {

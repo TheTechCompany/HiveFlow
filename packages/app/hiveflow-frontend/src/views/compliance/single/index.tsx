@@ -40,11 +40,17 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Refresh as RefreshIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
   Visibility as ViewIcon,
   ThumbUp as AcknowledgeIcon,
   RateReview as ReviewIcon,
   Person as PersonIcon,
   PictureAsPdf as PdfIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  AutoAwesome as AutoAwesomeIcon,
+  PlayArrow as PlayArrowIcon,
 } from '@mui/icons-material';
 import moment from 'moment';
 
@@ -84,6 +90,15 @@ interface ProofEntry {
   timestamp: string;
 }
 
+interface Provision {
+  kind: string;
+  sectionRef: string;
+  title: string;
+  dlmId: string;
+  heading?: string;
+  text?: string;
+}
+
 interface Regulation {
   id: string;
   title: string;
@@ -102,6 +117,7 @@ interface Regulation {
   currentVersion: number;
   versions: RegulationVersion[];
   breakouts: BreakoutPoint[];
+  provisions: Provision[];
   proofs: ProofEntry[];
   createdAt: string;
   updatedAt: string;
@@ -179,6 +195,14 @@ const GET_REGULATION = gql`
         reviewedBy
         reviewedAt
       }
+      provisions {
+        kind
+        sectionRef
+        title
+        dlmId
+        heading
+        text
+      }
       proofs {
         id
         userName
@@ -209,6 +233,16 @@ export const ComplianceSingle: React.FC = () => {
 
   // ── Right pane tabs ──────────────────────────────────────────
   const [rightTab, setRightTab] = useState(0);
+
+  // ── Provisions: collapsible parts ────────────────────────────
+  const [expandedParts, setExpandedParts] = useState<Set<string>>(new Set());
+  const togglePart = (label: string) => {
+    setExpandedParts(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label); else next.add(label);
+      return next;
+    });
+  };
 
   // ── Selected breakout for snippet display ────────────────────
   const [selectedBreakout, setSelectedBreakout] = useState<string | null>(null);
@@ -271,6 +305,69 @@ export const ComplianceSingle: React.FC = () => {
   `;
 
   const [ fetchRegulationVersions ] = useMutation(FETCH_REGULATION_VERSIONS);
+
+  const EXPLAIN_PROVISION = gql`
+    mutation ExplainProvision($sectionRef: String!, $title: String!, $text: String!, $heading: String) {
+      explainProvision(sectionRef: $sectionRef, title: $title, text: $text, heading: $heading) {
+        explanation
+        example
+      }
+    }
+  `;
+
+  const [ explainProvision, { loading: explaining } ] = useMutation(EXPLAIN_PROVISION);
+
+  // ── Review mode: step through provisions one at a time ───────
+  const [reviewMode, setReviewMode] = useState(false);
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [explanation, setExplanation] = useState<{ sectionRef: string; explanation: string; example?: string } | null>(null);
+
+  const provisions = regulation?.provisions?.filter(p => p.kind === 'prov') || [];
+  const currentProvision = provisions[reviewIndex];
+
+  const handleExplain = async () => {
+    if (!currentProvision || explaining) return;
+    setExplanation(null);
+    try {
+      const { data } = await explainProvision({
+        variables: {
+          sectionRef: currentProvision.sectionRef,
+          title: currentProvision.title,
+          text: currentProvision.text || '',
+          heading: currentProvision.heading || undefined,
+        },
+      });
+      if (data?.explainProvision) {
+        setExplanation({
+          sectionRef: currentProvision.sectionRef,
+          explanation: data.explainProvision.explanation,
+          example: data.explainProvision.example,
+        });
+      }
+    } catch (err: any) {
+      console.warn('Explain failed:', err.message);
+    }
+  };
+
+  const handleCreateBreakoutFromProvision = () => {
+    if (!currentProvision) return;
+    setNewSectionRef(currentProvision.sectionRef);
+    setNewSectionTitle(currentProvision.title);
+    setNewSectionSummary(currentProvision.text?.slice(0, 200) || '');
+    setBreakoutDialogOpen(true);
+  };
+
+  const handleMarkViewed = async () => {
+    if (!currentProvision || !regulation) return;
+    // Create a quick proof entry via the acknowledgeBreakout pattern
+    // For now, just advance — proof entries are created server-side
+    if (reviewIndex < provisions.length - 1) {
+      setReviewIndex(reviewIndex + 1);
+      setExplanation(null);
+    } else {
+      setReviewMode(false);
+    }
+  };
 
   // ── Refresh: re-fetch PDF + versions + verify link ────────────
   const [refreshing, setRefreshing] = useState(false);
@@ -561,6 +658,200 @@ export const ComplianceSingle: React.FC = () => {
                 ))}
               </Stack>
             )}
+            {/* ── Provisions (auto-extracted from legislation XML) ─── */}
+            {regulation.provisions && regulation.provisions.length > 0 && (() => {
+              const provCount = regulation.provisions.filter(p => p.kind === 'prov').length;
+              const partCount = regulation.provisions.filter(p => p.kind === 'part').length;
+
+              // Group provisions by part for collapsible sections
+              const groups: Array<{ part: typeof regulation.provisions[0] | null; items: typeof regulation.provisions }> = [];
+              let currentGroup: { part: typeof regulation.provisions[0] | null; items: typeof regulation.provisions } | null = null;
+              for (const p of regulation.provisions) {
+                if (p.kind === 'part') {
+                  // Start a new part group
+                  const group = { part: p, items: [] as typeof regulation.provisions };
+                  groups.push(group);
+                  currentGroup = group;
+                } else {
+                  if (!currentGroup) {
+                    // Items before the first part
+                    currentGroup = { part: null, items: [] };
+                    groups.push(currentGroup);
+                  }
+                  currentGroup.items.push(p);
+                }
+              }
+
+              return (
+              <Box sx={{ mt: 1.5 }}>
+                <Divider sx={{ mb: 1.5 }} />
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                  <Typography variant="subtitle1" fontWeight={600}>
+                    Provisions ({provCount} in {partCount} part{partCount !== 1 ? 's' : ''})
+                  </Typography>
+                  {provCount > 0 && (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      startIcon={<PlayArrowIcon />}
+                      onClick={() => { setReviewMode(true); setReviewIndex(0); setExplanation(null); }}
+                    >
+                      Start Review
+                    </Button>
+                  )}
+                </Stack>
+                <Stack spacing={0.5}>
+                  {groups.map((group, gi) => {
+                    if (group.part) {
+                      const p = group.part;
+                      const isExpanded = expandedParts.has(p.sectionRef);
+                      // Count provisions in this part's items
+                      const partProvs = group.items.filter(i => i.kind === 'prov').length;
+                      return (
+                        <Box key={`part-group-${p.sectionRef}`}>
+                          <Paper
+                            variant="outlined"
+                            sx={{
+                              p: 1,
+                              cursor: 'pointer',
+                              bgcolor: isExpanded ? 'primary.50' : 'background.paper',
+                              borderColor: isExpanded ? 'primary.main' : 'divider',
+                              '&:hover': { bgcolor: isExpanded ? 'primary.100' : 'grey.50' },
+                            }}
+                            onClick={() => togglePart(p.sectionRef)}
+                          >
+                            <Stack direction="row" alignItems="center" spacing={1}>
+                              {isExpanded ? <ExpandLessIcon fontSize="small" color="primary" /> : <ChevronRightIcon fontSize="small" color="action" />}
+                              <Typography variant="subtitle2" fontWeight={700} color={isExpanded ? 'primary.main' : 'text.primary'}>
+                                Part {p.sectionRef} — {p.title}
+                              </Typography>
+                              <Chip label={`${partProvs} provisions`} size="small" variant="outlined" sx={{ ml: 'auto' }} />
+                            </Stack>
+                          </Paper>
+                          {isExpanded && group.items.length > 0 && (
+                            <Box sx={{ ml: 2, mt: 0.5 }}>
+                              <Stack spacing={0.5}>
+                                {group.items.map((p) => {
+                                  if (p.kind === 'subpart') {
+                                    return (
+                                      <Typography
+                                        key={`subpart-${p.sectionRef}`}
+                                        variant="body2"
+                                        fontWeight={600}
+                                        sx={{ mt: 0.5, mb: 0.25, color: 'text.primary' }}
+                                      >
+                                        Subpart {p.sectionRef} — {p.title}
+                                      </Typography>
+                                    );
+                                  }
+                                  if (p.kind === 'crosshead') {
+                                    return (
+                                      <Typography
+                                        key={`crosshead-${p.title}`}
+                                        variant="body2"
+                                        fontStyle="italic"
+                                        sx={{ mt: 0.5, mb: 0.25, color: 'text.secondary' }}
+                                      >
+                                        {p.title}
+                                      </Typography>
+                                    );
+                                  }
+                                  // provision card
+                                  return (
+                                  <Paper key={p.dlmId || `${p.sectionRef}-${p.title}`} variant="outlined" sx={{ p: 1.5 }}>
+                                    <Stack direction="row" alignItems="flex-start" spacing={1}>
+                                      <Stack flex={1}>
+                                        <Stack direction="row" alignItems="center" spacing={1}>
+                                          <Chip label={p.sectionRef} size="small" color="primary" variant="outlined" />
+                                          <Typography variant="body2" fontWeight={600}>{p.title}</Typography>
+                                        </Stack>
+                                        {p.heading && (
+                                          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25 }}>
+                                            {p.heading}
+                                          </Typography>
+                                        )}
+                                        {p.text && (
+                                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>
+                                            {p.text.length > 280 ? p.text.slice(0, 280) + '…' : p.text}
+                                          </Typography>
+                                        )}
+                                      </Stack>
+                                    </Stack>
+                                  </Paper>
+                                  );
+                                })}
+                              </Stack>
+                            </Box>
+                          )}
+                        </Box>
+                      );
+                    }
+                    // Ungrouped items — wrap in collapsible section
+                    const ungroupedProvs = group.items.filter(i => i.kind === 'prov').length;
+                    const ungroupedLabel = partCount > 0
+                      ? (gi === 0 ? 'Preliminary' : 'Schedules & Transitional')
+                      : 'Provisions';
+                    const ungroupedKey = `__ungrouped-${gi}`;
+                    const ungroupedExpanded = expandedParts.has(ungroupedKey);
+                    return (
+                      <Box key={`ungrouped-${gi}`}>
+                        <Paper
+                          variant="outlined"
+                          sx={{
+                            p: 1, cursor: 'pointer',
+                            bgcolor: ungroupedExpanded ? 'primary.50' : 'background.paper',
+                            borderColor: ungroupedExpanded ? 'primary.main' : 'divider',
+                            '&:hover': { bgcolor: ungroupedExpanded ? 'primary.100' : 'grey.50' },
+                          }}
+                          onClick={() => togglePart(ungroupedKey)}
+                        >
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            {ungroupedExpanded ? <ExpandLessIcon fontSize="small" color="primary" /> : <ChevronRightIcon fontSize="small" color="action" />}
+                            <Typography variant="subtitle2" fontWeight={700} color={ungroupedExpanded ? 'primary.main' : 'text.primary'}>
+                              {ungroupedLabel}
+                            </Typography>
+                            <Chip label={`${ungroupedProvs} provisions`} size="small" variant="outlined" sx={{ ml: 'auto' }} />
+                          </Stack>
+                        </Paper>
+                        {ungroupedExpanded && group.items.length > 0 && (
+                          <Box sx={{ ml: 2, mt: 0.5 }}>
+                            <Stack spacing={0.5}>
+                              {group.items.map((p) => {
+                                if (p.kind === 'crosshead') {
+                                  return (
+                                    <Typography key={`ch-${p.title}`} variant="body2" fontStyle="italic" sx={{ color: 'text.secondary' }}>
+                                      {p.title}
+                                    </Typography>
+                                  );
+                                }
+                                return (
+                                  <Paper key={p.dlmId || `${p.sectionRef}-${p.title}`} variant="outlined" sx={{ p: 1.5 }}>
+                                    <Stack direction="row" alignItems="flex-start" spacing={1}>
+                                      <Stack flex={1}>
+                                        <Stack direction="row" alignItems="center" spacing={1}>
+                                          <Chip label={p.sectionRef} size="small" color="primary" variant="outlined" />
+                                          <Typography variant="body2" fontWeight={600}>{p.title}</Typography>
+                                        </Stack>
+                                        {p.text && (
+                                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>
+                                            {p.text.length > 280 ? p.text.slice(0, 280) + '…' : p.text}
+                                          </Typography>
+                                        )}
+                                      </Stack>
+                                    </Stack>
+                                  </Paper>
+                                );
+                              })}
+                            </Stack>
+                          </Box>
+                        )}
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              </Box>
+              );
+            })()}
             </Box>
           </Box>
 
@@ -681,6 +972,111 @@ export const ComplianceSingle: React.FC = () => {
             Add Breakout Point
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* ── Review Mode Dialog ─────────────────────────────────── */}
+      <Dialog
+        open={reviewMode}
+        onClose={() => setReviewMode(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        {currentProvision ? (
+          <>
+            <DialogTitle>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Chip label={currentProvision.sectionRef} size="small" color="primary" variant="outlined" />
+                <Typography variant="h6" sx={{ flex: 1 }}>{currentProvision.title}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {reviewIndex + 1} of {provisions.length}
+                </Typography>
+              </Stack>
+              {currentProvision.heading && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                  {currentProvision.heading}
+                </Typography>
+              )}
+            </DialogTitle>
+            <DialogContent dividers>
+              {/* Provision text */}
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mb: 2 }}>
+                {currentProvision.text || 'No text available.'}
+              </Typography>
+
+              {/* Action buttons */}
+              <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<AutoAwesomeIcon />}
+                  onClick={handleExplain}
+                  disabled={explaining}
+                >
+                  {explaining ? 'Explaining...' : 'Explain This'}
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={handleCreateBreakoutFromProvision}
+                >
+                  + Breakout
+                </Button>
+              </Stack>
+
+              {/* AI Explanation result */}
+              {explanation && explanation.sectionRef === currentProvision.sectionRef && (
+                <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'info.50', mb: 2 }}>
+                  <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                    Plain-English Explanation
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    {explanation.explanation}
+                  </Typography>
+                  {explanation.example && (
+                    <>
+                      <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                        Real-World Example
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {explanation.example}
+                      </Typography>
+                    </>
+                  )}
+                </Paper>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button
+                startIcon={<ChevronLeftIcon />}
+                disabled={reviewIndex === 0}
+                onClick={() => { setReviewIndex(reviewIndex - 1); setExplanation(null); }}
+              >
+                Previous
+              </Button>
+              <Box sx={{ flex: 1 }} />
+              <Button
+                variant="outlined"
+                color="success"
+                onClick={handleMarkViewed}
+              >
+                ✓ Viewed
+              </Button>
+              <Button
+                endIcon={<ChevronRightIcon />}
+                variant="contained"
+                disabled={reviewIndex >= provisions.length - 1}
+                onClick={() => { setReviewIndex(reviewIndex + 1); setExplanation(null); }}
+              >
+                Next
+              </Button>
+            </DialogActions>
+          </>
+        ) : (
+          <DialogContent>
+            <Typography variant="body1">No provisions available. Refresh the document first.</Typography>
+          </DialogContent>
+        )}
       </Dialog>
     </Box>
   );

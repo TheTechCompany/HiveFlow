@@ -4,7 +4,7 @@ import React, {
 
 // import {RobustFileList} from '@hexhive/ui';
 import './index.css';
-import { Box, Text, Button, TextInput } from 'grommet';
+import { Box, Typography, Button, TextField } from '@mui/material';
 
 const pkg = require('../../../package.json')
 
@@ -38,30 +38,34 @@ export const Profile : React.FC<ProfileProps> = (props) => {
   return ( 
       <div className="profile-page">
         <div className="profile-top-half">
-          <Box style={{display: 'flex'}} className="profile-info">
-            <Box style={{display: 'flex', flexDirection: 'column'}}>
-              <Text  style={{textAlign: 'left'}}>{props.user.name}</Text>
-              <Text style={{textAlign: 'left'}}>{props.user.email || props.user.phone}</Text>
+          <Box sx={{display: 'flex'}} className="profile-info">
+            <Box sx={{display: 'flex', flexDirection: 'column'}}>
+              <Typography sx={{textAlign: 'left'}}>{props.user.name}</Typography>
+              <Typography sx={{textAlign: 'left'}}>{props.user.email || props.user.phone}</Typography>
 
               <div style={{flex: 1}} className="password-update">
-                <Text >Password</Text>
-                <TextInput 
+                <Typography>Password</Typography>
+                <TextField 
                   name='password' 
                   type="password"
                   value={password} 
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="New Password" />
-                <TextInput 
+                  placeholder="New Password"
+                  size="small"
+                  variant="outlined" />
+                <TextField 
                   name='confirm' 
                   type="password"
                   onChange={(e) => setConfirm(e.target.value)}
                   value={confirm} 
-                  placeholder="Confirm New Password" />
+                  placeholder="Confirm New Password"
+                  size="small"
+                  variant="outlined" />
                 <Button 
                   onClick={updatePassword}
-                  primary
-                  label="Change Password"
-                  style={{marginTop: '8px'}} />
+                  variant="contained"
+                  color="primary"
+                  sx={{marginTop: '8px'}}>Change Password</Button>
               </div>
               <div>Version: {pkg.version}</div>
             </Box>
@@ -70,7 +74,7 @@ export const Profile : React.FC<ProfileProps> = (props) => {
         <div className="profile-bottom-half">
           <Box className="profile-uploads">
             <Box>
-              <Text>Uploaded Files</Text>
+              <Typography>Uploaded Files</Typography>
               {/* <RobustFileList 
                 cols={4}
                 files={uploads} 

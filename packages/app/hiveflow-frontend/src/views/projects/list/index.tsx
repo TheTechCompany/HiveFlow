@@ -1,6 +1,6 @@
 import { refetch, useMutation, useQuery } from '@hive-flow/api';
 import { useTypeConfiguration } from '../../../context';
-import { Box, TextInput, Select } from 'grommet';
+import { Box } from '@mui/material';
 import React, {
   Component, useEffect, useState
 } from 'react';
@@ -174,8 +174,7 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
 
     return (false) ? null : (
       <Box
-        flex
-        direction="column">
+        sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
           <ProjectModal 
             selected={selected}

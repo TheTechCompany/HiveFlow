@@ -4,7 +4,7 @@ import { ColorDot, Timeline } from '@hexhive/ui'
 import moment from 'moment';
 import { stringToColor } from '@hexhive/utils';
 import { Box, Typography } from '@mui/material';
-import { Add } from 'grommet-icons';
+import { Add } from '@mui/icons-material';
 import { TimelineItem, TimelineItemItems, useMutation } from '@hive-flow/api';
 import { TimelineHeader, TimelineView } from './Header';
 import _, { filter, toUpper } from 'lodash';

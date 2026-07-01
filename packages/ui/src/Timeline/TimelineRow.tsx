@@ -30,6 +30,9 @@ export interface TimelineRowProps {
   isPlaceholder?: boolean;
   /** Called when a bar is double-clicked. */
   onDoubleClickItem?: (itemId: string) => void;
+  /** When false, the sidebar wrapper has no padding or border —
+   *  the renderGroupHeader callback owns all styling. Default true. */
+  sidebarPadding?: boolean;
 }
 
 // ── Module-level style constants ──────────────────────────────────
@@ -187,6 +190,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = React.memo(
     onEmptyRowDoubleClick,
     isPlaceholder,
     onDoubleClickItem,
+    sidebarPadding = true,
   }) {
     const {
       selection,
@@ -233,6 +237,9 @@ export const TimelineRow: React.FC<TimelineRowProps> = React.memo(
               ...SIDEBAR_STYLE,
               width: `${sidebarWidth}px`,
               minWidth: `${sidebarWidth}px`,
+              ...(sidebarPadding
+                ? {}
+                : { padding: 0, borderRight: 'none' }),
             }}
           >
             {isPlaceholder

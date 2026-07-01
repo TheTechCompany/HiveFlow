@@ -9,9 +9,11 @@ module.exports = {
   transform: {
     '^.+\\.(j|t)sx?$': 'babel-jest',
   },
+  resolver: '<rootDir>/../jest-resolver.js',
   moduleNameMapper: {
     '\\.(css)$': 'identity-obj-proxy',
-    'canvas': '<rootDir>/__mocks__/canvas.js',
+    '^canvas$': '<rootDir>/__mocks__/canvas.js',
+    '^canvas/.+': '<rootDir>/__mocks__/canvas.js',
   },
   setupFilesAfterEnv: ['@testing-library/jest-dom'],
 };

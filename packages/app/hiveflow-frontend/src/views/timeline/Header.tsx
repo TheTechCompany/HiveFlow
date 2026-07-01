@@ -1,4 +1,4 @@
-import { Box, Text, Select, Button, Layer, Drop, List, CheckBox } from 'grommet';
+import { Box, Typography, Popover, List, ListItem, ListItemIcon, Checkbox } from '@mui/material';
 import React, { useRef, useState } from 'react';
 import { Add, FilterAlt as Filter } from '@mui/icons-material';
 import styled from 'styled-components';
@@ -44,7 +44,7 @@ export const BaseTimelineHeader: React.FC<TimelineProps> = (props) => {
     return (
         <Paper
             sx={{display: 'flex', bgcolor: 'primary.light', alignItems: 'center', justifyContent: 'space-between'}}>
-            <Box pad="xsmall" width={{min: '200px'}} round="xsmall">
+            <Box sx={{ padding: '6px', minWidth: '200px', borderRadius: '6px' }}>
 
                 <FormControl    
                     
@@ -63,50 +63,46 @@ export const BaseTimelineHeader: React.FC<TimelineProps> = (props) => {
                     labelKey={'name'}
                     options={props.timelines}/>
             </Box>
-            <Box  round="xsmall">
+            <Box sx={{ borderRadius: '6px' }}>
                 { true ? (
                      <IconButton onClick={props.onAdd}>
                         <Add />
                      </IconButton>
                 ) : (
                     <>
-                    <Button 
+                    <IconButton 
                         ref={targetRef}
                         onClick={() => {
                             openFilter(!filterOpen)
                         }}
-                        plain 
-                        style={{padding: 6}} 
-                        size="small" 
-                        icon={<Filter fontSize="small" />} />
-                    {filterOpen && 
-                        <Drop
-                            onEsc={() => openFilter(false)}
-                            onClickOutside={() => openFilter(false)}
-                            target={targetRef.current}
-                            align={{right: 'right', top: 'top'}}
-                            >
-                            <Box>
-                                <Text size="small">Filter</Text>
-                                <List 
-                                    onClickItem={({item}: any) => toggleFilter(item)}
-                                    pad="xsmall"
-                                    data={props.filters || []}>
-                                    {(datum: any) => (
-                                        <Box gap="xsmall" direction="row">
-                                            <CheckBox 
-                                                size={15} 
-                                                onChange={(e) => {
-                                                    toggleFilter(datum)
-                                                    
-                                                }}
+                        size="small"
+                        sx={{ padding: '6px' }}>
+                        <Filter fontSize="small" />
+                    </IconButton>
+                    <Popover
+                        open={filterOpen}
+                        onClose={() => openFilter(false)}
+                        anchorEl={targetRef.current}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                        >
+                        <Box sx={{ padding: '6px' }}>
+                            <Typography variant="body2">Filter</Typography>
+                            <List dense>
+                                {(props.filters || []).map((datum: any) => (
+                                    <ListItem key={datum} button onClick={() => toggleFilter(datum)} sx={{ padding: '6px' }}>
+                                        <ListItemIcon sx={{ minWidth: 'auto', marginRight: '6px' }}>
+                                            <Checkbox
+                                                size="small"
+                                                onChange={() => toggleFilter(datum)}
                                                 checked={(props.filter || []).indexOf(datum) > -1} />
-                                            <Text size="small">{datum}</Text>
-                                        </Box>
-                                    )}
-                                </List>
-                            </Box>
-                        </Drop>}
+                                        </ListItemIcon>
+                                        <Typography variant="body2">{datum}</Typography>
+                                    </ListItem>
+                                ))}
+                            </List>
+                        </Box>
+                    </Popover>
                     
                     </>
                     

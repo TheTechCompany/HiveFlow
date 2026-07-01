@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client"
 import { nanoid } from "nanoid";
 import * as fs from "fs";
 import * as path from "path";
-import { fetchDocument, fetchVersions } from "./legislation-sources";
+import { fetchDocument, fetchVersions, extractProvisions } from "./legislation-sources";
 
 const UPLOAD_DIR = process.env.COMPLIANCE_UPLOAD_DIR || path.join(process.cwd(), 'uploads', 'compliance');
 if (!fs.existsSync(UPLOAD_DIR)) {
@@ -49,6 +49,42 @@ async function callOpenRouter(prompt: string, model: string = AI_MODEL_DEFAULT):
     content: choice?.message?.content || '',
     finishReason: choice?.finish_reason || null,
   };
+}
+
+/** Generate a plain-English explanation and real-world example for a
+ *  legislative provision. Used by the "Explain This" button in review mode. */
+async function explainProvision(
+  sectionRef: string,
+  title: string,
+  text: string,
+  heading?: string,
+): Promise<{ explanation: string; example: string }> {
+  const context = heading ? ` (found in ${heading})` : '';
+  const prompt = `You are an expert in New Zealand health and safety legislation, helping a business understand their compliance obligations for ISO certification.
+
+Explain the following legislative provision in plain English. Give a short explanation (2-3 sentences) of what it requires, then a concrete real-world example of what a business would need to do to comply.
+
+Provision: ${sectionRef} - ${title}${context}
+Full text:
+${text}
+
+Respond with a JSON object with two fields:
+- "explanation": plain-English explanation (2-3 sentences)
+- "example": a concrete real-world example showing what a business must do
+
+Keep both fields concise — under 150 words each. Use NZ English spelling.`;
+
+  const result = await callOpenRouter(prompt, AI_MODEL_FAST);
+  try {
+    const cleaned = result.content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    return {
+      explanation: parsed.explanation || result.content,
+      example: parsed.example || '',
+    };
+  } catch {
+    return { explanation: result.content, example: '' };
+  }
 }
 
 export function extractJsonArray(content: string): any[] {
@@ -198,6 +234,96 @@ export function formatOutline(outline: OutlineEntry[], prefix: string = ''): str
     }
   }
   return lines.join('\n');
+}
+
+// ── XML-aware extraction helpers ──────────────────────────────
+
+/** Extract an outline from legislation XML — returns the structural
+ *  skeleton without body text: Part → Subpart → Provision headings.
+ *  Preserves DLM IDs as comments for precise AI referencing. */
+function extractXmlOutline(xml: string): string {
+  const lines: string[] = [];
+  
+  // Match part/subpart/prov/crosshead structure, collecting labels and headings
+  const tagRe = /<(part|subpart|crosshead|prov)\b[^>]*>/g;
+  let m;
+  while ((m = tagRe.exec(xml)) !== null) {
+    const tag = m[1];
+    const fullTag = m[0];
+    
+    // Extract id attribute for prov elements
+    const idMatch = fullTag.match(/id="([^"]+)"/);
+    const id = idMatch ? ` <!-- ${idMatch[1]} -->` : '';
+    
+    // Extract label and heading from the element's children
+    // Read forward from this position to find <label> and <heading>
+    const afterTag = xml.slice(m.index + fullTag.length);
+    const labelMatch = afterTag.match(/<label[^>]*>([^<]*)<\/label>/);
+    const headingMatch = afterTag.match(/<heading[^>]*>([^<]*)<\/heading>/);
+    
+    const label = labelMatch ? labelMatch[1].trim() : '';
+    const heading = headingMatch ? headingMatch[1].trim() : '';
+    
+    switch (tag) {
+      case 'part':
+        lines.push(`## Part ${label} ${heading}`.trim() + id);
+        break;
+      case 'subpart':
+        lines.push(`### Subpart ${label}—${heading}`.trim() + id);
+        break;
+      case 'prov':
+        lines.push(`#### ${label} ${heading}`.trim() + id);
+        break;
+      case 'crosshead':
+        lines.push(`#### ${heading}`.trim() + id);
+        break;
+    }
+  }
+  
+  return lines.join('\n');
+}
+
+/** Extract a single <prov> element from XML matching a section reference.
+ *  The ref could be a section number ("36"), a heading text, or both.
+ *  Returns the raw XML of the matching <prov> for AI consumption. */
+function extractXmlSection(xml: string, ref: string): string | null {
+  // Normalize ref: strip markdown heading markers, trim
+  const cleanRef = ref.replace(/^#+\s*/, '').toLowerCase().trim();
+  
+  // Find all <prov> elements
+  const provRe = /<prov\b[^>]*>[\s\S]*?<\/prov>/g;
+  let m;
+  while ((m = provRe.exec(xml)) !== null) {
+    const provXml = m[0];
+    
+    // Extract label and heading
+    const labelMatch = provXml.match(/<label[^>]*>([^<]*)<\/label>/);
+    const headingMatch = provXml.match(/<heading[^>]*>([^<]*)<\/heading>/);
+    
+    const label = labelMatch ? labelMatch[1].trim() : '';
+    const heading = headingMatch ? headingMatch[1].trim() : '';
+    
+    // Try exact match: "36 primary duty of care"
+    const fullHeading = `${label} ${heading}`.toLowerCase().trim();
+    if (fullHeading === cleanRef || fullHeading.includes(cleanRef) || cleanRef.includes(fullHeading)) {
+      return provXml;
+    }
+    
+    // Try label-only match: "36"
+    if (label && cleanRef === label) {
+      return provXml;
+    }
+    
+    // Try heading-only fuzzy match (at least 10 chars shared)
+    if (heading && heading.length >= 10) {
+      const hLower = heading.toLowerCase();
+      if (hLower.includes(cleanRef) || cleanRef.includes(hLower)) {
+        return provXml;
+      }
+    }
+  }
+  
+  return null;
 }
 
 // ── Two-phase breakout inference ──────────────────────────────
@@ -360,53 +486,93 @@ ${sectionsBlock}`;
  *
  * deepseek-v4-flash has a 1M token context window — the outline always fits.
  */
-async function inferBreakoutPoints(markdown: string): Promise<BreakoutItem[]> {
+async function inferBreakoutPoints(markdown: string, xml?: string): Promise<BreakoutItem[]> {
+  // When XML is available, extract outline and section text from the
+  // structured XML tree instead of regex-parsing markdown. This preserves
+  // DLM IDs for precise section referencing and cross-references.
+  
   // Phase 1: Extract outline and identify relevant sections
-  const outline = extractOutline(markdown);
-  const outlineText = formatOutline(outline);
-  const outlineHeadings = outlineText.split('\n').length;
-  console.log(`📋 Extracted outline: ${outlineHeadings} headings, ${outlineText.length.toLocaleString()} chars (~${Math.ceil(outlineText.length / 4).toLocaleString()} tokens)`);
+  let outlineText: string;
+  let sections: Array<{ ref: string; text: string }> = [];
+  
+  if (xml) {
+    // ── XML path: use structured XML directly, skip markdown regex ──
+    // Phase 1: Build outline from XML structure tags (no body text)
+    const xmlOutline = extractXmlOutline(xml);
+    outlineText = xmlOutline;
+    const outlineLines = xmlOutline.split('\n').filter(Boolean).length;
+    console.log(`📋 Extracted XML outline: ${outlineLines} headings, ${xmlOutline.length.toLocaleString()} chars`);
 
-  const relevantRefs = await identifyRelevantSections(outlineText);
-  if (relevantRefs.length === 0) {
-    console.warn(`⚠️ identifyRelevantSections returned 0 results from ${outlineHeadings} outline headings — no compliance sections found.`);
-    return [];
-  }
+    const relevantRefs = await identifyRelevantSections(outlineText);
+    if (relevantRefs.length === 0) {
+      console.warn(`⚠️ identifyRelevantSections returned 0 results from XML outline — falling back to markdown`);
+      // Fall through to markdown path below
+    } else {
+      const uniqueRefs = [...new Set(relevantRefs.map(r => r.toLowerCase().trim()))];
+      console.log(`🔍 XML Phase 1: ${relevantRefs.length} candidate refs → ${uniqueRefs.length} unique`);
 
-  // Normalize refs for dedup, then extract full text for each
-  const uniqueRefs = [...new Set(relevantRefs.map(r => r.toLowerCase().trim()))];
-  console.log(`🔍 Phase 1 complete: ${relevantRefs.length} candidate refs → ${uniqueRefs.length} unique after ref dedup`);
+      // Phase 2: Extract <prov> XML elements matching the identified refs
+      const seenTexts = new Set<string>();
+      let missedRefs = 0;
+      let duplicateTexts = 0;
 
-  const sections: Array<{ ref: string; text: string }> = [];
-  const seenTexts = new Set<string>(); // deduplicate by text content
-  let missedRefs = 0;
-  let duplicateTexts = 0;
-
-  for (const ref of uniqueRefs) {
-    const text = extractSectionText(markdown, ref, outline);
-    if (!text) {
-      missedRefs++;
-      continue;
+      for (const ref of uniqueRefs) {
+        const provXml = extractXmlSection(xml, ref);
+        if (!provXml) { missedRefs++; continue; }
+        const textKey = provXml.slice(0, 200);
+        if (seenTexts.has(textKey)) { duplicateTexts++; continue; }
+        seenTexts.add(textKey);
+        sections.push({ ref, text: provXml });
+      }
+      if (missedRefs > 0) {
+        console.warn(`⚠️ Could not extract XML for ${missedRefs}/${uniqueRefs.length} section refs`);
+      }
+      if (sections.length === 0) {
+        console.warn(`⚠️ XML Phase 2 failed — falling back to markdown`);
+        sections = []; // reset for fallback
+      }
     }
-    // Skip if this text block was already extracted (different ref → same section)
-    const textKey = text.slice(0, 200); // first 200 chars as fingerprint
-    if (seenTexts.has(textKey)) {
-      duplicateTexts++;
-      continue;
-    }
-    seenTexts.add(textKey);
-    sections.push({ ref, text });
   }
-  if (missedRefs > 0) {
-    console.warn(`⚠️ Could not extract text for ${missedRefs}/${uniqueRefs.length} section refs (ref may not match markdown headings)`);
-  }
-  if (duplicateTexts > 0) {
-    console.log(`🔧 Removed ${duplicateTexts} duplicate section texts (different refs → same content)`);
-  }
-
+  
   if (sections.length === 0) {
-    console.warn(`⚠️ Phase 2 aborted: could not extract text for any of the ${uniqueRefs.length} identified section refs.`);
-    return [];
+    // ── Markdown path (fallback or primary if no XML) ──
+    const outline = extractOutline(markdown);
+    outlineText = formatOutline(outline);
+    const outlineHeadings = outlineText.split('\n').length;
+    console.log(`📋 Extracted outline: ${outlineHeadings} headings, ${outlineText.length.toLocaleString()} chars (~${Math.ceil(outlineText.length / 4).toLocaleString()} tokens)`);
+
+    const relevantRefs = await identifyRelevantSections(outlineText);
+    if (relevantRefs.length === 0) {
+      console.warn(`⚠️ identifyRelevantSections returned 0 results from ${outlineHeadings} outline headings — no compliance sections found.`);
+      return [];
+    }
+
+    const uniqueRefs = [...new Set(relevantRefs.map(r => r.toLowerCase().trim()))];
+    console.log(`🔍 Phase 1 complete: ${relevantRefs.length} candidate refs → ${uniqueRefs.length} unique after ref dedup`);
+
+    const seenTexts = new Set<string>();
+    let missedRefs = 0;
+    let duplicateTexts = 0;
+
+    for (const ref of uniqueRefs) {
+      const text = extractSectionText(markdown, ref, outline);
+      if (!text) { missedRefs++; continue; }
+      const textKey = text.slice(0, 200);
+      if (seenTexts.has(textKey)) { duplicateTexts++; continue; }
+      seenTexts.add(textKey);
+      sections.push({ ref, text });
+    }
+    if (missedRefs > 0) {
+      console.warn(`⚠️ Could not extract text for ${missedRefs}/${uniqueRefs.length} section refs (ref may not match markdown headings)`);
+    }
+    if (duplicateTexts > 0) {
+      console.log(`🔧 Removed ${duplicateTexts} duplicate section texts (different refs → same content)`);
+    }
+
+    if (sections.length === 0) {
+      console.warn(`⚠️ Phase 2 aborted: could not extract text for any of the ${uniqueRefs.length} identified section refs.`);
+      return [];
+    }
   }
 
   // Phase 2: Batch sections into ~16K char groups, process in parallel
@@ -442,16 +608,32 @@ async function inferBreakoutPoints(markdown: string): Promise<BreakoutItem[]> {
     results.push(...batchResults.flat());
   }
 
-  const hitRate = relevantRefs.length > 0 ? Math.round(results.length / uniqueRefs.length * 100) : 0;
-  console.log(`✅ Complete: ${outlineHeadings} outline headings → ${uniqueRefs.length} unique sections → ${results.length} breakouts (${hitRate}% hit rate, ${batches.length} AI calls)`);
+  const hitRate = sections.length > 0 ? Math.round(results.length / sections.length * 100) : 0;
+  console.log(`✅ Complete: ${sections.length} sections → ${results.length} breakouts (${hitRate}% hit rate, ${batches.length} AI calls)`);
   return results;
 }
 
 // ── Regulation metadata inference ─────────────────────────────
 
-async function inferRegulationMeta(text: string): Promise<{title: string, description: string, type: string, category: string}> {
-  const truncated = text.slice(0, 6000);
-  const prompt = `You are a compliance expert. Given the text of a piece of legislation or regulation, infer the following metadata.
+async function inferRegulationMeta(text: string, xml?: string): Promise<{title: string, description: string, type: string, category: string}> {
+  // When XML is available, send it directly — preserves DLM IDs,
+  // cross-references, and structured hierarchy that markdown loses.
+  const body = xml
+    ? `You are a compliance expert. Given the XML of a piece of legislation or regulation, infer the following metadata.
+
+The XML preserves the full legal structure including cross-references (intref/extref), defined terms, and DLM IDs. Use this rich structure for accurate inference.
+
+Return ONLY a JSON object, no other text:
+{
+  "title": "official title of the legislation",
+  "description": "1-2 sentence plain-language summary of what this legislation covers",
+  "type": "act|regulation|code|standard",
+  "category": "Health & Safety|Environmental|Privacy & Data|Employment|Financial|Building & Construction|Transport|Energy"
+}
+
+Legislation XML:
+${xml.slice(0, 12000)}`
+    : `You are a compliance expert. Given the text of a piece of legislation or regulation, infer the following metadata.
 
 Return ONLY a JSON object, no other text:
 {
@@ -462,9 +644,9 @@ Return ONLY a JSON object, no other text:
 }
 
 Legislation text:
-${truncated}`;
+${text.slice(0, 6000)}`;
 
-  const { content } = await callOpenRouter(prompt);
+  const { content } = await callOpenRouter(body);
   const jsonMatch = content.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('No JSON object found in model response');
   return JSON.parse(jsonMatch[0]);
@@ -490,6 +672,7 @@ export default (prisma: PrismaClient) => {
             generateBreakoutPoints(id: ID!): [BreakoutPoint]
             acknowledgeBreakout(id: ID!, understanding: String!, userName: String!): BreakoutPoint
             fetchRegulationVersions(id: ID!, source: String!): [RegulationVersion]
+            explainProvision(sectionRef: String!, title: String!, text: String!, heading: String): ProvisionExplanation
         }
 
         type CachedRegulation {
@@ -514,6 +697,7 @@ export default (prisma: PrismaClient) => {
             currentVersion: Int
             versions: [RegulationVersion]
             breakouts: [BreakoutPoint]
+            provisions: [Provision]
             proofs: [ProofEntry]
             createdAt: DateTime
             updatedAt: DateTime
@@ -541,6 +725,20 @@ export default (prisma: PrismaClient) => {
             reviewedAt: DateTime
         }
 
+        type Provision {
+            kind: String!
+            sectionRef: String!
+            title: String!
+            dlmId: String!
+            heading: String
+            text: String
+        }
+
+        type ProvisionExplanation {
+            explanation: String!
+            example: String
+        }
+
         type ProofEntry {
             id: ID!
             regulationId: ID!
@@ -551,6 +749,22 @@ export default (prisma: PrismaClient) => {
     `
 
     const resolvers = {
+        Regulation: {
+            provisions: async (parent: any) => {
+                // Read provisions from saved XML file on disk
+                const xmlFiles = fs.readdirSync(UPLOAD_DIR)
+                    .filter(f => f.startsWith(parent.id) && f.endsWith('.xml'))
+                    .sort()
+                    .reverse();
+                
+                if (xmlFiles.length === 0) return [];
+                
+                const xmlPath = path.join(UPLOAD_DIR, xmlFiles[0]);
+                const xml = fs.readFileSync(xmlPath, 'utf-8');
+                
+                return extractProvisions(xml);
+            }
+        },
         Query: {
             complianceRegulations: async (root: any, args: any, context: any) => {
                 const org = context?.jwt?.organisation;
@@ -585,10 +799,11 @@ export default (prisma: PrismaClient) => {
                 const doc = await fetchDocument(source);
                 const text = doc.text;
 
-                // 2. Ask AI to infer metadata
+                // 2. Ask AI to infer metadata — pass raw XML when available
+                //    so the AI gets DLM IDs, cross-references, and full structure
                 let inferred: { title: string, description: string, type: string, category: string };
                 try {
-                    inferred = await inferRegulationMeta(text);
+                    inferred = await inferRegulationMeta(text, doc.rawXml);
                 } catch (err: any) {
                     console.warn('AI inference failed, using fallback:', err.message);
                     inferred = {
@@ -631,6 +846,13 @@ export default (prisma: PrismaClient) => {
                         proofs: true,
                     }
                 });
+
+                // Also save raw XML to disk for richer AI inference later
+                // (preserves DLM IDs, cross-references, hierarchy)
+                if (doc.rawXml) {
+                    const xmlPath = path.join(UPLOAD_DIR, `${id}-${Date.now()}.xml`);
+                    fs.writeFileSync(xmlPath, doc.rawXml);
+                }
 
                 // Auto-fetch version history in the background (don't block)
                 fetchVersions(source).then(async (apiVersions) => {
@@ -727,6 +949,12 @@ export default (prisma: PrismaClient) => {
                 const filename = `${id}-${Date.now()}.md`;
                 const mdPath = path.join(UPLOAD_DIR, filename);
                 fs.writeFileSync(mdPath, markdown);
+
+                // Also save raw XML for provisions extraction
+                if (doc.rawXml) {
+                    const xmlPath = path.join(UPLOAD_DIR, `${id}-${Date.now()}.xml`);
+                    fs.writeFileSync(xmlPath, doc.rawXml);
+                }
                 
                 const localPdfUrl = doc.pdfUrl;
                 
@@ -767,11 +995,22 @@ export default (prisma: PrismaClient) => {
                     }
                 }
 
+                // Check filesystem for XML (richer than markdown for AI — preserves
+                // DLM IDs, cross-references, and structured hierarchy)
+                let rawXml: string | undefined;
+                const xmlFiles = fs.readdirSync(UPLOAD_DIR)
+                    .filter(f => f.startsWith(id) && f.endsWith('.xml'))
+                    .sort()
+                    .reverse();
+                if (xmlFiles.length > 0) {
+                    rawXml = fs.readFileSync(path.join(UPLOAD_DIR, xmlFiles[0]), 'utf-8');
+                }
+
                 if (!markdown || markdown.startsWith('_PDF text extraction failed')) {
                     throw new Error('No cached legislation text found. Cache the PDF first.');
                 }
                 
-                const breakouts = await inferBreakoutPoints(markdown);
+                const breakouts = await inferBreakoutPoints(markdown, rawXml);
 
                 // Helper: extract a markdown snippet around a section reference
                 const extractSnippet = (md: string, ref: string): string | null => {
@@ -876,6 +1115,21 @@ export default (prisma: PrismaClient) => {
                 });
 
                 return created;
+            },
+
+            // ── Explain a provision in plain English ──────────────
+            explainProvision: async (root: any, args: {
+                sectionRef: string;
+                title: string;
+                text: string;
+                heading?: string;
+            }) => {
+                return await explainProvision(
+                    args.sectionRef,
+                    args.title,
+                    args.text,
+                    args.heading,
+                );
             }
         }
     };

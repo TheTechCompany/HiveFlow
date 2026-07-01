@@ -201,26 +201,28 @@ const KanbanColumnView: React.FC<{
         </Droppable>
       </Collapse>
 
-      {/* Add task button at bottom */}
-      <Collapse in={!collapsed}>
-        <Button
-          fullWidth
-          size="small"
-          startIcon={<Add fontSize="small" />}
-          onClick={() => onCreateCard?.(column.id)}
-          sx={{
-            textTransform: 'none',
-            color: 'text.secondary',
-            py: 0.75,
-            fontSize: '0.75rem',
-            borderTop: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 0,
-            '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
-          }}
-        >
-          Add task
-        </Button>
-      </Collapse>
+      {/* Add task button at bottom — only when handler provided */}
+      {onCreateCard && (
+        <Collapse in={!collapsed}>
+          <Button
+            fullWidth
+            size="small"
+            startIcon={<Add fontSize="small" />}
+            onClick={() => onCreateCard(column.id)}
+            sx={{
+              textTransform: 'none',
+              color: 'text.secondary',
+              py: 0.75,
+              fontSize: '0.75rem',
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 0,
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
+            }}
+          >
+            Add task
+          </Button>
+        </Collapse>
+      )}
     </Paper>
   );
 };

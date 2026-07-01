@@ -187,6 +187,9 @@ export interface TimelineProps {
   readonly?: boolean;
   /** Override sidebar width in px. Set to 0 to hide the sidebar entirely. */
   sidebarWidth?: number;
+  /** When false, sidebar rows have no internal padding/border —
+   *  the renderGroupHeader callback owns all styling. Default true. */
+  sidebarPadding?: boolean;
   /** When true, body uses overflow:visible so a parent can handle scrolling. */
   fullHeight?: boolean;
   /** When true, the date header sticks to the top of the scroll container. */

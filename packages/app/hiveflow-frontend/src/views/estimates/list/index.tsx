@@ -1,4 +1,4 @@
-import { Box, ColumnConfig } from 'grommet';
+import { Box } from '@mui/material';
 import React, {
   useEffect, useState
 } from 'react';
@@ -181,8 +181,7 @@ export const EstimateList: React.FC<any> = (props) => {
 
   return (
     <Box
-      direction="column"
-      flex>
+      sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <EstimateModal 
         selected={selected}
         statusList={statusList}

@@ -20,6 +20,15 @@ export type { TreeBranchProps } from './TreeBranch';
 export { TreeBranchVSCode, VSCODE_INDENT, VSCODE_TWISTY_WIDTH, DEPTH_BORDER_WIDTH } from './TreeBranch/VSCode';
 export type { TreeBranchVSCodeProps } from './TreeBranch/VSCode';
 
+// Spreadsheet
+export { Spreadsheet } from './Spreadsheet';
+export type {
+  SpreadsheetProps,
+  SpreadsheetColumn,
+  SpreadsheetRow,
+  CellValue,
+} from './Spreadsheet';
+
 // GanttView
 export { GanttView } from './GanttView';
 export type { GanttViewProps } from './GanttView';

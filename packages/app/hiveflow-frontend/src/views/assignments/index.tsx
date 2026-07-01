@@ -11,6 +11,10 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Tooltip,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import {
   CheckBoxOutlined,
@@ -19,6 +23,10 @@ import {
   Timeline,
   Dashboard,
   AccountTree,
+  Add,
+  TaskOutlined,
+  BuildOutlined,
+  NoteAddOutlined,
 } from '@mui/icons-material';
 import { AvatarList } from '@hexhive/ui';
 import {
@@ -140,6 +148,7 @@ export const Assignments: React.FC = () => {
     buildColumns,
     onDrag,
     updateTask,
+    createTask,
     deleteProjectTask,
     deleteEstimateTask,
     refetch,
@@ -156,6 +165,7 @@ export const Assignments: React.FC = () => {
   const [selectedTask, setSelectedTask] = useState<KanbanTask | null>(null);
   const [viewMode, setViewMode] = useState<TaskViewMode>('horizontal');
   const [groupBy, setGroupBy] = useState<GroupByMode>('none');
+  const [addMenuAnchor, setAddMenuAnchor] = useState<HTMLElement | null>(null);
 
   // ── Derived columns ────────────────────────────────────────────
 
@@ -205,22 +215,34 @@ export const Assignments: React.FC = () => {
 
   const handleSubmitTask = useCallback(
     async (task: Record<string, unknown>) => {
-      if (!task.id || !selectedTask || !taskType) return;
-      await updateTask(
-        selectedTask.id,
-        {
+      if (!selectedTask) {
+        // ── Create mode (no existing task selected) ──────────
+        if (!task.title) return;
+        await createTask({
           title: task.title,
           description: task.description,
           startDate: task.startDate,
           endDate: task.endDate,
-          status: task.status,
-        },
-        taskType,
-      );
+          status: task.status ?? 'Backlog',
+        });
+      } else if (taskType) {
+        // ── Edit mode ────────────────────────────────────────
+        await updateTask(
+          selectedTask.id,
+          {
+            title: task.title,
+            description: task.description,
+            startDate: task.startDate,
+            endDate: task.endDate,
+            status: task.status,
+          },
+          taskType,
+        );
+      }
       refetch();
       handleCloseModal();
     },
-    [selectedTask, taskType, updateTask, refetch, handleCloseModal],
+    [selectedTask, taskType, updateTask, createTask, refetch, handleCloseModal],
   );
 
   // ── Render states ──────────────────────────────────────────────
@@ -355,7 +377,64 @@ export const Assignments: React.FC = () => {
           </ToggleButtonGroup>
         </Box>
 
-        <Autocomplete
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<Add fontSize="small" />}
+            onClick={(e) => setAddMenuAnchor(e.currentTarget)}
+            sx={{
+              textTransform: 'none',
+              fontSize: '0.75rem',
+              py: 0.5,
+              px: 1.5,
+              color: 'white',
+              borderColor: 'rgba(255,255,255,0.3)',
+              '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.08)' },
+            }}
+          >
+            Add Update
+          </Button>
+          <Menu
+            anchorEl={addMenuAnchor}
+            open={Boolean(addMenuAnchor)}
+            onClose={() => setAddMenuAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+            <MenuItem
+              onClick={() => {
+                setAddMenuAnchor(null);
+                setSelectedTask(null);
+                setTaskModalOpen(true);
+              }}
+            >
+              <ListItemIcon><TaskOutlined fontSize="small" /></ListItemIcon>
+              <ListItemText>New Task</ListItemText>
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setAddMenuAnchor(null);
+                setSelectedTask(null);
+                setTaskModalOpen(true);
+              }}
+            >
+              <ListItemIcon><BuildOutlined fontSize="small" /></ListItemIcon>
+              <ListItemText>CI Update</ListItemText>
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setAddMenuAnchor(null);
+                setSelectedTask(null);
+                setTaskModalOpen(true);
+              }}
+            >
+              <ListItemIcon><NoteAddOutlined fontSize="small" /></ListItemIcon>
+              <ListItemText>Project Note</ListItemText>
+            </MenuItem>
+          </Menu>
+
+          <Autocomplete
           multiple
           sx={{ minWidth: '200px', padding: '6px' }}
           value={filter}
@@ -366,6 +445,7 @@ export const Assignments: React.FC = () => {
             <TextField {...params} size="small" label="Filter" />
           )}
         />
+        </Box>
       </Box>
 
       {/* ── Task list area ────────────────────────────────────── */}
@@ -388,24 +468,7 @@ export const Assignments: React.FC = () => {
             renderCard={(row) => <TaskCard row={row} />}
             onDragEnd={onDrag}
             onSelectCard={handleSelectCard}
-            renderHeaderActions={(col) =>
-              col.id === 'In Progress' ? (
-                <Button
-                  size="small"
-                  variant="contained"
-                  sx={{
-                    textTransform: 'none',
-                    fontSize: '0.7rem',
-                    py: 0.25,
-                    px: 1,
-                    minWidth: 0,
-                  }}
-                  onClick={startNextTask}
-                >
-                  Start next task
-                </Button>
-              ) : null
-            }
+
           />
         ) : viewMode === 'table' ? (
           <TableView

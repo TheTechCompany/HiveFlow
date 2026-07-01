@@ -81,6 +81,8 @@ export interface UseAssignmentsReturn {
   cancelHandover: () => void;
   /** Move the top backlog task into In Progress */
   startNextTask: () => Promise<void>;
+  /** Create a new task (defaults to project task) */
+  createTask: (input: Record<string, unknown>) => Promise<void>;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -136,6 +138,13 @@ export function useAssignments(): UseAssignmentsReturn {
 
   // ── Mutations ──────────────────────────────────────────────────
 
+  const [createProjectTask] = useMutation((mutation, args: any) => {
+    const item = mutation.createProjectTask({
+      input: { ...args?.input },
+    });
+    return { item: { ...item } };
+  });
+
   const [updateProjectTask] = useMutation((mutation, args: any) => {
     const item = mutation.updateProjectTask({
       id: args?.id,
@@ -179,6 +188,13 @@ export function useAssignments(): UseAssignmentsReturn {
       }
     },
     [updateProjectTask, updateEstimateTask],
+  );
+
+  const createTask = useCallback(
+    async (input: Record<string, unknown>) => {
+      await createProjectTask({ args: { input } });
+    },
+    [createProjectTask],
   );
 
   // ── Handover state (In Progress → Reviewing) ───────────────────
@@ -351,5 +367,6 @@ export function useAssignments(): UseAssignmentsReturn {
     submitHandover,
     cancelHandover,
     startNextTask,
+    createTask,
   };
 }

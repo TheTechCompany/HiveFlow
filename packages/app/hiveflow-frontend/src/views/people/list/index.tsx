@@ -1,12 +1,8 @@
 import React, { Component, useState } from 'react';
 
-import { Box, Text, TextInput } from 'grommet'
+import { Box } from '@mui/material'
 
 import { DataTable } from '@hive-flow/ui'
-
-import {
-   Search as IoSearch
-} from 'grommet-icons'
 import { StaffSearchHeader } from './header';
 import { client, useMutation } from '@hive-flow/api';
 import { gql, useApolloClient, useQuery } from '@apollo/client';
@@ -86,7 +82,7 @@ export const PeopleList: React.FC<any> = (props) => {
    return (
 
       <Box
-         style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+         sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
          {/* <PeopleModal 
             open={modalOpen} 

@@ -7,7 +7,8 @@ import {
   type DragUpdate,
   type DropResult,
 } from 'react-beautiful-dnd';
-import { Box, Paper, Typography, Divider, Button } from '@mui/material';
+import { Box, Paper, Typography, Button } from '@mui/material';
+import { Add } from '@mui/icons-material';
 import type { KanbanColumn, KanbanRow } from '../../types/kanban';
 import { useAutoScroll } from '../../hooks/use-auto-scroll';
 
@@ -36,7 +37,6 @@ interface KanbanListProps {
   droppableId: string;
   rows: KanbanRow[];
   renderCard?: (row: KanbanRow) => React.ReactNode;
-  onCreateCard?: () => void;
   onSelectCard?: (row: KanbanRow) => void;
 }
 
@@ -44,7 +44,6 @@ const KanbanList: React.FC<KanbanListProps> = ({
   droppableId,
   rows,
   renderCard,
-  onCreateCard,
   onSelectCard,
 }) => (
   <Droppable droppableId={droppableId} type="LIST">
@@ -87,13 +86,6 @@ const KanbanList: React.FC<KanbanListProps> = ({
           </Draggable>
         ))}
         {dropProvided.placeholder}
-        <Button
-          size="small"
-          sx={{ textTransform: 'none', mt: '4px' }}
-          onClick={onCreateCard}
-        >
-          Add task
-        </Button>
       </Box>
     )}
   </Droppable>
@@ -124,39 +116,69 @@ const KanbanColumnView: React.FC<KanbanColumnViewProps> = ({
       })
     : column.rows;
 
+  // Status dot color
+  const statusColor =
+    column.id === 'In Progress'
+      ? '#4caf50'
+      : column.id === 'Backlog'
+        ? '#ff9800'
+        : column.id === 'Reviewing'
+          ? '#2196f3'
+          : '#9e9e9e';
+
   return (
     <Paper
       sx={{
         mr: '6px',
         flexDirection: 'column',
-        width: '300px',
+        width: '280px',
+        minWidth: '280px',
         display: 'flex',
         flexShrink: 0,
+        bgcolor: '#424242',
+        borderRadius: 2,
+        overflow: 'hidden',
       }}
     >
       {/* Column header */}
       <Box
         sx={{
           color: 'white',
-          bgcolor: 'secondary.main',
+          bgcolor: '#616161',
           padding: '3px 6px',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderBottom: '1px solid black',
           flexDirection: 'row',
           display: 'flex',
+          flexShrink: 0,
         }}
       >
-        <Box sx={{ display: 'flex', flex: 1 }}>
-          <Typography variant="body2" fontWeight="bold">
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+          <Box
+            sx={{
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              bgcolor: statusColor,
+            }}
+          />
+          <Typography variant="subtitle2" fontWeight="bold">
             {column.title}
           </Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              bgcolor: 'rgba(255,255,255,0.2)',
+              px: 1,
+              py: 0.25,
+              borderRadius: '10px',
+              fontSize: '0.7rem',
+            }}
+          >
+            {visibleRows.length}
+          </Typography>
         </Box>
-        <Typography variant="caption" sx={{ opacity: 0.7 }}>
-          {visibleRows.length}
-        </Typography>
       </Box>
-      <Divider />
 
       {/* Scrollable card list */}
       <Box
@@ -175,10 +197,30 @@ const KanbanColumnView: React.FC<KanbanColumnViewProps> = ({
           droppableId={`${index}`}
           rows={visibleRows}
           renderCard={renderCard}
-          onCreateCard={() => onCreateCard?.(column.id)}
           onSelectCard={onSelectCard}
         />
       </Box>
+
+      {/* Add task button at bottom — only when handler provided */}
+      {onCreateCard && (
+        <Button
+          fullWidth
+          size="small"
+          startIcon={<Add fontSize="small" />}
+          onClick={() => onCreateCard(column.id)}
+          sx={{
+            textTransform: 'none',
+            color: 'text.secondary',
+            py: 0.75,
+            fontSize: '0.75rem',
+            borderTop: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 0,
+            '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
+          }}
+        >
+          Add task
+        </Button>
+      )}
     </Paper>
   );
 };

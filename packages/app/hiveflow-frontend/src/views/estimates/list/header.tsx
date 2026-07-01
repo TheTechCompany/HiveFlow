@@ -1,8 +1,7 @@
 import React from 'react';
-import { Box, TextInput, Select, Button } from 'grommet'
 import { Maybe } from '@hive-flow/api';
 import { Add } from '@mui/icons-material';
-import { Paper, TextField } from '@mui/material';
+import { Box, IconButton, Paper, TextField } from '@mui/material';
 import { FormControl } from '@hexhive/ui';
 
 export interface QuoteHeaderProps {
@@ -25,10 +24,7 @@ export const QuoteHeader : React.FC<QuoteHeaderProps> = (props) => {
        
         >
         <Box
-            flex
-            margin={{right: 'xsmall'}}
-            round="xsmall"
-            background="#ffffff42">
+            sx={{ flex: 1, marginRight: '6px', borderRadius: '6px', background: '#ffffff42' }}>
       <TextField
           variant='filled'
           size="small"
@@ -37,9 +33,7 @@ export const QuoteHeader : React.FC<QuoteHeaderProps> = (props) => {
           label="Search Estimates..." />
         </Box>
       <Box 
-        width={{min: '200px'}}
-        round="xsmall"
-        background="#ffffff42"
+        sx={{ minWidth: '200px', borderRadius: '6px', background: '#ffffff42' }}
         >
 
 
@@ -54,7 +48,7 @@ export const QuoteHeader : React.FC<QuoteHeaderProps> = (props) => {
         </Box>
 
         {props.onCreate && (
-          <Button onClick={props.onCreate} hoverIndicator plain style={{padding: 6, borderRadius: 3}} icon={<Add />} />
+          <IconButton onClick={props.onCreate} size="small" sx={{ padding: '6px', borderRadius: '3px' }}><Add /></IconButton>
         )}
        
       </Paper>

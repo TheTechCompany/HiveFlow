@@ -1,6 +1,7 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
+  Autocomplete,
   Box,
   Paper,
   Typography,
@@ -21,7 +22,7 @@ import {
   ArrowBack,
   Event,
 } from '@mui/icons-material';
-import { GanttView, type TimelineItem, type TimelineGroup, type TimelineStep, TreeBranchVSCode, VSCODE_TWISTY_WIDTH, DEPTH_BORDER_WIDTH } from '@hive-flow/ui';
+import { GanttView, Spreadsheet, type TimelineItem, type TimelineGroup, type TimelineStep, TreeBranchVSCode, type SpreadsheetColumn, type SpreadsheetRow } from '@hive-flow/ui';
 import { gql, useQuery, useMutation } from '@apollo/client';
 import moment from 'moment';
 
@@ -105,6 +106,15 @@ const DELETE_EVENT = gql`
   }
 `;
 
+const GET_USERS = gql`
+  query GetUsers {
+    users(active: true) {
+      id
+      name
+    }
+  }
+`;
+
 // ── Helpers ─────────────────────────────────────────────────────
 
 function generateOccurrences(event: RecurringEvent, windowStart: Date, windowEnd: Date): Date[] {
@@ -154,6 +164,9 @@ export const ScheduleSingle: React.FC = () => {
   const [createEvent] = useMutation(CREATE_EVENT, { refetchQueries: ['GetSchedule'] });
   const [updateEvent] = useMutation(UPDATE_EVENT);
   const [deleteEvent] = useMutation(DELETE_EVENT);
+
+  const { data: usersData } = useQuery(GET_USERS);
+  const users: { id: string; name: string }[] = usersData?.users || [];
 
   const schedule: Schedule | undefined = data?.recurringSchedule;
 
@@ -242,18 +255,22 @@ export const ScheduleSingle: React.FC = () => {
   }, [schedule, updateEvent, refetch]);
 
   // ── Inline drafts (spreadsheet-style creation) ─────────────
-  const [drafts, setDrafts] = useState<RecurringEvent[]>(() => {
-    if (!schedule) return [];
-    return [{
-      id: `draft-${Date.now()}`,
-      scheduleId: schedule.id,
-      name: '',
-      description: '',
-      frequency: 'monthly',
-      startDate: moment().format('YYYY-MM-DD'),
-      assignedTo: '',
-    }];
-  });
+  const [drafts, setDrafts] = useState<RecurringEvent[]>([]);
+
+  // Seed a draft row whenever schedule is loaded and no draft exists
+  React.useEffect(() => {
+    if (schedule && drafts.length === 0) {
+      setDrafts([{
+        id: `draft-${Date.now()}`,
+        scheduleId: schedule.id,
+        name: '',
+        description: '',
+        frequency: 'monthly',
+        startDate: moment().format('YYYY-MM-DD'),
+        assignedTo: '',
+      }]);
+    }
+  }, [schedule, drafts.length]);
 
   const draftInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -332,13 +349,6 @@ export const ScheduleSingle: React.FC = () => {
     setEventModalOpen(false);
     setEditingEvent(null);
   };
-
-  // ── Column widths for the sidebar ──────────────────────────
-  const COL_TREE = VSCODE_TWISTY_WIDTH; // 16 — twisty column
-  const COL_FREQ = 90;
-  const COL_START = 115;
-  const COL_ASSIGNED = 90;
-  const SIDEBAR_W = 520; // fixed sidebar width, name column flexes to fill
 
   // ── Zoom & navigation ──────────────────────────────────
   const [step, setStep] = useState<TimelineStep>(() => {
@@ -449,149 +459,59 @@ export const ScheduleSingle: React.FC = () => {
     return items;
   }, [schedule, horizon]);
 
-  // ── Sidebar renderers ─────────────────────────────────────
-  const sidebarHeader = useMemo(() => (
-    <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', px: '12px', borderBottom: '2px solid', borderColor: 'grey.300', bgcolor: '#f1f5f9' }}>
-      <Box sx={{ width: COL_TREE, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontWeight: 700, fontSize: '0.7rem', color: 'text.secondary', borderRight: '1px solid', borderColor: 'grey.300' }}>#</Box>
-      <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', height: '100%', fontWeight: 700, fontSize: '0.7rem', color: 'text.secondary', px: 0.5, borderRight: '1px solid', borderColor: 'grey.300' }}>Event</Box>
-      <Box sx={{ width: COL_FREQ, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontWeight: 700, fontSize: '0.7rem', color: 'text.secondary', borderRight: '1px solid', borderColor: 'grey.300' }}>Frequency</Box>
-      <Box sx={{ width: COL_START, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontWeight: 700, fontSize: '0.7rem', color: 'text.secondary', borderRight: '1px solid', borderColor: 'grey.300' }}>Start Date</Box>
-      <Box sx={{ width: COL_ASSIGNED, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontWeight: 700, fontSize: '0.7rem', color: 'text.secondary', borderRight: '1px solid', borderColor: 'grey.300' }}>Assigned</Box>
-    </Box>
-  ), []);
+  // ── Spreadsheet sidebar ───────────────────────────────────
 
-  const renderGroupHeader = useCallback(
-    (group: TimelineGroup, _expanded: boolean) => {
-      if (!schedule) return null;
+  const spreadsheetColumns = useMemo((): SpreadsheetColumn[] => [
+    {
+      key: 'name',
+      header: 'Event',
+      width: 200,
+      editable: false,
+      render: (row) => {
+        const depth = (row._depth as number) ?? 0;
+        const hasChildren = !!(row._hasChildren);
+        const isCollapsed = !!(row._isCollapsed);
+        const connectors = (row._connectors as unknown as boolean[]) ?? [];
+        const isDraft = !!(row._isDraft);
+        const rowId = String(row.id);
 
-      // ── Draft row (inline spreadsheet-style creation) ──────
-      const draft = drafts.find((d) => d.id === group.id);
-      if (draft) {
-        return (
-          <Box
-            sx={{
-              display: 'flex', alignItems: 'center', height: '100%',
-              px: 1.5, borderBottom: '1px solid', borderColor: 'grey.200',
-              bgcolor: '#f0f7ff', minWidth: 0,
-            }}
-          >
-            {/* Tree indent for draft (always depth 0) */}
-            <Box sx={{ width: COL_TREE, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', borderRight: '1px solid', borderColor: 'grey.300' }}>
-              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#90caf9' }} />
-            </Box>
-
-            {/* Event name */}
-            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', borderRight: '1px solid', borderColor: 'grey.300', height: '100%' }}>
+        if (isDraft) {
+          return (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, width: '100%', height: '100%' }}>
+              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#90caf9', flexShrink: 0 }} />
               <TextField
                 size="small" variant="standard"
                 placeholder="Event name"
-                value={draft.name}
+                value={(row.name as string) ?? ''}
                 autoFocus
                 inputRef={draftInputRef}
-                onChange={(e) => updateDraftField(draft.id, 'name', e.target.value)}
+                onChange={(e) => updateDraftField(rowId, 'name', e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') commitDraft(draft.id);
-                  if (e.key === 'Escape') setDrafts((prev) => prev.filter((d) => d.id !== draft.id));
+                  if (e.key === 'Enter') commitDraft(rowId);
+                  if (e.key === 'Escape') updateDraftField(rowId, 'name', '');
                 }}
-                onClick={(e) => e.stopPropagation()}
-                sx={{ flex: 1, minWidth: 0, height: '100%', '& .MuiInputBase-root': { py: 0, fontSize: '0.75rem', height: '100%' }, '& .MuiInputBase-input': { px: '4px', py: '2px' } }}
+                sx={{ flex: 1, minWidth: 0, '& .MuiInputBase-root': { py: 0, fontSize: '0.75rem', height: '100%' }, '& .MuiInputBase-input': { px: '4px', py: '2px' } }}
               />
             </Box>
+          );
+        }
 
-            {/* Frequency */}
-            <Box sx={{ width: COL_FREQ, flexShrink: 0, display: 'flex', borderRight: '1px solid', borderColor: 'grey.300', height: '100%' }}>
-              <TextField
-                select size="small" variant="standard"
-                value={draft.frequency}
-                onChange={(e) => updateDraftField(draft.id, 'frequency', e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                sx={{ flex: 1, height: '100%', '& .MuiInputBase-root': { py: 0, fontSize: '0.7rem', height: '100%' }, '& .MuiInputBase-input': { px: '4px', py: '2px' } }}
-              >
-                {FREQUENCIES.map((freq) => (
-                  <MenuItem key={freq.value} value={freq.value} sx={{ fontSize: '0.75rem' }}>{freq.label}</MenuItem>
-                ))}
-              </TextField>
-            </Box>
-
-            {/* Start date */}
-            <Box sx={{ width: COL_START, flexShrink: 0, display: 'flex', borderRight: '1px solid', borderColor: 'grey.300', height: '100%' }}>
-              <TextField
-                size="small" variant="standard" type="date"
-                value={draft.startDate}
-                onChange={(e) => updateDraftField(draft.id, 'startDate', e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') commitDraft(draft.id); }}
-                onClick={(e) => e.stopPropagation()}
-                InputLabelProps={{ shrink: true }}
-                sx={{ flex: 1, height: '100%', '& .MuiInputBase-root': { py: 0, height: '100%' }, '& .MuiInputBase-input': { px: '4px', py: '2px', fontSize: '0.7rem' } }}
-              />
-            </Box>
-
-            {/* Assigned to */}
-            <Box sx={{ width: COL_ASSIGNED, flexShrink: 0, display: 'flex', borderRight: '1px solid', borderColor: 'grey.300', height: '100%' }}>
-              <TextField
-                size="small" variant="standard"
-                placeholder="—"
-                value={draft.assignedTo || ''}
-                onChange={(e) => updateDraftField(draft.id, 'assignedTo', e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') commitDraft(draft.id);
-                  if (e.key === 'Escape') setDrafts((prev) => prev.filter((d) => d.id !== draft.id));
-                }}
-                onClick={(e) => e.stopPropagation()}
-                sx={{ flex: 1, height: '100%', '& .MuiInputBase-root': { py: 0, fontSize: '0.7rem', height: '100%' }, '& .MuiInputBase-input': { px: '4px', py: '2px' } }}
-              />
-            </Box>
-          </Box>
-        );
-      }
-
-      // ── Existing event row ──────────────────────────────────
-
-      const treeEvent = treeInfo.flat.find((f) => f.id === group.id);
-      const event = treeEvent ? (schedule.events.find((e) => e.id === treeEvent.id)!) : null;
-      if (!event || !treeEvent) return <span>{group.id}</span>;
-
-      return (
-        <Box
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Tab') {
-              e.preventDefault();
-              if (e.shiftKey) outdentEvent(event.id);
-              else indentEvent(event.id);
-            }
-          }}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            height: '100%',
-            px: 1.5,
-            borderBottom: '1px solid',
-            borderColor: 'grey.200',
-            bgcolor: '#ffffff',
-            '&:hover': { bgcolor: '#f5f5f5' },
-            minWidth: 0,
-            cursor: 'pointer',
-          }}
-        >
-          <TreeBranchVSCode
-            variant="depth-borders"
-            depth={treeEvent.depth}
-            hasChildren={treeEvent.hasChildren}
-            isCollapsed={collapsed.has(event.id)}
-            onToggle={() => toggleCollapse(event.id)}
-            connectors={treeEvent.connectors}
-          />
-
-          {/* Event name */}
-          <Box sx={{ flex: 1, minWidth: 0, display: 'flex', borderRight: '1px solid', borderColor: 'grey.200', height: '100%' }}>
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', height: '100%', minWidth: 0 }}>
+            <TreeBranchVSCode
+              variant="depth-borders"
+              depth={depth}
+              hasChildren={hasChildren}
+              isCollapsed={isCollapsed}
+              onToggle={() => toggleCollapse(rowId)}
+              connectors={connectors}
+            />
             <TextField
-              size="small"
-              variant="standard"
-              defaultValue={event.name}
+              size="small" variant="standard"
+              defaultValue={(row.name as string) ?? ''}
               onBlur={(e) => {
-                if (e.target.value !== event.name && e.target.value.trim()) {
-                  updateEvent({ variables: { id: event.id, input: { name: e.target.value } } }).then(() => refetch());
+                if (e.target.value !== (row.name as string) && e.target.value.trim()) {
+                  updateEvent({ variables: { id: rowId, input: { name: e.target.value } } }).then(() => refetch());
                 }
               }}
               onKeyDown={(e) => {
@@ -600,71 +520,190 @@ export const ScheduleSingle: React.FC = () => {
                   setTimeout(() => draftInputRef.current?.focus(), 0);
                 }
               }}
-              onClick={(e) => e.stopPropagation()}
-              sx={{ flex: 1, minWidth: 0, height: '100%', '& .MuiInputBase-root': { py: 0, fontSize: '0.75rem', height: '100%' }, '& .MuiInputBase-input': { px: '4px', py: '2px' } }}
+              sx={{ flex: 1, minWidth: 0, '& .MuiInputBase-root': { py: 0, fontSize: '0.75rem', height: '100%' }, '& .MuiInputBase-input': { px: '4px', py: '2px' } }}
             />
           </Box>
+        );
+      },
+    },
+    {
+      key: 'frequency',
+      header: 'Frequency',
+      width: 90,
+      editable: false,
+      render: (row) => {
+        const rowId = String(row.id);
+        const isDraft = !!(row._isDraft);
+        const value = String(row.frequency ?? 'monthly');
 
-          {/* Frequency */}
-          <Box sx={{ width: COL_FREQ, flexShrink: 0, display: 'flex', borderRight: '1px solid', borderColor: 'grey.200', height: '100%' }}>
+        if (isDraft) {
+          return (
             <TextField
-              select
-              size="small"
-              variant="standard"
-              defaultValue={event.frequency}
-              onChange={(e) => {
-                updateEvent({ variables: { id: event.id, input: { frequency: e.target.value } } }).then(() => refetch());
-              }}
-              onClick={(e) => e.stopPropagation()}
-              sx={{ flex: 1, height: '100%', '& .MuiInputBase-root': { py: 0, fontSize: '0.7rem', height: '100%' }, '& .MuiInputBase-input': { px: '4px', py: '2px' } }}
+              select size="small" variant="standard"
+              value={value}
+              onChange={(e) => updateDraftField(rowId, 'frequency', e.target.value)}
+              sx={{ width: '100%', height: '100%', '& .MuiInputBase-root': { height: '100%', py: 0, fontSize: '0.7rem' }, '& .MuiInputBase-input': { height: '100%', px: '4px', py: '2px' } }}
             >
               {FREQUENCIES.map((freq) => (
-                <MenuItem key={freq.value} value={freq.value} sx={{ fontSize: '0.75rem' }}>
-                  {freq.label}
-                </MenuItem>
+                <MenuItem key={freq.value} value={freq.value} sx={{ fontSize: '0.75rem' }}>{freq.label}</MenuItem>
               ))}
             </TextField>
-          </Box>
+          );
+        }
 
-          {/* Start date */}
-          <Box sx={{ width: COL_START, flexShrink: 0, display: 'flex', borderRight: '1px solid', borderColor: 'grey.200', height: '100%' }}>
-            <TextField
-              size="small"
-              variant="standard"
-              type="date"
-              defaultValue={event.startDate}
-              onBlur={(e) => {
-                if (e.target.value && e.target.value !== event.startDate) {
-                  updateEvent({ variables: { id: event.id, input: { startDate: e.target.value } } }).then(() => refetch());
-                }
-              }}
-              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-              onClick={(e) => e.stopPropagation()}
-              InputLabelProps={{ shrink: true }}
-              sx={{ flex: 1, height: '100%', '& .MuiInputBase-root': { py: 0, height: '100%' }, '& .MuiInputBase-input': { px: '4px', py: '2px', fontSize: '0.7rem' } }}
-            />
-          </Box>
-
-          {/* Assigned to */}
-          <Box sx={{ width: COL_ASSIGNED, flexShrink: 0, display: 'flex', borderRight: '1px solid', borderColor: 'grey.200', height: '100%' }}>
-            <TextField
-              size="small"
-              variant="standard"
-              defaultValue={event.assignedTo || ''}
-              placeholder="—"
-              onBlur={(e) => {
-                updateEvent({ variables: { id: event.id, input: { assignedTo: e.target.value || ('' as any) } } }).then(() => refetch());
-              }}
-              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-              onClick={(e) => e.stopPropagation()}
-              sx={{ flex: 1, height: '100%', '& .MuiInputBase-root': { py: 0, fontSize: '0.7rem', height: '100%' }, '& .MuiInputBase-input': { px: '4px', py: '2px' } }}
-            />
-          </Box>
-        </Box>
-      );
+        return (
+          <TextField
+            select size="small" variant="standard"
+            defaultValue={value}
+            onChange={(e) => {
+              updateEvent({ variables: { id: rowId, input: { frequency: e.target.value } } }).then(() => refetch());
+            }}
+            sx={{ width: '100%', height: '100%', '& .MuiInputBase-root': { height: '100%', py: 0, fontSize: '0.7rem' }, '& .MuiInputBase-input': { height: '100%', px: '4px', py: '2px' } }}
+          >
+            {FREQUENCIES.map((freq) => (
+              <MenuItem key={freq.value} value={freq.value} sx={{ fontSize: '0.75rem' }}>{freq.label}</MenuItem>
+            ))}
+          </TextField>
+        );
+      },
     },
-    [schedule, drafts, updateDraftField, commitDraft, treeInfo, collapsed, toggleCollapse, indentEvent, outdentEvent],
-  );
+    {
+      key: 'startDate',
+      header: 'Start Date',
+      width: 115,
+      editable: false,
+      render: (row) => {
+        const rowId = String(row.id);
+        const isDraft = !!(row._isDraft);
+        const value = String(row.startDate ?? '');
+
+        if (isDraft) {
+          return (
+            <TextField
+              size="small" variant="standard" type="date"
+              value={value}
+              onChange={(e) => updateDraftField(rowId, 'startDate', e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') commitDraft(rowId); }}
+              InputLabelProps={{ shrink: true }}
+              sx={{ width: '100%', height: '100%', '& .MuiInputBase-root': { height: '100%', py: 0 }, '& .MuiInputBase-input': { height: '100%', px: '4px', py: '2px', fontSize: '0.7rem' } }}
+            />
+          );
+        }
+
+        return (
+          <TextField
+            size="small" variant="standard" type="date"
+            defaultValue={value}
+            onBlur={(e) => {
+              if (e.target.value && e.target.value !== value) {
+                updateEvent({ variables: { id: rowId, input: { startDate: e.target.value } } }).then(() => refetch());
+              }
+            }}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: '100%', height: '100%', '& .MuiInputBase-root': { height: '100%', py: 0 }, '& .MuiInputBase-input': { height: '100%', px: '4px', py: '2px', fontSize: '0.7rem' } }}
+          />
+        );
+      },
+    },
+    {
+      key: 'assignedTo',
+      header: 'Assigned',
+      width: 140,
+      editable: false,
+      render: (row) => {
+        const rowId = String(row.id);
+        const isDraft = !!(row._isDraft);
+        const value = String(row.assignedTo || '');
+
+        if (isDraft) {
+          return (
+            <Autocomplete
+              freeSolo size="small"
+              options={users.map((u) => u.name)}
+              value={value || undefined}
+              onChange={(_, val) => updateDraftField(rowId, 'assignedTo', val || '')}
+              onInputChange={(_, val) => updateDraftField(rowId, 'assignedTo', val)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitDraft(rowId);
+                if (e.key === 'Escape') updateDraftField(rowId, 'assignedTo', '');
+              }}
+              renderInput={(params) => (
+                <TextField {...params} variant="standard" placeholder="—"
+                  sx={{ '& .MuiInputBase-root': { height: '100%', py: 0, fontSize: '0.7rem' }, '& .MuiInputBase-input': { height: '100%', px: '4px', py: '2px' } }}
+                />
+              )}
+              sx={{ width: '100%', height: '100%', '& .MuiAutocomplete-inputRoot': { height: '100%', py: 0 } }}
+            />
+          );
+        }
+
+        return (
+          <Autocomplete
+            freeSolo size="small"
+            options={users.map((u) => u.name)}
+            defaultValue={value || undefined}
+            onInputChange={(_, val) => {
+              updateEvent({ variables: { id: rowId, input: { assignedTo: val || ('' as any) } } }).then(() => refetch());
+            }}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+            renderInput={(params) => (
+              <TextField {...params} variant="standard" placeholder="—"
+                sx={{ '& .MuiInputBase-root': { height: '100%', py: 0, fontSize: '0.7rem' }, '& .MuiInputBase-input': { height: '100%', px: '4px', py: '2px' } }}
+              />
+            )}
+            sx={{ width: '100%', height: '100%', '& .MuiAutocomplete-inputRoot': { height: '100%', py: 0 } }}
+          />
+        );
+      },
+    },
+  ], [users, collapsed, toggleCollapse, updateDraftField, commitDraft, draftInputRef, updateEvent, refetch]);
+
+  const spreadsheetRows = useMemo((): SpreadsheetRow[] => {
+    const rows: SpreadsheetRow[] = [];
+
+    // Draft rows first
+    for (const draft of drafts) {
+      rows.push({
+        id: draft.id,
+        name: draft.name,
+        frequency: draft.frequency,
+        startDate: draft.startDate,
+        assignedTo: draft.assignedTo || '',
+        _depth: 0,
+        _hasChildren: false,
+        _isCollapsed: false,
+        _connectors: [] as any,
+        _isDraft: true,
+      });
+    }
+
+    // Event rows in tree order
+    for (const event of treeInfo.flat) {
+      rows.push({
+        id: event.id,
+        name: event.name,
+        frequency: event.frequency,
+        startDate: event.startDate,
+        assignedTo: event.assignedTo || '',
+        _depth: event.depth,
+        _hasChildren: event.hasChildren,
+        _isCollapsed: collapsed.has(event.id),
+        _connectors: event.connectors as any,
+        _isDraft: false,
+      });
+    }
+
+    return rows;
+  }, [drafts, treeInfo.flat, collapsed]);
+
+  const handleRowKeyDown = useCallback((row: SpreadsheetRow, event: React.KeyboardEvent) => {
+    if (event.key === 'Tab' && !row._isDraft) {
+      event.preventDefault();
+      if (event.shiftKey) outdentEvent(row.id);
+      else indentEvent(row.id);
+    }
+  }, [outdentEvent, indentEvent]);
 
   if (loading) {
     return (
@@ -738,7 +777,17 @@ export const ScheduleSingle: React.FC = () => {
 
         {/* ── Gantt view: sidebar rows + timeline side by side */}
         <GanttView
-        sidebarWidth={SIDEBAR_W}
+        sidebarFlex="580px"
+        sidebar={(
+          <Spreadsheet
+            columns={spreadsheetColumns}
+            rows={spreadsheetRows}
+            rowHeight={32}
+            headerHeight={48}
+            fitContainer
+            onRowKeyDown={handleRowKeyDown}
+          />
+        )}
         items={timelineItems}
         groups={timelineGroups}
         start={horizon.start}
@@ -759,8 +808,6 @@ export const ScheduleSingle: React.FC = () => {
           },
         }}
         renderers={{
-          renderSidebarHeader: () => sidebarHeader,
-          renderGroupHeader,
           renderItem: (item: TimelineItem) => {
             const data: any = item.data;
             const event: RecurringEvent = data?.event;
