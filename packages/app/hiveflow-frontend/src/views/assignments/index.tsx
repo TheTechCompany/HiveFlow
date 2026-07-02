@@ -163,6 +163,7 @@ export const Assignments: React.FC = () => {
   const [filter, setFilter] = useState<TaskFilterOption[]>([]);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<KanbanTask | null>(null);
+  const [formTaskType, setFormTaskType] = useState<'task' | 'ci_update' | 'project_note'>('task');
   const [viewMode, setViewMode] = useState<TaskViewMode>('horizontal');
   const [groupBy, setGroupBy] = useState<GroupByMode>('none');
   const [addMenuAnchor, setAddMenuAnchor] = useState<HTMLElement | null>(null);
@@ -189,12 +190,14 @@ export const Assignments: React.FC = () => {
 
   const handleSelectCard = useCallback((row: KanbanRow) => {
     setSelectedTask(row._task);
+    setFormTaskType((row._task as any).taskType || 'task');
     setTaskModalOpen(true);
   }, []);
 
   const handleCloseModal = useCallback(() => {
     setTaskModalOpen(false);
     setSelectedTask(null);
+    setFormTaskType('task');
   }, []);
 
   const handleDeleteTask = useCallback(async () => {
@@ -288,6 +291,7 @@ export const Assignments: React.FC = () => {
         users={users}
         open={taskModalOpen}
         selected={selectedTask ? taskToSelected(selectedTask) : null}
+        taskType={formTaskType}
         onClose={handleCloseModal}
         onDelete={handleDeleteTask}
         onSubmit={handleSubmitTask}
@@ -406,6 +410,7 @@ export const Assignments: React.FC = () => {
               onClick={() => {
                 setAddMenuAnchor(null);
                 setSelectedTask(null);
+                setFormTaskType('task');
                 setTaskModalOpen(true);
               }}
             >
@@ -416,6 +421,7 @@ export const Assignments: React.FC = () => {
               onClick={() => {
                 setAddMenuAnchor(null);
                 setSelectedTask(null);
+                setFormTaskType('ci_update');
                 setTaskModalOpen(true);
               }}
             >
@@ -426,6 +432,7 @@ export const Assignments: React.FC = () => {
               onClick={() => {
                 setAddMenuAnchor(null);
                 setSelectedTask(null);
+                setFormTaskType('project_note');
                 setTaskModalOpen(true);
               }}
             >

@@ -209,6 +209,8 @@ export default (prisma: PrismaClient) => {
                                 startDate: args.input.startDate,
                                 endDate: args.input.endDate,
                                 status: args.input.status,
+                                taskType: args.input.taskType || 'task',
+                                category: args.input.category,
                                 lastUpdated: new Date()
                             }
                         }
@@ -359,6 +361,8 @@ export default (prisma: PrismaClient) => {
                         endDate: args.input.endDate,
                         columnRank: nextRank,
                         status: args.input.status,
+                        taskType: args.input.taskType,
+                        category: args.input.category,
                         projectId: projectId,
                         lastUpdated: new Date()
                     }
@@ -694,6 +698,9 @@ export default (prisma: PrismaClient) => {
         projectId: String
 
         handoverNote: String
+
+        taskType: String
+        category: String
     }
 
     type ProjectTask {
@@ -714,6 +721,9 @@ export default (prisma: PrismaClient) => {
 
         members: [HiveUser]
         requiredSkills: JSON
+
+        taskType: String
+        category: String
 
         createdBy: HiveUser
 

@@ -247,7 +247,9 @@ export default (prisma: PrismaClient) => {
             description: String
             frequency: String
             startDate: String
+            endDate: String
             assignedTo: String
+            rowOrder: String
         }
 
         input RecurringScheduleInput {
@@ -265,7 +267,9 @@ export default (prisma: PrismaClient) => {
             description: String
             frequency: String
             startDate: String
+            endDate: String
             assignedTo: String
+            rowOrder: String
             parentId: ID
         }
 
@@ -274,7 +278,9 @@ export default (prisma: PrismaClient) => {
             description: String
             frequency: String
             startDate: String
+            endDate: String
             assignedTo: String
+            rowOrder: String
             parentId: ID
         }
     `
@@ -853,8 +859,10 @@ export default (prisma: PrismaClient) => {
                         description: args.input.description,
                         frequency: args.input.frequency || 'monthly',
                         startDate: args.input.startDate || new Date().toISOString().slice(0, 10),
+                        endDate: args.input.endDate || undefined,
                         assignedTo: args.input.assignedTo,
                         parentId: args.input.parentId || undefined,
+                        rowOrder: args.input.rowOrder || undefined,
                         organisation: context?.jwt?.organisation,
                     },
                 });
@@ -868,8 +876,10 @@ export default (prisma: PrismaClient) => {
                         description: args.input.description ?? undefined,
                         frequency: args.input.frequency ?? undefined,
                         startDate: args.input.startDate ?? undefined,
+                        endDate: args.input.endDate ?? undefined,
                         assignedTo: args.input.assignedTo ?? undefined,
                         parentId: args.input.parentId ?? undefined,
+                        rowOrder: args.input.rowOrder ?? undefined,
                     },
                 });
             },

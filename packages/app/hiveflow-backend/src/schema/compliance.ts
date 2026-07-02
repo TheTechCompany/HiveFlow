@@ -670,6 +670,8 @@ export default (prisma: PrismaClient) => {
             deleteRegulation(id: ID!): ID
             cacheRegulationPdf(id: ID!, url: String!): CachedRegulation
             generateBreakoutPoints(id: ID!): [BreakoutPoint]
+            createBreakoutPoint(regulationId: ID!, sectionRef: String!, title: String!, summary: String, pageRef: Int): BreakoutPoint
+            updateBreakoutPoint(id: ID!, sectionRef: String, title: String, summary: String, pageRef: Int): BreakoutPoint
             acknowledgeBreakout(id: ID!, understanding: String!, userName: String!): BreakoutPoint
             fetchRegulationVersions(id: ID!, source: String!): [RegulationVersion]
             explainProvision(sectionRef: String!, title: String!, text: String!, heading: String): ProvisionExplanation
@@ -772,7 +774,7 @@ export default (prisma: PrismaClient) => {
                     where: org ? { organisation: org } : {},
                     include: {
                         versions: { orderBy: { version: 'desc' } },
-                        breakouts: true,
+                        breakouts: { orderBy: { sectionRef: 'asc' } },
                         proofs: { orderBy: { timestamp: 'desc' } },
                     },
                     orderBy: { updatedAt: 'desc' },
@@ -783,7 +785,7 @@ export default (prisma: PrismaClient) => {
                     where: { id: args.id },
                     include: {
                         versions: { orderBy: { version: 'desc' } },
-                        breakouts: true,
+                        breakouts: { orderBy: { sectionRef: 'asc' } },
                         proofs: { orderBy: { timestamp: 'desc' } },
                     },
                 });
@@ -1053,6 +1055,45 @@ export default (prisma: PrismaClient) => {
                 }
 
                 return created;
+            },
+
+            // ── Manual breakout point creation ────────────────
+            createBreakoutPoint: async (root: any, args: { regulationId: string, sectionRef: string, title: string, summary?: string, pageRef?: number }, context: any) => {
+                const { regulationId, sectionRef, title, summary, pageRef } = args;
+                const id = nanoid();
+
+                const bp = await prisma.breakoutPoint.create({
+                    data: {
+                        id,
+                        regulationId,
+                        sectionRef,
+                        title,
+                        summary: summary || '',
+                        pageRef: pageRef || null,
+                        understanding: 'pending',
+                    }
+                });
+
+                return bp;
+            },
+
+            // ── Update a breakout point ──────────────────────
+            updateBreakoutPoint: async (root: any, args: { id: string, sectionRef?: string, title?: string, summary?: string, pageRef?: number | null }, context: any) => {
+                const { id, ...fields } = args;
+                
+                // Build update data, only including provided fields
+                const data: any = {};
+                if (fields.sectionRef !== undefined) data.sectionRef = fields.sectionRef;
+                if (fields.title !== undefined) data.title = fields.title;
+                if (fields.summary !== undefined) data.summary = fields.summary;
+                if (fields.pageRef !== undefined) data.pageRef = fields.pageRef;
+
+                const bp = await prisma.breakoutPoint.update({
+                    where: { id },
+                    data,
+                });
+
+                return bp;
             },
 
             // ── Acknowledge a breakout point ───────────────────

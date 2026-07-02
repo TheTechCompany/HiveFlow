@@ -4,6 +4,7 @@ import { gql, useMutation, useQuery } from '@apollo/client';
 import { PdfViewer } from './PdfViewer';
 
 import {
+  Autocomplete,
   Box,
   Paper,
   Typography,
@@ -44,6 +45,7 @@ import {
   ExpandLess as ExpandLessIcon,
   Visibility as ViewIcon,
   ThumbUp as AcknowledgeIcon,
+  ThumbDown as DeclineIcon,
   RateReview as ReviewIcon,
   Person as PersonIcon,
   PictureAsPdf as PdfIcon,
@@ -224,8 +226,17 @@ export const ComplianceSingle: React.FC = () => {
 
   const regulation: Regulation | undefined = data?.complianceRegulation;
 
+  // ── Sort breakouts by sectionRef (natural sort: s.1 < s.10 < s.36) ──
+  const sortedBreakouts = React.useMemo(() => {
+    if (!regulation?.breakouts) return [];
+    return [...regulation.breakouts].sort((a, b) =>
+      a.sectionRef.localeCompare(b.sectionRef, undefined, { numeric: true, sensitivity: 'base' })
+    );
+  }, [regulation?.breakouts]);
+
   // ── Dialog state ─────────────────────────────────────────────
   const [breakoutDialogOpen, setBreakoutDialogOpen] = useState(false);
+  const [editingBreakoutId, setEditingBreakoutId] = useState<string | null>(null);
   const [newSectionRef, setNewSectionRef] = useState('');
   const [newSectionTitle, setNewSectionTitle] = useState('');
   const [newSectionSummary, setNewSectionSummary] = useState('');
@@ -279,6 +290,38 @@ export const ComplianceSingle: React.FC = () => {
   `;
 
   const [ generateBreakouts, { loading: generating } ] = useMutation(GENERATE_BREAKOUTS);
+
+  const CREATE_BREAKOUT_POINT = gql`
+    mutation CreateBreakoutPoint($regulationId: ID!, $sectionRef: String!, $title: String!, $summary: String, $pageRef: Int) {
+      createBreakoutPoint(regulationId: $regulationId, sectionRef: $sectionRef, title: $title, summary: $summary, pageRef: $pageRef) {
+        id
+        regulationId
+        sectionRef
+        title
+        summary
+        pageRef
+        understanding
+      }
+    }
+  `;
+
+  const [ createBreakoutPoint ] = useMutation(CREATE_BREAKOUT_POINT);
+
+  const UPDATE_BREAKOUT_POINT = gql`
+    mutation UpdateBreakoutPoint($id: ID!, $sectionRef: String, $title: String, $summary: String, $pageRef: Int) {
+      updateBreakoutPoint(id: $id, sectionRef: $sectionRef, title: $title, summary: $summary, pageRef: $pageRef) {
+        id
+        regulationId
+        sectionRef
+        title
+        summary
+        pageRef
+        understanding
+      }
+    }
+  `;
+
+  const [ updateBreakoutPoint ] = useMutation(UPDATE_BREAKOUT_POINT);
 
   const ACKNOWLEDGE_BREAKOUT = gql`
     mutation AcknowledgeBreakout($id: ID!, $understanding: String!, $userName: String!) {
@@ -351,10 +394,57 @@ export const ComplianceSingle: React.FC = () => {
 
   const handleCreateBreakoutFromProvision = () => {
     if (!currentProvision) return;
+    setEditingBreakoutId(null);
     setNewSectionRef(currentProvision.sectionRef);
     setNewSectionTitle(currentProvision.title);
     setNewSectionSummary(currentProvision.text?.slice(0, 200) || '');
+    setNewPageRef('');
     setBreakoutDialogOpen(true);
+  };
+
+  const handleEditBreakout = (b: BreakoutPoint) => {
+    setEditingBreakoutId(b.id);
+    setNewSectionRef(b.sectionRef);
+    setNewSectionTitle(b.title);
+    setNewSectionSummary(b.summary || '');
+    setNewPageRef(b.pageRef ? String(b.pageRef) : '');
+    setBreakoutDialogOpen(true);
+  };
+
+  const handleSaveBreakout = async () => {
+    if (!newSectionRef || !newSectionTitle) return;
+    try {
+      if (editingBreakoutId) {
+        await updateBreakoutPoint({
+          variables: {
+            id: editingBreakoutId,
+            sectionRef: newSectionRef,
+            title: newSectionTitle,
+            summary: newSectionSummary || undefined,
+            pageRef: newPageRef ? parseInt(newPageRef) : null,
+          },
+        });
+      } else {
+        await createBreakoutPoint({
+          variables: {
+            regulationId: regulation.id,
+            sectionRef: newSectionRef,
+            title: newSectionTitle,
+            summary: newSectionSummary || undefined,
+            pageRef: newPageRef ? parseInt(newPageRef) : undefined,
+          },
+        });
+      }
+      refetch();
+    } catch (err: any) {
+      console.warn('Failed to save breakout point:', err.message);
+    }
+    setBreakoutDialogOpen(false);
+    setEditingBreakoutId(null);
+    setNewSectionRef('');
+    setNewSectionTitle('');
+    setNewSectionSummary('');
+    setNewPageRef('');
   };
 
   const handleMarkViewed = async () => {
@@ -407,37 +497,14 @@ export const ComplianceSingle: React.FC = () => {
     );
   }
 
-  const handleAddBreakout = () => {
-    if (!newSectionRef || !newSectionTitle) return;
-    const breakout: BreakoutPoint = {
-      id: `b-${Date.now()}`,
-      regulationId: regulation.id,
-      sectionRef: newSectionRef,
-      title: newSectionTitle,
-      summary: newSectionSummary,
-      pageRef: newPageRef ? parseInt(newPageRef) : undefined,
-      understanding: 'pending',
-    };
-    refetch();
-    setBreakoutDialogOpen(false);
-    setNewSectionRef('');
-    setNewSectionTitle('');
-    setNewSectionSummary('');
-    setNewPageRef('');
-  };
-
-  const handleToggleUnderstanding = async (breakoutId: string) => {
-    const breakout = regulation?.breakouts?.find((b: any) => b.id === breakoutId);
-    if (!breakout) return;
-    const cycle: Understanding[] = ['pending', 'acknowledged', 'needs-review'];
-    const next = cycle[(cycle.indexOf(breakout.understanding) + 1) % cycle.length];
+  const handleSetUnderstanding = async (breakoutId: string, understanding: Understanding) => {
     try {
       await acknowledgeBreakout({
-        variables: { id: breakoutId, understanding: next, userName: 'You' },
+        variables: { id: breakoutId, understanding, userName: 'You' },
       });
       refetch();
     } catch (err: any) {
-      console.warn('Failed to acknowledge breakout:', err.message);
+      console.warn('Failed to set understanding:', err.message);
     }
   };
 
@@ -558,10 +625,10 @@ export const ComplianceSingle: React.FC = () => {
             )}
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
               <Typography variant="subtitle1" fontWeight={600}>
-                Breakout Points ({regulation.breakouts.length})
+                Breakout Points ({sortedBreakouts.length})
               </Typography>
               <Stack direction="row" spacing={1}>
-                <Button size="small" startIcon={<AddIcon />} onClick={() => setBreakoutDialogOpen(true)}>
+                <Button size="small" startIcon={<AddIcon />} onClick={() => { setEditingBreakoutId(null); setNewSectionRef(''); setNewSectionTitle(''); setNewSectionSummary(''); setNewPageRef(''); setBreakoutDialogOpen(true); }}>
                   Add Point
                 </Button>
                 <Button
@@ -586,13 +653,13 @@ export const ComplianceSingle: React.FC = () => {
                 </Button>
               </Stack>
             </Stack>
-            {regulation.breakouts.length === 0 ? (
+            {sortedBreakouts.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
                 No breakout points defined. Extract key sections to track understanding.
               </Typography>
             ) : (
               <Stack spacing={1}>
-                {regulation.breakouts.map((b) => (
+                {sortedBreakouts.map((b) => (
                   <Box key={b.id}>
                     <Paper
                       variant="outlined"
@@ -622,15 +689,39 @@ export const ComplianceSingle: React.FC = () => {
                             </Stack>
                           )}
                         </Stack>
-                        <Tooltip title="Toggle understanding">
+                        <Tooltip title="Edit breakout point">
                           <IconButton
                             size="small"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleToggleUnderstanding(b.id);
+                              handleEditBreakout(b);
                             }}
                           >
-                            <RefreshIcon fontSize="small" />
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Mark as acknowledged">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSetUnderstanding(b.id, 'acknowledged');
+                            }}
+                            sx={{ color: b.understanding === 'acknowledged' ? 'success.main' : 'action.disabled' }}
+                          >
+                            <AcknowledgeIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Mark as needs review">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSetUnderstanding(b.id, 'needs-review');
+                            }}
+                            sx={{ color: b.understanding === 'needs-review' ? 'error.main' : 'action.disabled' }}
+                          >
+                            <DeclineIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       </Stack>
@@ -924,11 +1015,50 @@ export const ComplianceSingle: React.FC = () => {
         </Box>
       </Paper>
 
-      {/* ── Add Breakout Dialog ──────────────────────────────────── */}
-      <Dialog open={breakoutDialogOpen} onClose={() => setBreakoutDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Add Breakout Point</DialogTitle>
+      {/* ── Add/Edit Breakout Dialog ──────────────────────────────── */}
+      <Dialog open={breakoutDialogOpen} onClose={() => { setBreakoutDialogOpen(false); setEditingBreakoutId(null); }} maxWidth="sm" fullWidth>
+        <DialogTitle>{editingBreakoutId ? 'Edit Breakout Point' : 'Add Breakout Point'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
+            {regulation.provisions && regulation.provisions.length > 0 && (() => {
+                const selectedProvision = regulation.provisions.find(
+                  p => p.sectionRef === newSectionRef && p.title === newSectionTitle
+                ) || null;
+                return (
+              <Autocomplete
+                size="small"
+                value={selectedProvision}
+                options={regulation.provisions}
+                getOptionLabel={(p) => `${p.sectionRef} — ${p.title}`}
+                groupBy={(p) => p.kind === 'part' ? 'Parts' : 'Provisions'}
+                isOptionEqualToValue={(opt, val) => opt.dlmId === val.dlmId}
+                onChange={(_, val) => {
+                  if (val) {
+                    setNewSectionRef(val.sectionRef);
+                    setNewSectionTitle(val.title);
+                    if (!editingBreakoutId && val.text) {
+                      setNewSectionSummary(val.text.slice(0, 200));
+                    }
+                  }
+                }}
+                renderInput={(params) => (
+                  <TextField {...params} label="Link to Provision (optional)" placeholder="Search provisions..." />
+                )}
+                renderOption={(props, opt) => (
+                  <li {...props} key={opt.dlmId}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                      <Typography variant="body2" fontWeight={600}>{opt.sectionRef} — {opt.title}</Typography>
+                      {opt.text && (
+                        <Typography variant="caption" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 400 }}>
+                          {opt.text.slice(0, 120)}
+                        </Typography>
+                      )}
+                    </Box>
+                  </li>
+                )}
+              />
+                );
+              })()}
             <TextField
               label="Section Reference"
               value={newSectionRef}
@@ -967,9 +1097,9 @@ export const ComplianceSingle: React.FC = () => {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setBreakoutDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleAddBreakout} disabled={!newSectionRef || !newSectionTitle}>
-            Add Breakout Point
+          <Button onClick={() => { setBreakoutDialogOpen(false); setEditingBreakoutId(null); }}>Cancel</Button>
+          <Button variant="contained" onClick={handleSaveBreakout} disabled={!newSectionRef || !newSectionTitle}>
+            {editingBreakoutId ? 'Save Changes' : 'Add Breakout Point'}
           </Button>
         </DialogActions>
       </Dialog>

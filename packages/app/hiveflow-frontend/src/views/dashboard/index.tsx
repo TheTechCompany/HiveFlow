@@ -1,11 +1,9 @@
-import React, { Component, useState} from 'react';
-
-import { Link, Route , generatePath, matchPath, Routes, useNavigate, useResolvedPath} from 'react-router-dom';
+import React from 'react';
 
 import logo from '../../logo.svg';
 
 //views, logo
-import { Sidebar, SidebarView} from '@hexhive/ui';
+import { SidebarLayout } from '@hive-flow/ui';
 
 // import RoutedView from '../../components/primatives/routed-view';
 
@@ -56,13 +54,6 @@ export const Dashboard = (props: any) => {
   // const [ alerts, setAlerts ] = useState<string[]>([])
 
   const alerts = []
-  const active = window.location.pathname.replace(process.env.PUBLIC_URL || '', '')
-
-  
-  const path = useResolvedPath(active);
-  console.log({active, path})
-
-  const navigate = useNavigate()
 
   const views = () => {
     let login_type =  'email' //props.user.login_type;
@@ -227,7 +218,7 @@ export const Dashboard = (props: any) => {
          <Box 
           sx={{flex: 1, display: 'flex', color: 'white', bgcolor: 'primary.dark', height: '100%'}}
           className="dashboard">
-            <SidebarView
+            <SidebarLayout
               views={menu}
                 />
               {/* <Sidebar

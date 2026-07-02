@@ -61,6 +61,9 @@ model ProjectTask {
 
   requiredSkills Json?
 
+  taskType String? @default("task")
+  category  String?
+
   createdBy String?
 
   dependencyOf ProjectTask[] @relation(name: "dependencyOf")
@@ -429,7 +432,9 @@ model RecurringEvent {
   description String?
   frequency   String @default("monthly") // daily, weekly, monthly, quarterly, yearly
   startDate   String
+  endDate     String?
   assignedTo  String?
+  rowOrder    String?
 
   organisation String
 }

@@ -1,5 +1,9 @@
 // ── @hive-flow/ui — Barrel export ───────────────────────────────────
 
+// SidebarLayout
+export { SidebarLayout } from './SidebarLayout';
+export type { SidebarLayoutProps, SidebarMenuItem } from './SidebarLayout';
+
 // DataTable
 export { DataTable } from './DataTable';
 export type { DataTableProps, DataTableColumn } from './DataTable';
