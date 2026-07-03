@@ -23,7 +23,6 @@ import type {
 import {
   computeGeometry,
   dateToX,
-  snapToStep,
   packLanes,
   filterVisibleItems,
 } from './utils';
@@ -425,8 +424,8 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
 
         change = {
           id: prev.itemId,
-          start: snapToStep(new Date(startLocalRef.current.getTime() + msDelta), step),
-          end: snapToStep(new Date(startLocalRef.current.getTime() + msDelta + (prev.origEnd.getTime() - prev.origStart.getTime())), step),
+          start: new Date(startLocalRef.current.getTime() + msDelta),
+          end: new Date(startLocalRef.current.getTime() + msDelta + (prev.origEnd.getTime() - prev.origStart.getTime())),
         };
       } else if (prev.mode === 'resize-left') {
         const pxPerMs = prev.dragPxPerMs || geometry.pxPerMs;
@@ -434,10 +433,10 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
         const minWidthMs = minBarWidth / pxPerMs;
         change = {
           id: prev.itemId,
-          start: snapToStep(new Date(Math.min(
+          start: new Date(Math.min(
             prev.origStart.getTime() + msDelta,
             prev.origEnd.getTime() - minWidthMs,
-          )), step),
+          )),
         };
       } else if (prev.mode === 'resize-right') {
         const pxPerMs = prev.dragPxPerMs || geometry.pxPerMs;
@@ -445,10 +444,10 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
         const minWidthMs = minBarWidth / pxPerMs;
         change = {
           id: prev.itemId,
-          end: snapToStep(new Date(Math.max(
+          end: new Date(Math.max(
             prev.origEnd.getTime() + msDelta,
             prev.origStart.getTime() + minWidthMs,
-          )), step),
+          )),
         };
       }
 

@@ -301,4 +301,93 @@ describe('ScheduleSingle — sidebar', () => {
     // The createEvent mutation should have been called (via handleCreateBelow)
     expect(mutateFn).toHaveBeenCalled();
   });
+
+  // ── handleItemChange (move / resize) ────────────────────────
+
+  describe('handleItemChange', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockGanttProps = null;
+    });
+
+    function triggerChange(change) {
+      // Render with one event, then invoke the callback captured by the mock
+      const event = makeEvent({ startDate: '2025-01-15', endDate: '2025-06-15' });
+      setupQueryMocks([event]);
+      render(<ScheduleSingle />);
+      // Clear auto-fired mutations from draft seed effect
+      const [mutateFn] = mockUseMutation();
+      mutateFn.mockClear();
+      mockGanttProps.callbacks.onItemChange(change);
+      return [mutateFn, ...mockUseMutation()];
+    }
+
+    it('resize-right: only end changed → updates endDate only', () => {
+      const [mutateFn] = triggerChange({
+        id: 'evt-1',
+        end: new Date('2025-09-15'),
+      });
+      expect(mutateFn).toHaveBeenCalledTimes(1);
+      const vars = mutateFn.mock.calls[0][0].variables;
+      expect(vars.id).toBe('evt-1');
+      expect(vars.input.endDate).toBe('2025-09-15');
+      expect(vars.input.startDate).toBeUndefined();
+    });
+
+    it('resize-left: only start changed → updates startDate only', () => {
+      const [mutateFn] = triggerChange({
+        id: 'evt-1',
+        start: new Date('2025-03-01'),
+      });
+      expect(mutateFn).toHaveBeenCalledTimes(1);
+      const vars = mutateFn.mock.calls[0][0].variables;
+      expect(vars.input.startDate).toBe('2025-03-01');
+      expect(vars.input.endDate).toBeUndefined();
+    });
+
+    it('move: both start and end changed → shifts both preserving duration', () => {
+      // Original: 2025-01-15 to 2025-06-15 → 151 days
+      // Both edges shifted fwd by 31 days (e.g. snapped to month boundaries)
+      const [mutateFn] = triggerChange({
+        id: 'evt-1',
+        start: new Date('2025-02-15'),
+        end: new Date('2025-07-15'),
+      });
+      expect(mutateFn).toHaveBeenCalledTimes(1);
+      const vars = mutateFn.mock.calls[0][0].variables;
+      // startDate should be the new start
+      expect(vars.input.startDate).toBe('2025-02-15');
+      // endDate should be shifted by the same delta (31 days), NOT the snapped value
+      // Original duration: 2025-06-15 - 2025-01-15 = 151 days
+      // Shifted end: 2025-02-15 + 151 days = 2025-07-16
+      expect(vars.input.endDate).toBe('2025-07-16');
+    });
+
+    it('move without endDate: only updates startDate', () => {
+      const event = makeEvent({ startDate: '2025-01-15', endDate: undefined });
+      setupQueryMocks([event]);
+      render(<ScheduleSingle />);
+      const [mutateFn] = mockUseMutation();
+      mutateFn.mockClear();
+      mockGanttProps.callbacks.onItemChange({
+        id: 'evt-1',
+        start: new Date('2025-03-01'),
+        end: new Date('2025-08-01'),
+      });
+      expect(mutateFn).toHaveBeenCalledTimes(1);
+      const vars = mutateFn.mock.calls[0][0].variables;
+      expect(vars.input.startDate).toBe('2025-03-01');
+      expect(vars.input.endDate).toBeUndefined();
+    });
+
+    it('no-op: no start and no end → does nothing', () => {
+      setupQueryMocks([makeEvent()]);
+      render(<ScheduleSingle />);
+      const [mutateFn] = mockUseMutation();
+      mutateFn.mockClear();
+      mockGanttProps.callbacks.onItemChange({ id: 'evt-1' });
+      expect(mutateFn).not.toHaveBeenCalled();
+    });
+  });
+
 });

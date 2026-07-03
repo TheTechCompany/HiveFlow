@@ -686,23 +686,14 @@ export const ScheduleSingle: React.FC = () => {
       const colorIx = resolveColorIx(event.id);
       const color = EVENT_COLORS[Math.abs(colorIx) % EVENT_COLORS.length];
 
-      // Range bar (interactive)
-      items.push({
-        id: event.id,
-        start: startDate,
-        end: endDate,
-        groupId: event.id,
-        color,
-        selectable: false,
-        data: { event },
-      });
-
-      // Each occurrence spans the same duration as the template (startDate → endDate)
+      // Each occurrence spans the same duration as the template
       const templateDuration = event.endDate
         ? moment(event.endDate).diff(moment(event.startDate), 'milliseconds')
-        : 86400000; // default 1 day if no endDate set
+        : 86400000; // default 1 day
 
       const occurrences = generateOccurrences(event, occWindowStart, occWindowEnd);
+
+      // Push occurrences first so they render behind the range bar
       occurrences.forEach((occDate, i) => {
         if (i === 0) return; // skip first — already shown as the range bar
         items.push({
@@ -711,12 +702,22 @@ export const ScheduleSingle: React.FC = () => {
           end: new Date(occDate.getTime() + templateDuration),
           groupId: event.id,
           color: `${color}99`, // semi-transparent
-          zIndex: 2,
           selectable: false,
           movable: true,
           resizable: false,
           data: { event, occurrence: true, occurrenceIndex: i },
         });
+      });
+
+      // Range bar on top so resize handles are reachable
+      items.push({
+        id: event.id,
+        start: startDate,
+        end: endDate,
+        groupId: event.id,
+        color,
+        selectable: false,
+        data: { event },
       });
     });
     return items;
@@ -1090,49 +1091,43 @@ export const ScheduleSingle: React.FC = () => {
   }, [updateDraftField, updateEvent, refetch]);
 
   const handleItemChange = useCallback((change: { id: string; start?: Date; end?: Date; groupId?: string }) => {
-    if (!change.start && !change.end) return;
-    // Item ids are `${eventId}-occ-${i}`; extract the real event id
-    const isOccurrence = /-occ-\d+$/.test(change.id);
+    console.log('[handleItemChange] raw change', {
+      id: change.id,
+      start: change.start ? moment(change.start).format('YYYY-MM-DD') : undefined,
+      startISO: change.start?.toISOString(),
+      end: change.end ? moment(change.end).format('YYYY-MM-DD') : undefined,
+      endISO: change.end?.toISOString(),
+      startRaw: change.start,
+      endRaw: change.end,
+    });
     const eventId = change.id.replace(/-occ-\d+$/, '');
     const event = scheduleRef.current?.events.find((e) => e.id === eventId);
-    if (event) {
-      const input: Record<string, any> = {};
+    if (!event) return;
+    if (!change.start && !change.end) return;
 
-      if (isOccurrence && change.start) {
-        // Moving an occurrence: compute the shift and apply to the whole schedule
-        const occIndex = parseInt(change.id.match(/-occ-(\d+)$/)![1], 10);
-        const freq = event.frequency;
-        const origDate = moment(event.startDate);
-        switch (freq) {
-          case 'daily': origDate.add(occIndex, 'day'); break;
-          case 'weekly': origDate.add(occIndex, 'week'); break;
-          case 'monthly': origDate.add(occIndex, 'month'); break;
-          case 'quarterly': origDate.add(occIndex * 3, 'month'); break;
-          case 'yearly': origDate.add(occIndex, 'year'); break;
-          default: origDate.add(occIndex, 'month'); break;
-        }
-        const shiftDays = moment(change.start).diff(origDate, 'days');
-        input.startDate = moment(event.startDate).add(shiftDays, 'days').format('YYYY-MM-DD');
-        if (event.endDate) {
-          input.endDate = moment(event.endDate).add(shiftDays, 'days').format('YYYY-MM-DD');
-        }
-      } else {
-        if (change.start) {
-          input.startDate = moment(change.start).format('YYYY-MM-DD');
-          // If only moving (not resizing), shift endDate to preserve duration
-          if (!change.end && event.endDate) {
-            const oldStart = moment(event.startDate);
-            const oldEnd = moment(event.endDate);
-            const duration = oldEnd.diff(oldStart, 'days');
-            input.endDate = moment(change.start).add(duration, 'days').format('YYYY-MM-DD');
-          }
-        }
-        if (change.end) {
-          input.endDate = moment(change.end).format('YYYY-MM-DD');
-        }
+    const input: Record<string, any> = {};
+    const bothEdges = change.start && change.end;
+
+    if (bothEdges) {
+      // Move: shift startDate, preserve duration by shifting endDate
+      input.startDate = moment(change.start).format('YYYY-MM-DD');
+      if (event.endDate) {
+        const shiftMs = moment(change.start).valueOf() - moment(event.startDate).valueOf();
+        input.endDate = moment(moment(event.endDate).valueOf() + shiftMs).format('YYYY-MM-DD');
       }
-      updateEvent({ variables: { id: eventId, input } }).then(() => refetch());
+    } else {
+      // Resize: only one edge changed — set it directly
+      if (change.start) input.startDate = moment(change.start).format('YYYY-MM-DD');
+      if (change.end) input.endDate = moment(change.end).format('YYYY-MM-DD');
     }
+
+    console.log('[handleItemChange] firing mutation', { id: eventId, input });
+    updateEvent({ variables: { id: eventId, input } })
+      .then((result) => {
+        console.log('[handleItemChange] mutation ok', result?.data);
+        return refetch();
+      })
+      .catch((err) => console.error('[handleItemChange] mutation failed', err));
   }, [updateEvent, refetch]);
 
   if (loading) {
