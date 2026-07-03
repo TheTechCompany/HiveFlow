@@ -31,6 +31,10 @@ const prisma = new PrismaClient();
       {
         name: 'CalendarItem',
         actions: ['create', 'read', 'update', 'delete']
+      },
+      {
+        name: 'Management',
+        actions: ['read']
       }
     ],
 		rootServer: process.env.ROOT_SERVER || "http://localhost:7000",

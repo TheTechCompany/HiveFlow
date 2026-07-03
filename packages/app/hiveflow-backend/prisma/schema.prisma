@@ -514,3 +514,35 @@ model ProofEntry {
   action    String // viewed | acknowledged | reviewed
   timestamp DateTime @default(now())
 }
+
+// ── Continuous Improvement ──────────────────────────────────
+
+model ContinuousImprovement {
+  id        String  @id
+  displayId String?
+
+  title       String
+  description String?
+
+  category String? // Safety | Quality | Process | Equipment | 5S | Training | Environmental | Other
+  source   String? // staff-suggestion | internal-audit | customer-feedback | management-review | incident-report | other
+
+  status   String  @default("identified") // identified | in_progress | implemented | verified | closed
+  priority String? // low | medium | high | critical
+
+  impact          String?
+  rootCause       String?
+  actionTaken     String?
+  outcomeMeasured String?
+
+  createdBy  String?
+  assignedTo String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  organisation String
+
+  @@unique([organisation, displayId])
+}

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -7,8 +7,6 @@ import {
   Alert,
   Tabs,
   Tab,
-  Card,
-  CardContent,
   Stack,
   Tooltip,
   ToggleButtonGroup,
@@ -22,9 +20,6 @@ import {
   Chip,
 } from '@mui/material';
 import {
-  Engineering,
-  Speed,
-  BugReport,
   Build,
   CheckBoxOutlined,
   Subject,
@@ -36,6 +31,8 @@ import { AvatarList } from '@hexhive/ui';
 import { KanbanBoard } from '../../components/KanbanBoard';
 import type { KanbanTask, KanbanColumn, KanbanRow } from '../../types/kanban';
 import { extractChecklistFromHtml } from '@hive-flow/ui';
+import { useTypeConfiguration } from '../../context';
+import { CiUpdateModal, CiDetail } from '../../modals/new-task/ci-update';
 
 // ── GraphQL ─────────────────────────────────────────────────────────
 
@@ -76,6 +73,30 @@ const GET_MANAGEMENT_DATA = gql`
   }
 `;
 
+const GET_CONTINUOUS_IMPROVEMENTS = gql`
+  query GetContinuousImprovements {
+    continuousImprovements {
+      id
+      displayId
+      title
+      description
+      category
+      source
+      status
+      priority
+      impact
+      rootCause
+      actionTaken
+      outcomeMeasured
+      createdBy { id name }
+      assignedTo { id name }
+      createdAt
+      updatedAt
+      completedAt
+    }
+  }
+`;
+
 // ── Constants ───────────────────────────────────────────────────────
 
 type TabId = 'overview' | 'ci-register';
@@ -83,7 +104,31 @@ type ViewMode = 'kanban' | 'list';
 
 const CI_KEYWORDS = ['improvement', 'kaizen', 'quality', 'process', 'audit', 'procedure', 'standard', 'corrective', 'preventive', 'nonconformance', 'iso', 'pdca', 'lean', 'six sigma', 'root cause', 'capa', '5s', 'gemba', 'jidoka', 'andon'];
 
-// ── Helpers ─────────────────────────────────────────────────────────
+const TASK_STATUS_ORDER = ['Backlog', 'In Progress', 'Reviewing', 'Finished'] as const;
+const TASK_STATUS_TITLES: Record<string, string> = {
+  'Backlog': 'Backlog',
+  'In Progress': 'In Progress',
+  'Reviewing': 'In Review',
+  'Finished': 'Finished',
+};
+
+const CI_STATUS_ORDER = ['identified', 'in_progress', 'implemented', 'verified', 'closed'] as const;
+const CI_STATUS_TITLES: Record<string, string> = {
+  'identified': 'Identified',
+  'in_progress': 'In Progress',
+  'implemented': 'Implemented',
+  'verified': 'Verified',
+  'closed': 'Closed',
+};
+
+const CI_PRIORITY_COLORS: Record<string, string> = {
+  low: '#9e9e9e',
+  medium: '#2196f3',
+  high: '#ff9800',
+  critical: '#f44336',
+};
+
+// ── Types ───────────────────────────────────────────────────────────
 
 function isCiRelated(task: KanbanTask): boolean {
   const text = `${task.title ?? ''} ${task.description ?? ''}`.toLowerCase();
@@ -96,22 +141,14 @@ function hasVisibleContent(html: string | null | undefined): boolean {
   return text.length > 0;
 }
 
-const STATUS_ORDER = ['Backlog', 'In Progress', 'Reviewing', 'Finished'] as const;
-const STATUS_TITLES: Record<string, string> = {
-  'Backlog': 'Backlog',
-  'In Progress': 'In Progress',
-  'Reviewing': 'In Review',
-  'Finished': 'Finished',
-};
-
-function buildKanbanColumns(tasks: KanbanTask[]): KanbanColumn[] {
-  return STATUS_ORDER.map((status) => {
+function buildTaskKanbanColumns(tasks: KanbanTask[]): KanbanColumn[] {
+  return TASK_STATUS_ORDER.map((status) => {
     const filtered = tasks
       .filter((t) => t.status === status)
       .sort((a, b) => (a.columnRank ?? '').localeCompare(b.columnRank ?? ''));
     return {
       id: status,
-      title: STATUS_TITLES[status] ?? status,
+      title: TASK_STATUS_TITLES[status] ?? status,
       rows: filtered.map((t) => ({
         id: t.id,
         title: t.title,
@@ -121,7 +158,24 @@ function buildKanbanColumns(tasks: KanbanTask[]): KanbanColumn[] {
   });
 }
 
-// ── Card renderer ───────────────────────────────────────────────────
+function buildCiKanbanColumns(records: CiDetail[]): KanbanColumn[] {
+  return CI_STATUS_ORDER.map((status) => {
+    const filtered = records
+      .filter((r) => r.status === status)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return {
+      id: status,
+      title: CI_STATUS_TITLES[status] ?? status,
+      rows: filtered.map((r) => ({
+        id: r.id,
+        title: r.title,
+        _task: r,
+      })),
+    };
+  });
+}
+
+// ── Card renderers ──────────────────────────────────────────────────
 
 const ManagementTaskCard: React.FC<{ row: KanbanRow }> = ({ row }) => {
   const t = row._task;
@@ -175,7 +229,7 @@ const ManagementTaskCard: React.FC<{ row: KanbanRow }> = ({ row }) => {
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             {isCiRelated(t) && (
-              <Tooltip title="Continuous Improvement">
+              <Tooltip title="CI-related task">
                 <Build fontSize="small" color="secondary" sx={{ fontSize: 14 }} />
               </Tooltip>
             )}
@@ -187,66 +241,88 @@ const ManagementTaskCard: React.FC<{ row: KanbanRow }> = ({ row }) => {
   );
 };
 
-// ── Sub-components ──────────────────────────────────────────────────
-
-interface StatCardProps {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  color: string;
-}
-
-const StatCard: React.FC<StatCardProps> = ({ label, value, icon, color }) => (
-  <Card sx={{ flex: 1, minWidth: 140 }}>
-    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between">
-        <Box>
-          <Typography variant="h4" fontWeight="bold" sx={{ color }}>
-            {value}
+const CiCard: React.FC<{ row: KanbanRow }> = ({ row }) => {
+  const ci = row._task as CiDetail;
+  return (
+    <Paper
+      sx={{
+        bgcolor: 'background.paper',
+        minHeight: '24px',
+        flexDirection: 'column',
+        display: 'flex',
+        boxShadow: 1,
+      }}
+    >
+      <Box sx={{ padding: '8px' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+          <Typography variant="caption" fontWeight="bold" color="text.secondary">
+            {ci.displayId}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {label}
-          </Typography>
+          {ci.priority && (
+            <Chip
+              label={ci.priority}
+              size="small"
+              sx={{
+                bgcolor: CI_PRIORITY_COLORS[ci.priority] ?? '#9e9e9e',
+                color: 'white',
+                fontSize: '0.6rem',
+                height: 18,
+              }}
+            />
+          )}
         </Box>
-        <Box sx={{ color, opacity: 0.7 }}>{icon}</Box>
-      </Stack>
-    </CardContent>
-  </Card>
-);
+        <Typography variant="body2" sx={{ mb: 0.5 }}>{ci.title}</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.5 }}>
+          <Stack direction="row" spacing={0.5} flexWrap="wrap">
+            {ci.category && (
+              <Chip label={ci.category} size="small" variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+            )}
+          </Stack>
+          {ci.assignedTo && (
+            <AvatarList size={18} users={[ci.assignedTo]} />
+          )}
+        </Box>
+      </Box>
+    </Paper>
+  );
+};
 
 // ── Main view ───────────────────────────────────────────────────────
 
 export const ManagementView: React.FC = () => {
+  const managementPerm = useTypeConfiguration('Management');
+
   const { data, loading, error } = useQuery(GET_MANAGEMENT_DATA, {
+    fetchPolicy: 'cache-and-network',
+  });
+
+  const { data: ciData, loading: ciLoading, error: ciError, refetch: refetchCis } = useQuery(GET_CONTINUOUS_IMPROVEMENTS, {
     fetchPolicy: 'cache-and-network',
   });
 
   const [tab, setTab] = useState<TabId>('overview');
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
+  const [selectedCi, setSelectedCi] = useState<CiDetail | null>(null);
 
   const tasks: KanbanTask[] = data?.assignments ?? [];
+  const ciRecords: CiDetail[] = ciData?.continuousImprovements ?? [];
 
-  // ── Derived stats ──────────────────────────────────────────────
+  const handleSelectCi = useCallback((row: KanbanRow) => {
+    setSelectedCi(row._task as CiDetail);
+  }, []);
 
-  const allKanbanColumns = useMemo(() => buildKanbanColumns(tasks), [tasks]);
-  const ciKanbanColumns = useMemo(() => buildKanbanColumns(tasks.filter(isCiRelated)), [tasks]);
+  const allKanbanColumns = useMemo(() => buildTaskKanbanColumns(tasks), [tasks]);
+  const ciKanbanColumns = useMemo(() => buildCiKanbanColumns(ciRecords), [ciRecords]);
 
-  const stats = useMemo(() => {
-    const inProgress = tasks.filter((t) => t.status === 'In Progress');
-    const ciTasks = tasks.filter(isCiRelated);
-    const ciInProgress = ciTasks.filter((t) => t.status === 'In Progress');
-    const reviewing = tasks.filter((t) => t.status === 'Reviewing');
+  // ── Permission guard ──────────────────────────────────────────
 
-    return {
-      total: tasks.length,
-      inProgress: inProgress.length,
-      ciTotal: ciTasks.length,
-      ciInProgress: ciInProgress.length,
-      reviewing: reviewing.length,
-    };
-  }, [tasks]);
-
-  const ciTasks = useMemo(() => tasks.filter(isCiRelated), [tasks]);
+  if (managementPerm?.read === false) {
+    return (
+      <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
+        <Alert severity="warning">You do not have permission to access the Management view.</Alert>
+      </Box>
+    );
+  }
 
   // ── Loading state ──────────────────────────────────────────────
 
@@ -309,9 +385,9 @@ export const ManagementView: React.FC = () => {
       >
         <Tab label="Overview" value="overview" />
         <Tab
-          label={`Improvement Register (${ciTasks.length})`}
+          label={`Improvement Register (${ciRecords.length})`}
           value="ci-register"
-          icon={ciTasks.some((t) => t.status === 'In Progress' || t.status === 'Reviewing') ? <Build fontSize="small" color="warning" /> : undefined}
+          icon={<Build fontSize="small" color="warning" />}
           iconPosition="end"
         />
       </Tabs>
@@ -319,15 +395,6 @@ export const ManagementView: React.FC = () => {
       {/* Tab content */}
       {tab === 'overview' ? (
         <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', p: 2 }}>
-          {/* ── Stat cards ─────────────────────────────────────── */}
-          <Stack direction="row" spacing={2} sx={{ mb: 2, flexWrap: 'wrap' }}>
-            <StatCard label="In Progress" value={stats.inProgress} icon={<Engineering fontSize="large" />} color="#4caf50" />
-            <StatCard label="In Review" value={stats.reviewing} icon={<Speed fontSize="large" />} color="#ff9800" />
-            <StatCard label="Improvement" value={stats.ciTotal} icon={<Build fontSize="large" />} color="#9c27b0" />
-            <StatCard label="Active Improvement" value={stats.ciInProgress} icon={<BugReport fontSize="large" />} color="#f44336" />
-          </Stack>
-
-          {/* ── All-ticket view ────────────────────────────────── */}
           {tasks.length === 0 ? (
             <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Typography color="text.secondary">No tickets found.</Typography>
@@ -354,7 +421,7 @@ export const ManagementView: React.FC = () => {
                       <TableCell>
                         <Stack direction="row" alignItems="center" spacing={1}>
                           {isCiRelated(task) && (
-                            <Tooltip title="Continuous Improvement">
+                            <Tooltip title="CI-related task">
                               <Build fontSize="small" color="secondary" sx={{ fontSize: 14 }} />
                             </Tooltip>
                           )}
@@ -393,60 +460,102 @@ export const ManagementView: React.FC = () => {
         /* ── Improvement Register tab ─────────────────────────────── */
         <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', p: 2 }}>
           <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
-            Improvement Register — Continuous Improvement ({ciTasks.length})
+            Improvement Register — Continuous Improvement ({ciRecords.length})
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
-            Tickets matching ISO CI keywords: {CI_KEYWORDS.join(', ')}
+            Track improvement ideas from identification through to verification and closure.
           </Typography>
 
-          {ciTasks.length === 0 ? (
+          {ciLoading ? (
+            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CircularProgress />
+            </Box>
+          ) : ciError ? (
+            <Alert severity="error">Failed to load CI register: {ciError.message}</Alert>
+          ) : ciRecords.length === 0 ? (
             <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Alert severity="info">
-                No improvement tickets found. Create tickets with ISO CI keywords (improvement, kaizen, quality, process, audit, etc.) to populate this register.
+                No continuous improvements recorded yet. Submit a CI from the Assignments view to populate this register.
               </Alert>
             </Box>
           ) : viewMode === 'kanban' ? (
             <KanbanBoard
               columns={ciKanbanColumns}
-              renderCard={(row) => <ManagementTaskCard row={row} />}
+              renderCard={(row) => <CiCard row={row} />}
+              onSelectCard={handleSelectCi}
             />
           ) : (
             <TableContainer component={Paper} sx={{ flex: 1, bgcolor: 'background.paper' }}>
               <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Ticket</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Source</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>ID</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Title</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Category</TableCell>
                     <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Assignees</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Priority</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Assigned To</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Created</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {ciTasks.map((task) => (
-                    <TableRow key={task.id} hover>
+                  {ciRecords.map((ci) => (
+                    <TableRow key={ci.id} hover onClick={() => setSelectedCi(ci)} sx={{ cursor: 'pointer' }}>
                       <TableCell>
-                        <Typography variant="body2" fontWeight="medium">
-                          {task.title}
+                        <Typography variant="caption" fontWeight="bold">
+                          {ci.displayId}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="caption" color="text.secondary">
-                          {(task.project ?? task.estimate)?.displayId} - {(task.project ?? task.estimate)?.name}
+                        <Typography variant="body2" fontWeight="medium">
+                          {ci.title}
                         </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {ci.category && (
+                          <Chip label={ci.category} size="small" variant="outlined" sx={{ fontSize: '0.65rem' }} />
+                        )}
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={task.status}
+                          label={CI_STATUS_TITLES[ci.status] ?? ci.status}
                           size="small"
                           sx={{
-                            bgcolor: task.status === 'In Progress' ? '#4caf50' : task.status === 'Reviewing' ? '#ff9800' : task.status === 'Finished' ? '#2196f3' : '#9e9e9e',
+                            bgcolor:
+                              ci.status === 'identified' ? '#9e9e9e' :
+                              ci.status === 'in_progress' ? '#4caf50' :
+                              ci.status === 'implemented' ? '#2196f3' :
+                              ci.status === 'verified' ? '#9c27b0' :
+                              ci.status === 'closed' ? '#757575' : '#9e9e9e',
                             color: 'white',
-                            fontSize: '0.7rem',
+                            fontSize: '0.65rem',
                           }}
                         />
                       </TableCell>
                       <TableCell>
-                        <AvatarList size={22} users={task.members ?? []} />
+                        {ci.priority && (
+                          <Chip
+                            label={ci.priority}
+                            size="small"
+                            sx={{
+                              bgcolor: CI_PRIORITY_COLORS[ci.priority] ?? '#9e9e9e',
+                              color: 'white',
+                              fontSize: '0.65rem',
+                            }}
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {ci.assignedTo ? (
+                          <AvatarList size={22} users={[ci.assignedTo]} />
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">—</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(ci.createdAt).toLocaleDateString()}
+                        </Typography>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -456,6 +565,16 @@ export const ManagementView: React.FC = () => {
           )}
         </Box>
       )}
+
+      {/* ── CI detail modal ──────────────────────────────────── */}
+      <CiUpdateModal
+        open={!!selectedCi}
+        selected={selectedCi}
+        users={data?.users ?? []}
+        onClose={() => setSelectedCi(null)}
+        onUpdated={() => { refetchCis(); }}
+        onDeleted={() => { refetchCis(); }}
+      />
     </Box>
   );
 };

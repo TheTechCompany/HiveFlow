@@ -28,14 +28,11 @@ import moment from 'moment';
 
 // ── Types ───────────────────────────────────────────────────────────
 
-export type TaskType = 'task' | 'ci_update' | 'project_note';
-
 interface TaskModalProps {
   open: boolean;
   selected?: any;
   users?: Array<{ id: string; name: string }>;
   skills?: Array<{ id: string; skill: string }>;
-  taskType?: TaskType;
   onClose: () => void;
   onSubmit?: (task: any) => Promise<void>;
   onDelete?: () => Promise<void>;
@@ -51,8 +48,6 @@ interface TaskState {
   requiredSkills?: Array<{ skill?: string; hours?: string }>;
   startDate?: Date;
   endDate?: Date;
-  taskType?: string;
-  category?: string;
   dependencyOn?: Array<{ title: string; status: string; endDate: Date }>;
   dependencyOf?: Array<{ title: string; status: string; endDate: Date }>;
 }
@@ -88,7 +83,7 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
     setDeleteLoading(true);
     try {
       await props.onDelete?.();
-      setTask({ status: 'Backlog', startDate: new Date(), endDate: new Date(), taskType: props.taskType || 'task' });
+      setTask({ status: 'Backlog', startDate: new Date(), endDate: new Date() });
     } catch {
       // keep dialog open on failure
     } finally {
@@ -135,14 +130,9 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
                 ? editing
                   ? 'Edit Task'
                   : 'Task Details'
-                : task.taskType === 'ci_update'
-                  ? 'New CI Update'
-                  : task.taskType === 'project_note'
-                    ? 'New Project Note'
-                    : 'New Task'}
+                : 'New Task'}
             </Typography>
           </Box>
-          {task.taskType !== 'project_note' && (
           <MemberList
             editable={editing}
             data={props.users || []}
@@ -153,7 +143,6 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
               setTask({ ...task, members: members.map((x) => x.id) })
             }
           />
-          )}
         </Box>
       </DialogTitle>
       <Divider />
@@ -226,34 +215,7 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
           />
         </Box>
 
-        {/* Category — only for CI updates */}
-        {task.taskType === 'ci_update' && (
-          <Box>
-            {editing ? (
-              <FormControl
-                placeholder="Category"
-                value={task.category ?? ''}
-                onChange={(val) => setTask({ ...task, category: val })}
-                labelKey="label"
-                valueKey="id"
-                options={[
-                  'Safety', 'Quality', 'Process', 'Equipment',
-                  '5S', 'Training', 'Environmental', 'Other',
-                ].map((x) => ({ id: x, label: x }))}
-              />
-            ) : (
-              <>
-                <Typography variant="caption" color="text.secondary">
-                  Category
-                </Typography>
-                <Typography variant="body2">{task.category ?? '—'}</Typography>
-              </>
-            )}
-          </Box>
-        )}
-
-        {/* Status — only for tasks */}
-        {task.taskType === 'task' && (
+        {/* Status */}
         <Box>
           {editing ? (
             <FormControl
@@ -275,10 +237,8 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
             </>
           )}
         </Box>
-        )}
 
-        {/* Dates — only for tasks */}
-        {task.taskType === 'task' && (
+        {/* Dates */}
         <Box
           sx={{
             display: 'grid',
@@ -329,10 +289,9 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
             </Box>
           )}
         </Box>
-        )}
 
-        {/* Dependencies info — only for tasks */}
-        {task.taskType === 'task' && hasDependencies && (
+        {/* Dependencies info */}
+        {hasDependencies && (
           <Box
             sx={{
               border: '1px solid',
@@ -401,9 +360,8 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
           </Box>
         )}
 
-        {/* Skills section — only for tasks */}
-        {task.taskType === 'task' && (
-          <Box
+        {/* Skills section */}
+        <Box
             sx={{
               border: '1px solid',
               borderColor: 'divider',
@@ -504,7 +462,6 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
               </Box>
             ))}
           </Box>
-        )}
 
       </DialogContent>
 

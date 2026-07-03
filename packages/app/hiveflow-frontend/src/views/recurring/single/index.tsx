@@ -187,6 +187,23 @@ export const ScheduleSingle: React.FC = () => {
   const scheduleRef = React.useRef(schedule);
   scheduleRef.current = schedule;
 
+  // ── Debounced mutation — avoid firing updateEvent on every keystroke ─
+  const mutationTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const debouncedUpdate = useCallback(
+    (eventId: string, input: Record<string, any>) => {
+      const fieldKeys = Object.keys(input).sort().join(',');
+      const timerKey = `${eventId}|${fieldKeys}`;
+      const existing = mutationTimersRef.current.get(timerKey);
+      if (existing) clearTimeout(existing);
+      const timer = setTimeout(() => {
+        mutationTimersRef.current.delete(timerKey);
+        updateEvent({ variables: { id: eventId, input } }).then(() => refetch());
+      }, 300);
+      mutationTimersRef.current.set(timerKey, timer);
+    },
+    [updateEvent, refetch],
+  );
+
   // Default horizon: current year
   const [horizon, setHorizon] = useState({
     start: moment().startOf('year').toDate(),
@@ -286,12 +303,12 @@ export const ScheduleSingle: React.FC = () => {
         name: '',
         description: '',
         frequency: 'monthly',
-        startDate: moment().format('YYYY-MM-DD'),
+        startDate: '',
         endDate: '',
         assignedTo: '',
       }]);
     }
-  }, [drafts.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [schedule, drafts.length]);
 
   const draftInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -352,7 +369,7 @@ export const ScheduleSingle: React.FC = () => {
     setDrafts((prev) => {
       const draft = prev.find((d) => d.id === draftId);
       draftToCommit = draft as any;
-      const valid = draft && draft.name.trim() && draft.startDate;
+      const valid = draft && draft.name.trim();
 
       if (valid) {
         rowRank = rankedRows.find((r) => r.id === draftId)?.rank;
@@ -367,7 +384,7 @@ export const ScheduleSingle: React.FC = () => {
                 name: draft!.name.trim(),
                 description: draft!.description,
                 frequency: draft!.frequency,
-                startDate: draft!.startDate,
+                startDate: draft!.startDate || moment().format('YYYY-MM-DD'),
                 endDate: draft!.endDate || undefined,
                 assignedTo: draft!.assignedTo || undefined,
                 rowOrder: rowRank ? rowRank.toString() : undefined,
@@ -387,7 +404,7 @@ export const ScheduleSingle: React.FC = () => {
             name: '',
             description: '',
             frequency: 'monthly',
-            startDate: moment().format('YYYY-MM-DD'),
+            startDate: '',
             endDate: '',
             assignedTo: '',
             _insertAfter: insertAfter,
@@ -417,7 +434,7 @@ export const ScheduleSingle: React.FC = () => {
         name: '',
         description: '',
         frequency: 'monthly',
-        startDate: moment().format('YYYY-MM-DD'),
+        startDate: '',
         endDate: '',
         assignedTo: '',
         _insertAfter: afterEventId,
@@ -600,10 +617,9 @@ export const ScheduleSingle: React.FC = () => {
     }));
   }, [rankedRows]);
 
-  const timelineItems = ((): TimelineItem[] => {
+  const timelineItems = useMemo((): TimelineItem[] => {
     if (!schedule) return [];
     const items: TimelineItem[] = [];
-    // Pre-compute color index per event: root events get their own color, children inherit parent's color
     const rootEvents = schedule.events.filter((e) => !e.parentId);
     const colorMap = new Map<string, number>();
     const resolveColorIx = (eventId: string): number => {
@@ -620,34 +636,28 @@ export const ScheduleSingle: React.FC = () => {
       return ix;
     };
     schedule.events.forEach((event) => {
-      const occurrences = generateOccurrences(event, horizon.start, horizon.end);
-      if (occurrences.length === 0) return;
+      // One bar per event spanning its active date range.
+      // This keeps the items array O(events) so horizon shifts during
+      // panning stay well under the 16ms frame budget.
+      const startDate = new Date(event.startDate);
+      const endDate = event.endDate
+        ? new Date(event.endDate)
+        : moment(event.startDate).add(1, 'year').toDate();
       const colorIx = resolveColorIx(event.id);
       const color = EVENT_COLORS[Math.abs(colorIx) % EVENT_COLORS.length];
-
-      // Create a visual marker for each occurrence — these are derived,
-      // not primary objects. All share the event's groupId so they appear
-      // in the same row as the definition.
-      for (let i = 0; i < occurrences.length; i++) {
-        const occDate = occurrences[i];
-        // Each marker spans 3 days so it's clearly visible at any zoom level,
-        // while still leaving gaps between occurrences so the repetition is obvious.
-        const markerEnd = moment(occDate).add(3, 'days').toDate();
-
-        items.push({
-          id: `${event.id}-occ-${i}`,
-          start: occDate,
-          end: markerEnd,
-          groupId: event.id,
-          color,
-          selectable: false,
-          resizable: false,
-          data: { event, occurrenceIndex: i },
-        });
-      }
+      items.push({
+        id: event.id,
+        start: startDate,
+        end: endDate,
+        groupId: event.id,
+        color,
+        selectable: false,
+        resizable: false,
+        data: { event },
+      });
     });
     return items;
-  })();
+  }, [schedule]);
 
   // ── Sidebar: column widths & resize ─────────────────────
 
@@ -866,7 +876,6 @@ export const ScheduleSingle: React.FC = () => {
                   return [...parentConns, hasLaterSibling];
                 })()}
               />
-              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#90caf9', flexShrink: 0, mt: '11px' }} />
             </Box>
             <Box sx={cellSx}>
               <TextField size="small" variant="standard" placeholder="Event name" value={draft.name} autoFocus
@@ -953,14 +962,14 @@ export const ScheduleSingle: React.FC = () => {
           </Box>
           <Box sx={cellSx}>
             <TextField select size="small" variant="standard" key={`freq-${event.id}-${event.frequency}`} defaultValue={event.frequency}
-              onChange={(e) => updateEvent({ variables: { id: event.id, input: { frequency: e.target.value } } }).then(() => refetch())}
+              onChange={(e) => debouncedUpdate(event.id, { frequency: e.target.value })}
               sx={{ flex: 1, ...inputSx }}>
               {FREQUENCIES.map((f) => <MenuItem key={f.value} value={f.value} sx={{ fontSize: '0.75rem' }}>{f.label}</MenuItem>)}
             </TextField>
           </Box>
           <Box sx={cellSx}>
             <TextField key={`start-${event.id}-${event.startDate}`} size="small" variant="standard" type="date" defaultValue={event.startDate}
-              onChange={(e) => { if (e.target.value && e.target.value !== event.startDate) updateEvent({ variables: { id: event.id, input: { startDate: e.target.value } } }).then(() => refetch()); }}
+              onChange={(e) => { if (e.target.value && e.target.value !== event.startDate) debouncedUpdate(event.id, { startDate: e.target.value }); }}
               onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
               InputLabelProps={{ shrink: true }}
               sx={{ flex: 1, height: '100%', '& .MuiInputBase-root': { py: 0, height: '100%' }, '& .MuiInputBase-input': { px: '8px', py: '2px', fontSize: '0.7rem', height: '100%' } }}
@@ -968,14 +977,14 @@ export const ScheduleSingle: React.FC = () => {
           </Box>
           <Box sx={cellSx}>
             <TextField key={`end-${event.id}-${event.endDate || ''}`} size="small" variant="standard" type="date" defaultValue={event.endDate || ''}
-              onChange={(e) => { updateEvent({ variables: { id: event.id, input: { endDate: e.target.value || ('' as any) } } }).then(() => refetch()); }}
+              onChange={(e) => { debouncedUpdate(event.id, { endDate: e.target.value || ('' as any) }); }}
               InputLabelProps={{ shrink: true }}
               sx={{ flex: 1, height: '100%', '& .MuiInputBase-root': { py: 0, height: '100%' }, '& .MuiInputBase-input': { px: '8px', py: '2px', fontSize: '0.7rem', height: '100%' } }}
             />
           </Box>
           <Box sx={{ ...cellSx, borderRight: 'none' }}>
             <Autocomplete freeSolo options={users.map((u) => u.name)} defaultValue={event.assignedTo || ''}
-              onInputChange={(_, val) => updateEvent({ variables: { id: event.id, input: { assignedTo: val || ('' as any) } } }).then(() => refetch())}
+              onInputChange={(_, val) => debouncedUpdate(event.id, { assignedTo: val || ('' as any) })}
               onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
               renderInput={(params) => <TextField {...params} variant="standard" placeholder="—"
                 sx={{ '& .MuiInputBase-root': { py: 0, fontSize: '0.7rem', height: '100%' }, '& .MuiInputBase-input': { px: '8px', py: '2px', height: '100%' } }} />}
@@ -989,7 +998,7 @@ export const ScheduleSingle: React.FC = () => {
         </Box>
       );
     },
-    [treeInfo, rankedRows, collapsed, toggleCollapse, indentEvent, outdentEvent, users, updateEvent, refetch, updateDraftField, commitDraft, handleEnterInRow, handleDeleteRow, removeDraft, handleDragStart, handleDragOver, handleDrop, dropTargetId, draftInputRef, colTree, colFreq, colStart, colEnd, colAssigned, gridColumns, schedule],
+    [treeInfo, rankedRows, collapsed, toggleCollapse, indentEvent, outdentEvent, users, debouncedUpdate, updateDraftField, commitDraft, handleEnterInRow, handleDeleteRow, removeDraft, handleDragStart, handleDragOver, handleDrop, dropTargetId, draftInputRef, colTree, colFreq, colStart, colEnd, colAssigned, gridColumns, schedule],
   );
 
   const handleItemCreate = useCallback((start: Date, _end: Date, groupId?: string) => {

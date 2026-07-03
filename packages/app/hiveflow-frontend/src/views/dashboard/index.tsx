@@ -23,6 +23,8 @@ import {
 import { Box } from '@mui/material'
 import { Dashboard as ManagementIcon } from '@mui/icons-material'
 
+import { useTypeConfiguration } from '../../context';
+
 import { ProjectList } from '../projects/list';
 import { ProjectSingle } from '../projects/single';
 import { PeopleList } from '../people/list';
@@ -49,6 +51,8 @@ import { ManagementView } from '../management';
 
 
 export const Dashboard = (props: any) => { 
+
+  const managementPerm = useTypeConfiguration('Management');
 
   //  const [ view, setView ] = React.useState('schedule')
   // const [ alerts, setAlerts ] = useState<string[]>([])
@@ -206,12 +210,12 @@ export const Dashboard = (props: any) => {
       icon: <ComplianceIcon filter="invert(1)" />,
       component: <ComplianceView />
     },
-    {
+    ...(managementPerm?.read !== false ? [{
       path: 'management',
       label: 'Management',
       icon: <ManagementIcon sx={{ color: 'white' }} />,
       component: <ManagementView />
-    }
+    }] : [])
   ]
       return (
 

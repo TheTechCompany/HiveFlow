@@ -169,6 +169,50 @@ const RowBar = React.memo(function RowBar({
   );
 });
 
+// ── Memo'd sidebar cell — isolated so panning doesn't re-render MUI content ─
+
+interface SidebarCellProps {
+  sidebarWidth: number;
+  sidebarPadding: boolean;
+  isPlaceholder: boolean;
+  group?: TimelineGroup;
+  groupId: string;
+  isExpanded: boolean;
+  renderGroupHeader?: (group: TimelineGroup, expanded: boolean) => React.ReactNode;
+}
+
+const SidebarCell = React.memo(function SidebarCell({
+  sidebarWidth,
+  sidebarPadding,
+  isPlaceholder,
+  group,
+  groupId,
+  isExpanded,
+  renderGroupHeader,
+}: SidebarCellProps) {
+  return (
+    <div
+      data-timeline-sidebar
+      style={{
+        ...SIDEBAR_STYLE,
+        width: `${sidebarWidth}px`,
+        minWidth: `${sidebarWidth}px`,
+        ...(sidebarPadding
+          ? {}
+          : { padding: 0, borderRight: 'none' }),
+      }}
+    >
+      {isPlaceholder
+        ? ''
+        : group
+          ? renderGroupHeader
+            ? renderGroupHeader(group, isExpanded)
+            : group.label ?? groupId
+          : groupId}
+    </div>
+  );
+});
+
 // ── Row component ───────────────────────────────────────────────────
 
 export const TimelineRow: React.FC<TimelineRowProps> = React.memo(
@@ -229,27 +273,17 @@ export const TimelineRow: React.FC<TimelineRowProps> = React.memo(
         data-timeline-row={groupId}
         style={{ ...borderStyle, height: `${rowHeight}px` }}
       >
-        {/* Sidebar gutter */}
+        {/* Sidebar gutter — memoized separately so panning skips MUI content */}
         {showSidebar && sidebarWidth > 0 && (
-          <div
-            data-timeline-sidebar
-            style={{
-              ...SIDEBAR_STYLE,
-              width: `${sidebarWidth}px`,
-              minWidth: `${sidebarWidth}px`,
-              ...(sidebarPadding
-                ? {}
-                : { padding: 0, borderRight: 'none' }),
-            }}
-          >
-            {isPlaceholder
-              ? ''
-              : group
-                ? renderGroupHeader
-                  ? renderGroupHeader(group, isExpanded)
-                  : group.label ?? groupId
-                : groupId}
-          </div>
+          <SidebarCell
+            sidebarWidth={sidebarWidth}
+            sidebarPadding={sidebarPadding}
+            isPlaceholder={!!isPlaceholder}
+            group={group}
+            groupId={groupId}
+            isExpanded={isExpanded}
+            renderGroupHeader={renderGroupHeader}
+          />
         )}
 
         {/* Bar area */}

@@ -2,11 +2,11 @@
  * UI tests for the Recurring Schedule Single view.
  *
  * Verifies the GanttView sidebar: column headers, tree-branch
- * rendering, draft rows, and resize handles.
+ * rendering, event rows, resize handles, and keyboard navigation.
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 
 // ── Mocks ───────────────────────────────────────────────────────────
 
@@ -154,12 +154,12 @@ describe('ScheduleSingle — sidebar', () => {
     expect(childBranch).toBeTruthy();
   });
 
-  it('renders draft row', () => {
-    setupQueryMocks([]);
+  it('renders event rows for each event in the schedule', () => {
+    setupQueryMocks([makeEvent()]);
     render(<ScheduleSingle />);
 
-    const draftRow = screen.getByTestId(/row-draft/);
-    expect(draftRow).toBeTruthy();
+    const row = screen.getByTestId('row-evt-1');
+    expect(row).toBeTruthy();
   });
 
   it('uses sidebarWidth for the sidebar', () => {
@@ -176,90 +176,36 @@ describe('ScheduleSingle — sidebar', () => {
     expect(mockGanttProps.movable).toBe(true);
   });
 
-  // ── Enter / indent / ordering ─────────────────────────────────
+  // ── Ordering ────────────────────────────────────────────────
 
-  it('renders groups in tree order: events first, then bottom draft', () => {
+  it('renders groups in tree order', () => {
     setupQueryMocks([makeEvent()]);
     render(<ScheduleSingle />);
 
     const groups = mockGanttProps.groups;
-    expect(groups.length).toBeGreaterThanOrEqual(2);
-    // First group is the event
+    expect(groups.length).toBeGreaterThanOrEqual(1);
     expect(groups[0].id).toBe('evt-1');
-    // Last group is the bottom draft
-    expect(groups[groups.length - 1].id).toMatch(/^draft-/);
   });
 
-  it('positions draft rows after their target event when _insertAfter is set', () => {
-    const childEvent = makeEvent({ id: 'evt-2', parentId: 'evt-1', name: 'Sub-task' });
-    setupQueryMocks([makeEvent(), childEvent]);
-    render(<ScheduleSingle />);
-
-    // The draft at the bottom has no _insertAfter, so it stays at end
-    const groups = mockGanttProps.groups;
-    const lastId = groups[groups.length - 1].id;
-    expect(lastId).toMatch(/^draft-/);
-  });
-
-  it('renders TreeBranchVSCode in draft rows that have a parentId', () => {
-    // This test verifies draft indentation via TreeBranchVSCode
-    // We can't easily set parentId on the seed draft, but we verify
-    // tree branches exist when events have children
+  it('renders TreeBranchVSCode for parent/child events', () => {
     const childEvent = makeEvent({ id: 'evt-2', parentId: 'evt-1', name: 'Sub-task' });
     setupQueryMocks([makeEvent(), childEvent]);
     render(<ScheduleSingle />);
 
     const treeBranches = screen.getAllByTestId('tree-branch');
-    // Both parent and child events should have tree branches
     expect(treeBranches.length).toBeGreaterThanOrEqual(2);
   });
 
-  // ── Draft lifecycle ─────────────────────────────────────────
-
-  it('maintains exactly one seed draft at the bottom after commit', () => {
-    setupQueryMocks([makeEvent()]);
-    // Render twice to simulate state settling
-    const { rerender } = render(<ScheduleSingle />);
-    rerender(<ScheduleSingle />);
-
-    const groups = mockGanttProps.groups;
-    const draftGroups = groups.filter((g) => g.id.startsWith('draft-'));
-    // Should have exactly one seed draft
-    expect(draftGroups.length).toBe(1);
-    // It should be the last group
-    expect(groups[groups.length - 1].id).toMatch(/^draft-/);
-  });
-
-  it('keeps events in tree order before drafts', () => {
+  it('keeps events in tree order', () => {
     const childEvent = makeEvent({ id: 'evt-2', parentId: 'evt-1', name: 'Child' });
     setupQueryMocks([makeEvent(), childEvent]);
     const { rerender } = render(<ScheduleSingle />);
     rerender(<ScheduleSingle />);
 
     const groups = mockGanttProps.groups;
-    const eventIds = groups.filter((g) => !g.id.startsWith('draft-')).map((g) => g.id);
-    // Events must be in tree order: parent before child
-    expect(eventIds).toEqual(['evt-1', 'evt-2']);
+    const eventIds = groups.map((g) => g.id);
+    expect(eventIds).toEqual(['evt-1', 'evt-2', '__blank__']);
   });
-
-  it('interleaves an inserted draft after its target event in a tree', () => {
-    // Scenario: tree with parent (evt-1) and child (evt-2, parentId=evt-1)
-    // User presses Enter on evt-1 → draft inserted after evt-1, before evt-2
-    const childEvent = makeEvent({ id: 'evt-2', parentId: 'evt-1', name: 'Child' });
-    setupQueryMocks([makeEvent(), childEvent]);
-    render(<ScheduleSingle />);
-
-    // Verify the tree structure before insertion
-    const groupsBefore = mockGanttProps.groups;
-    const eventOrder = groupsBefore.filter((g) => !g.id.startsWith('draft-')).map((g) => g.id);
-    expect(eventOrder).toEqual(['evt-1', 'evt-2']);
-
-    // The bottom draft is at the end
-    const draftIdx = groupsBefore.findIndex((g) => g.id.startsWith('draft-'));
-    expect(draftIdx).toBeGreaterThan(1); // after both events
-  });
-
-  // ── Enter-in-middle: multiple drafts at same position ──────
 
   it('assigns unique group IDs to every row', () => {
     setupQueryMocks([makeEvent()]);
@@ -267,18 +213,6 @@ describe('ScheduleSingle — sidebar', () => {
     const ids = mockGanttProps.groups.map((g) => g.id);
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(ids.length);
-  });
-
-  it('places events before drafts in the group list', () => {
-    setupQueryMocks([makeEvent(), makeEvent({ id: 'evt-2', name: 'Second' })]);
-    render(<ScheduleSingle />);
-    const groups = mockGanttProps.groups;
-    const firstDraftIdx = groups.findIndex((g) => g.id.startsWith('draft-'));
-    const lastEventIdx = groups.slice(0, firstDraftIdx).length - 1;
-    // Everything before the first draft should be an event
-    for (let i = 0; i <= lastEventIdx; i++) {
-      expect(groups[i].id).not.toMatch(/^draft-/);
-    }
   });
 
   it('maintains tree ordering for parent/child events', () => {
@@ -295,13 +229,76 @@ describe('ScheduleSingle — sidebar', () => {
     expect(c1Idx).toBeLessThan(c2Idx);
   });
 
-  it('seed draft has no parentId', () => {
+  // ── Keyboard navigation ────────────────────────────────────
+
+  it('Cmd+] on event row triggers indent', () => {
+    setupQueryMocks([makeEvent(), makeEvent({ id: 'evt-2', name: 'Second' })]);
+    render(<ScheduleSingle />);
+
+    const row = screen.getByTestId('row-evt-2');
+    fireEvent.keyDown(row.firstElementChild!, { key: ']', metaKey: true });
+    const [mutateFn] = mockUseMutation();
+    expect(mutateFn).toHaveBeenCalled();
+  });
+
+  it('Cmd+[ on event row triggers outdent', () => {
+    const childEvent = makeEvent({ id: 'evt-2', parentId: 'evt-1', name: 'Child' });
+    setupQueryMocks([makeEvent(), childEvent]);
+    render(<ScheduleSingle />);
+
+    const row = screen.getByTestId('row-evt-2');
+    fireEvent.keyDown(row.firstElementChild!, { key: '[', metaKey: true });
+    const [mutateFn] = mockUseMutation();
+    expect(mutateFn).toHaveBeenCalled();
+  });
+
+  it('Tab on event row does NOT trigger indent (moved to Cmd+])', () => {
     setupQueryMocks([makeEvent()]);
     render(<ScheduleSingle />);
-    const groups = mockGanttProps.groups;
-    const draftGroup = groups.find((g) => g.id.startsWith('draft-'));
-    expect(draftGroup).toBeTruthy();
-    // The seed draft should render with no tree-branch at depth 0
-    // (we can't directly check parentId via the mock, but it should exist)
+    // Clear seed-effect mutation call
+    const [mutateFn] = mockUseMutation();
+    mutateFn.mockClear();
+
+    const row = screen.getByTestId('row-evt-1');
+    fireEvent.keyDown(row.firstElementChild!, { key: 'Tab' });
+    expect(mutateFn).not.toHaveBeenCalled();
+  });
+
+  it('Shift+Tab on event row does NOT trigger outdent', () => {
+    const childEvent = makeEvent({ id: 'evt-2', parentId: 'evt-1', name: 'Child' });
+    setupQueryMocks([makeEvent(), childEvent]);
+    render(<ScheduleSingle />);
+    // Clear seed-effect mutation call
+    const [mutateFn] = mockUseMutation();
+    mutateFn.mockClear();
+
+    const row = screen.getByTestId('row-evt-2');
+    fireEvent.keyDown(row.firstElementChild!, { key: 'Tab', shiftKey: true });
+    expect(mutateFn).not.toHaveBeenCalled();
+  });
+
+  it('Enter on event name field prevents default and triggers create', () => {
+    setupQueryMocks([makeEvent()]);
+    render(<ScheduleSingle />);
+
+    const row = screen.getByTestId('row-evt-1');
+    const nameInput = row.querySelector('input');
+    expect(nameInput).toBeTruthy();
+    const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+    nameInput!.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('Enter on event row triggers createEvent mutation', () => {
+    setupQueryMocks([makeEvent()]);
+    render(<ScheduleSingle />);
+
+    const row = screen.getByTestId('row-evt-1');
+    const nameInput = row.querySelector('input');
+    const keyEvent = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+    nameInput!.dispatchEvent(keyEvent);
+    const [mutateFn] = mockUseMutation();
+    // The createEvent mutation should have been called (via handleCreateBelow)
+    expect(mutateFn).toHaveBeenCalled();
   });
 });

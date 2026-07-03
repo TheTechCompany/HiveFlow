@@ -15,6 +15,8 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  Chip,
+  Collapse,
 } from '@mui/material';
 import {
   CheckBoxOutlined,
@@ -27,7 +29,10 @@ import {
   TaskOutlined,
   BuildOutlined,
   NoteAddOutlined,
+  ExpandMore,
+  ExpandLess,
 } from '@mui/icons-material';
+import { gql, useQuery } from '@apollo/client';
 import { AvatarList } from '@hexhive/ui';
 import {
   HorizontalKanban,
@@ -36,6 +41,8 @@ import {
 } from '../../components/TaskViews';
 import { useAssignments } from '../../hooks/use-assignments';
 import { TaskModal } from '../../modals/new-task';
+import { CiUpdateModal } from '../../modals/new-task/ci-update';
+import { ProjectNoteModal } from '../../modals/new-task/project-note';
 import { HandoverModal } from '../../components/HandoverModal';
 import { extractChecklistFromHtml } from '@hive-flow/ui';
 import type {
@@ -43,6 +50,23 @@ import type {
   KanbanRow,
   TaskFilterOption,
 } from '../../types/kanban';
+
+// ── GraphQL ─────────────────────────────────────────────────────────
+
+const MY_CONTINUOUS_IMPROVEMENTS = gql`
+  query MyContinuousImprovements {
+    myContinuousImprovements {
+      id
+      displayId
+      title
+      category
+      source
+      status
+      priority
+      createdAt
+    }
+  }
+`;
 
 // ── View switcher types ─────────────────────────────────────────────
 
@@ -161,12 +185,19 @@ export const Assignments: React.FC = () => {
   // ── Local UI state ─────────────────────────────────────────────
 
   const [filter, setFilter] = useState<TaskFilterOption[]>([]);
-  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'task' | 'ci_update' | 'project_note' | null>(null);
   const [selectedTask, setSelectedTask] = useState<KanbanTask | null>(null);
-  const [formTaskType, setFormTaskType] = useState<'task' | 'ci_update' | 'project_note'>('task');
   const [viewMode, setViewMode] = useState<TaskViewMode>('horizontal');
   const [groupBy, setGroupBy] = useState<GroupByMode>('none');
   const [addMenuAnchor, setAddMenuAnchor] = useState<HTMLElement | null>(null);
+  const [showMyCIs, setShowMyCIs] = useState(false);
+
+  // ── My CIs query ──────────────────────────────────────────────
+
+  const { data: myCiData } = useQuery(MY_CONTINUOUS_IMPROVEMENTS, {
+    fetchPolicy: 'cache-and-network',
+  });
+  const myCIs: any[] = myCiData?.myContinuousImprovements ?? [];
 
   // ── Derived columns ────────────────────────────────────────────
 
@@ -190,14 +221,12 @@ export const Assignments: React.FC = () => {
 
   const handleSelectCard = useCallback((row: KanbanRow) => {
     setSelectedTask(row._task);
-    setFormTaskType((row._task as any).taskType || 'task');
-    setTaskModalOpen(true);
+    setModalType('task');
   }, []);
 
   const handleCloseModal = useCallback(() => {
-    setTaskModalOpen(false);
+    setModalType(null);
     setSelectedTask(null);
-    setFormTaskType('task');
   }, []);
 
   const handleDeleteTask = useCallback(async () => {
@@ -227,6 +256,8 @@ export const Assignments: React.FC = () => {
           startDate: task.startDate,
           endDate: task.endDate,
           status: task.status ?? 'Backlog',
+          taskType: task.taskType,
+          category: task.category,
         });
       } else if (taskType) {
         // ── Edit mode ────────────────────────────────────────
@@ -238,6 +269,8 @@ export const Assignments: React.FC = () => {
             startDate: task.startDate,
             endDate: task.endDate,
             status: task.status,
+            taskType: task.taskType,
+            category: task.category,
           },
           taskType,
         );
@@ -286,16 +319,29 @@ export const Assignments: React.FC = () => {
         display: 'flex',
       }}
     >
-      {/* ── Task edit modal ──────────────────────────────────── */}
+      {/* ── Task modal ─────────────────────────────────────── */}
       <TaskModal
         users={users}
-        open={taskModalOpen}
+        open={modalType === 'task'}
         selected={selectedTask ? taskToSelected(selectedTask) : null}
-        taskType={formTaskType}
         onClose={handleCloseModal}
         onDelete={handleDeleteTask}
         onSubmit={handleSubmitTask}
         onAutoSaveDescription={handleAutoSaveDescription}
+      />
+
+      {/* ── CI Update modal ─────────────────────────────────── */}
+      <CiUpdateModal
+        users={users}
+        open={modalType === 'ci_update'}
+        onClose={handleCloseModal}
+      />
+
+      {/* ── Project Note modal ──────────────────────────────── */}
+      <ProjectNoteModal
+        open={modalType === 'project_note'}
+        onClose={handleCloseModal}
+        onSubmit={handleSubmitTask}
       />
 
       {/* ── Handover modal ───────────────────────────────────── */}
@@ -410,8 +456,7 @@ export const Assignments: React.FC = () => {
               onClick={() => {
                 setAddMenuAnchor(null);
                 setSelectedTask(null);
-                setFormTaskType('task');
-                setTaskModalOpen(true);
+                setModalType('task');
               }}
             >
               <ListItemIcon><TaskOutlined fontSize="small" /></ListItemIcon>
@@ -421,8 +466,7 @@ export const Assignments: React.FC = () => {
               onClick={() => {
                 setAddMenuAnchor(null);
                 setSelectedTask(null);
-                setFormTaskType('ci_update');
-                setTaskModalOpen(true);
+                setModalType('ci_update');
               }}
             >
               <ListItemIcon><BuildOutlined fontSize="small" /></ListItemIcon>
@@ -432,8 +476,7 @@ export const Assignments: React.FC = () => {
               onClick={() => {
                 setAddMenuAnchor(null);
                 setSelectedTask(null);
-                setFormTaskType('project_note');
-                setTaskModalOpen(true);
+                setModalType('project_note');
               }}
             >
               <ListItemIcon><NoteAddOutlined fontSize="small" /></ListItemIcon>
@@ -456,7 +499,8 @@ export const Assignments: React.FC = () => {
       </Box>
 
       {/* ── Task list area ────────────────────────────────────── */}
-      <Box sx={{ bgcolor: 'background.default', display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <Box sx={{ bgcolor: 'background.default', display: 'flex', flex: 1, overflow: 'hidden', flexDirection: 'column' }}>
+        <Box sx={{ flex: 1, overflow: 'hidden' }}>
         {columns.length === 0 ? (
           <Box
             sx={{
@@ -490,6 +534,83 @@ export const Assignments: React.FC = () => {
             refetch={refetch}
           />
         ) : null}
+        </Box>
+
+        {/* ── My CIs collapsible section ────────────────────────── */}
+        <Box sx={{ borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+          <Button
+            fullWidth
+            size="small"
+            onClick={() => setShowMyCIs(!showMyCIs)}
+            sx={{
+              textTransform: 'none',
+              justifyContent: 'space-between',
+              px: 2,
+              py: 0.5,
+              fontSize: '0.75rem',
+              color: 'text.secondary',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <BuildOutlined fontSize="small" />
+              My Continuous Improvements ({myCIs.length})
+            </Box>
+            {showMyCIs ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
+          </Button>
+          <Collapse in={showMyCIs}>
+            <Box sx={{ maxHeight: 200, overflow: 'auto', px: 2, pb: 1 }}>
+              {myCIs.length === 0 ? (
+                <Typography variant="caption" color="text.secondary" sx={{ py: 1, display: 'block' }}>
+                  No CIs submitted yet. Use "Add Update → CI Update" to submit one.
+                </Typography>
+              ) : (
+                myCIs.map((ci: any) => (
+                  <Box
+                    key={ci.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      py: 0.75,
+                      borderBottom: '1px solid',
+                      borderColor: 'divider',
+                      '&:last-child': { borderBottom: 'none' },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="caption" fontWeight="bold" color="text.secondary">
+                        {ci.displayId}
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+                        {ci.title}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      {ci.category && (
+                        <Chip label={ci.category} size="small" variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+                      )}
+                      <Chip
+                        label={ci.status}
+                        size="small"
+                        sx={{
+                          bgcolor:
+                            ci.status === 'identified' ? '#9e9e9e' :
+                            ci.status === 'in_progress' ? '#4caf50' :
+                            ci.status === 'implemented' ? '#2196f3' :
+                            ci.status === 'verified' ? '#9c27b0' :
+                            ci.status === 'closed' ? '#757575' : '#9e9e9e',
+                          color: 'white',
+                          fontSize: '0.6rem',
+                          height: 18,
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                ))
+              )}
+            </Box>
+          </Collapse>
+        </Box>
       </Box>
     </Paper>
   );

@@ -100,7 +100,9 @@ CREATE TABLE "RecurringEvent" (
     "description" TEXT,
     "frequency" TEXT NOT NULL DEFAULT 'monthly',
     "startDate" TEXT NOT NULL,
+    "endDate" TEXT,
     "assignedTo" TEXT,
+    "rowOrder" TEXT,
     "organisation" TEXT NOT NULL,
 
     CONSTRAINT "RecurringEvent_pkey" PRIMARY KEY ("id")

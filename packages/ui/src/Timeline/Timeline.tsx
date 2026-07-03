@@ -1,4 +1,79 @@
 // ── Timeline — Main container ───────────────────────────────────────
+//
+// ## Architecture
+//
+// Timeline renders a Gantt-style time axis. It does NOT use native browser
+// scroll for horizontal movement — instead, the visible date range (the
+// "horizon") shifts in response to wheel/drag gestures, and all bar/grid
+// positions are recalculated from the new horizon via `dateToX()`.
+//
+// ## DOM structure
+//
+//   Timeline (root, flex column, overflow:hidden)
+//   ├── Header (flex row, shrink:0)
+//   │   ├── Sidebar header  (fixed width: sidebarW, optional)
+//   │   └── Header spacer   (flex:1) → TimelineHeader (date labels)
+//   └── Body (flex:1, overflow-y:auto — native Y scroll for vertical)
+//       ├── TimelineGrid   (absolute, pointer-events:none) — grid lines
+//       ├── TimelineLinks  (absolute, SVG) — dependency arrows
+//       ├── Ghost wrapper  (absolute) — create-by-drag preview
+//       └── ROWS_WRAPPER (flex column, min-height:100%)
+//           ├── TimelineRow  (one per group, flex row)
+//           │   ├── Sidebar gutter (fixed width, optional)
+//           │   └── Bar area (position:relative, flex:1)
+//           │       └── Bars  (position:absolute, via dateToX)
+//           └── …empty filler rows…
+//
+// ## Data flow
+//
+//   Consumer props (items, groups, start, end, step)
+//     → useTimeline() — geometry, selection, drag, barLayouts
+//       → rowEntries — groups mapped to { groupId, items[], laneCount }
+//         → TimelineRow — renders bars + optional sidebar via renderGroupHeader
+//           → RowBar (React.memo) — individual bar with resize handles
+//
+// ## Positioning
+//
+// Bars use absolute positioning inside a position:relative Bar area.
+//   left  = dateToX(item.start, horizon.start, pxPerMs)
+//   width = dateToX(item.end,   horizon.start, pxPerMs) - left
+// pxPerMs is constant during pure pan (same time span), so bar positions
+// shift linearly as the horizon moves — only `horizon.start` changes in
+// the formula `(date - horizon.start) * pxPerMs`.
+//
+// ## Panning & wheel scroll
+//
+// Horizontal movement is horizon-based, not scroll-based:
+//   - Wheel (deltaX or shift+deltaY) → shiftHorizon(deltaPx) →
+//     onHorizonChange(newStart, newEnd) → consumer updates horizon state
+//   - Drag on empty space → pointermove tracking → throttle(32ms) →
+//     onHorizonChange → consumer updates horizon
+//   - Edge-scroll during bar drag → rAF loop → shiftHorizon at 8px/50ms
+//
+// Vertical overflow is native: Body has overflow-y:auto. Wheel deltaY
+// (without shift) passes through to the browser for native Y scroll.
+//
+// ## Sidebar modes
+//
+// 1. Legacy (sidebarWidth prop): Timeline renders its own sidebar column
+//    with fixed-width gutter. renderGroupHeader draws the row labels.
+// 2. New (sidebar prop, via GanttView): Sidebar is a separate flex column
+//    in GanttView. Timeline receives sidebarWidth={0}.
+//
+// ## Performance
+//
+// NO virtualization — every row and every visible bar is rendered into the
+// DOM. This is acceptable for < ~200 items; beyond that, the caller should
+// reduce the item count (e.g., one bar per event, not per occurrence).
+//
+// React.memo on TimelineRow and RowBar prevents re-renders when props are
+// referentially stable. The `timeline` object from useTimeline is memoized
+// but has many dependencies — during panning it changes because
+// groupedItems/barLayouts change (different items become visible).
+//
+// For smooth 60fps panning, keep the total items array under ~500 entries
+// so that filterVisibleItems + packLanes + recomputing barLayouts stays
+// well under the 16ms frame budget.
 
 import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { TimelineHeader } from './TimelineHeader';
@@ -59,9 +134,11 @@ const HEADER_SPACER_STYLE: React.CSSProperties = {
 
 const BODY_STYLE: React.CSSProperties = {
   flex: 1,
-  overflow: 'hidden',
+  overflowY: 'auto',
+  overflowX: 'hidden',
   position: 'relative',
   overscrollBehavior: 'contain',
+  contain: 'layout style paint',
 };
 
 const SIDEBAR_LABEL_STYLE: React.CSSProperties = {
@@ -79,6 +156,7 @@ const ROWS_WRAPPER_STYLE: React.CSSProperties = {
   minHeight: '100%',
   display: 'flex',
   flexDirection: 'column',
+  willChange: 'transform',
 };
 
 
@@ -340,7 +418,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
     (e: React.WheelEvent) => {
       if (e.deltaX !== 0 || e.shiftKey) {
         e.preventDefault();
-        const delta = e.deltaX || e.deltaY;
+        const delta = -(e.deltaX || e.deltaY);
         timelineRef.current.shiftHorizon(delta);
       }
     },
@@ -586,7 +664,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
       <div ref={bodyRef} onWheel={handleWheel} style={{
         ...BODY_STYLE,
         flex: fullHeight ? 'none' : BODY_STYLE.flex,
-        overflow: fullHeight ? 'visible' : BODY_STYLE.overflow,
+        ...(fullHeight ? { overflowY: 'visible' as const, overflowX: 'visible' as const } : {}),
       }}>
         <TimelineGrid
           geometry={geometry} start={activeStart} end={activeEnd} step={step}

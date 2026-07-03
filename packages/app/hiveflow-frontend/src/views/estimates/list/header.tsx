@@ -28,6 +28,7 @@ export const QuoteHeader : React.FC<QuoteHeaderProps> = (props) => {
       <TextField
           variant='filled'
           size="small"
+          fullWidth
             value={props.filter?.search}
             onChange={(e: any) => props.onFilterChange?.({search: e.target.value})}
           label="Search Estimates..." />

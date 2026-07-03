@@ -30,6 +30,7 @@ export const Header : React.FC<HeaderProps> = (props) => {
         <TextField
             variant='filled'
             size="small"
+            fullWidth
             value={props.filter?.search}
             onChange={(e) => props.onFilterChange?.({search: e.target.value, status: props.filter?.status})}
             label="Search Projects..." />
