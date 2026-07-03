@@ -694,7 +694,6 @@ export const ScheduleSingle: React.FC = () => {
         groupId: event.id,
         color,
         selectable: false,
-        resizable: false,
         data: { event },
       });
     });
@@ -1047,33 +1046,37 @@ export const ScheduleSingle: React.FC = () => {
     [treeInfo, rankedRows, collapsed, toggleCollapse, indentEvent, outdentEvent, indentDraft, outdentDraft, users, debouncedUpdate, updateDraftField, commitDraft, handleEnterInRow, handleDeleteRow, removeDraft, handleDragStart, handleDragOver, handleDrop, dropTargetId, draftInputRef, colTree, colFreq, colStart, colEnd, colAssigned, gridColumns, schedule],
   );
 
-  const handleItemCreate = useCallback((start: Date, _end: Date, groupId?: string) => {
+  const handleItemCreate = useCallback((start: Date, end: Date, groupId?: string) => {
     if (!groupId) return;
     const startStr = moment(start).format('YYYY-MM-DD');
+    const endStr = moment(end).format('YYYY-MM-DD');
 
     // Use refs so we always see the latest drafts / schedule.
     const draft = draftsRef.current.find((d) => d.id === groupId);
     if (draft) {
       updateDraftField(groupId, 'startDate', startStr);
+      updateDraftField(groupId, 'endDate', endStr);
       return;
     }
 
     const event = scheduleRef.current?.events.find((e) => e.id === groupId);
     if (event) {
       updateEvent({
-        variables: { id: groupId, input: { startDate: startStr } },
+        variables: { id: groupId, input: { startDate: startStr, endDate: endStr } },
       }).then(() => refetch());
     }
   }, [updateDraftField, updateEvent, refetch]);
 
   const handleItemChange = useCallback((change: { id: string; start?: Date; end?: Date; groupId?: string }) => {
-    if (!change.start) return;
+    if (!change.start && !change.end) return;
     // Item ids are `${eventId}-occ-${i}`; extract the real event id
     const eventId = change.id.replace(/-occ-\d+$/, '');
-    const startStr = moment(change.start).format('YYYY-MM-DD');
     const event = scheduleRef.current?.events.find((e) => e.id === eventId);
     if (event) {
-      updateEvent({ variables: { id: eventId, input: { startDate: startStr } } }).then(() => refetch());
+      const input: Record<string, any> = {};
+      if (change.start) input.startDate = moment(change.start).format('YYYY-MM-DD');
+      if (change.end) input.endDate = moment(change.end).format('YYYY-MM-DD');
+      updateEvent({ variables: { id: eventId, input } }).then(() => refetch());
     }
   }, [updateEvent, refetch]);
 
@@ -1158,7 +1161,7 @@ export const ScheduleSingle: React.FC = () => {
         itemHeight={32}
         groupHeaderHeight={32}
         headerHeight={48}
-        resizable={false}
+        resizable
         movable
         showLinks={false}
         showToday
