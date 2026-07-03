@@ -135,7 +135,6 @@ const GET_USERS = gql`
 function generateOccurrences(event: RecurringEvent, windowStart: Date, windowEnd: Date): Date[] {
   const occurrences: Date[] = [];
   const start = moment(event.startDate);
-  const eventEnd = event.endDate ? moment(event.endDate) : null;
 
   let i = 0;
   // eslint-disable-next-line no-constant-condition
@@ -152,7 +151,6 @@ function generateOccurrences(event: RecurringEvent, windowStart: Date, windowEnd
     }
 
     if (cursor.isSameOrAfter(moment(windowEnd))) break;
-    if (eventEnd && cursor.isAfter(eventEnd)) break;
     if (i > 500) break; // safety
     if (cursor.isSameOrAfter(moment(windowStart))) {
       occurrences.push(cursor.toDate());
@@ -677,16 +675,18 @@ export const ScheduleSingle: React.FC = () => {
       colorMap.set(eventId, ix);
       return ix;
     };
+    // Expand horizon slightly so occurrences near edges don't pop in/out
+    const occWindowStart = moment(horizon.start).subtract(1, 'month').toDate();
+    const occWindowEnd = moment(horizon.end).add(1, 'month').toDate();
     schedule.events.forEach((event) => {
-      // One bar per event spanning its active date range.
-      // This keeps the items array O(events) so horizon shifts during
-      // panning stay well under the 16ms frame budget.
       const startDate = new Date(event.startDate);
       const endDate = event.endDate
         ? new Date(event.endDate)
         : moment(event.startDate).add(1, 'year').toDate();
       const colorIx = resolveColorIx(event.id);
       const color = EVENT_COLORS[Math.abs(colorIx) % EVENT_COLORS.length];
+
+      // Range bar (interactive)
       items.push({
         id: event.id,
         start: startDate,
@@ -696,9 +696,31 @@ export const ScheduleSingle: React.FC = () => {
         selectable: false,
         data: { event },
       });
+
+      // Each occurrence spans the same duration as the template (startDate → endDate)
+      const templateDuration = event.endDate
+        ? moment(event.endDate).diff(moment(event.startDate), 'milliseconds')
+        : 86400000; // default 1 day if no endDate set
+
+      const occurrences = generateOccurrences(event, occWindowStart, occWindowEnd);
+      occurrences.forEach((occDate, i) => {
+        if (i === 0) return; // skip first — already shown as the range bar
+        items.push({
+          id: `${event.id}-occ-${i}`,
+          start: occDate,
+          end: new Date(occDate.getTime() + templateDuration),
+          groupId: event.id,
+          color: `${color}99`, // semi-transparent
+          zIndex: 2,
+          selectable: false,
+          movable: true,
+          resizable: false,
+          data: { event, occurrence: true, occurrenceIndex: i },
+        });
+      });
     });
     return items;
-  }, [schedule]);
+  }, [schedule, horizon]);
 
   // ── Sidebar: column widths & resize ─────────────────────
 
@@ -1070,12 +1092,45 @@ export const ScheduleSingle: React.FC = () => {
   const handleItemChange = useCallback((change: { id: string; start?: Date; end?: Date; groupId?: string }) => {
     if (!change.start && !change.end) return;
     // Item ids are `${eventId}-occ-${i}`; extract the real event id
+    const isOccurrence = /-occ-\d+$/.test(change.id);
     const eventId = change.id.replace(/-occ-\d+$/, '');
     const event = scheduleRef.current?.events.find((e) => e.id === eventId);
     if (event) {
       const input: Record<string, any> = {};
-      if (change.start) input.startDate = moment(change.start).format('YYYY-MM-DD');
-      if (change.end) input.endDate = moment(change.end).format('YYYY-MM-DD');
+
+      if (isOccurrence && change.start) {
+        // Moving an occurrence: compute the shift and apply to the whole schedule
+        const occIndex = parseInt(change.id.match(/-occ-(\d+)$/)![1], 10);
+        const freq = event.frequency;
+        const origDate = moment(event.startDate);
+        switch (freq) {
+          case 'daily': origDate.add(occIndex, 'day'); break;
+          case 'weekly': origDate.add(occIndex, 'week'); break;
+          case 'monthly': origDate.add(occIndex, 'month'); break;
+          case 'quarterly': origDate.add(occIndex * 3, 'month'); break;
+          case 'yearly': origDate.add(occIndex, 'year'); break;
+          default: origDate.add(occIndex, 'month'); break;
+        }
+        const shiftDays = moment(change.start).diff(origDate, 'days');
+        input.startDate = moment(event.startDate).add(shiftDays, 'days').format('YYYY-MM-DD');
+        if (event.endDate) {
+          input.endDate = moment(event.endDate).add(shiftDays, 'days').format('YYYY-MM-DD');
+        }
+      } else {
+        if (change.start) {
+          input.startDate = moment(change.start).format('YYYY-MM-DD');
+          // If only moving (not resizing), shift endDate to preserve duration
+          if (!change.end && event.endDate) {
+            const oldStart = moment(event.startDate);
+            const oldEnd = moment(event.endDate);
+            const duration = oldEnd.diff(oldStart, 'days');
+            input.endDate = moment(change.start).add(duration, 'days').format('YYYY-MM-DD');
+          }
+        }
+        if (change.end) {
+          input.endDate = moment(change.end).format('YYYY-MM-DD');
+        }
+      }
       updateEvent({ variables: { id: eventId, input } }).then(() => refetch());
     }
   }, [updateEvent, refetch]);
