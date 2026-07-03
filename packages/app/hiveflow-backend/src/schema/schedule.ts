@@ -878,7 +878,7 @@ export default (prisma: PrismaClient) => {
                         startDate: args.input.startDate ?? undefined,
                         endDate: args.input.endDate ?? undefined,
                         assignedTo: args.input.assignedTo ?? undefined,
-                        parentId: args.input.parentId ?? undefined,
+                        parentId: 'parentId' in (args.input || {}) ? args.input.parentId : undefined,
                         rowOrder: args.input.rowOrder ?? undefined,
                     },
                 });

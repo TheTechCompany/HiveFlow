@@ -88,6 +88,7 @@ const CREATE_EVENT = gql`
   mutation CreateEvent($scheduleId: ID!, $input: RecurringEventInput!) {
     createRecurringEvent(scheduleId: $scheduleId, input: $input) {
       id
+      parentId
       name
       frequency
       startDate
@@ -101,6 +102,7 @@ const UPDATE_EVENT = gql`
   mutation UpdateEvent($id: ID!, $input: RecurringEventUpdateInput!) {
     updateRecurringEvent(id: $id, input: $input) {
       id
+      parentId
       name
       frequency
       startDate
@@ -165,6 +167,27 @@ const EVENT_COLORS = ['#ef5350', '#ff9800', '#42a5f5', '#66bb6a', '#ab47bc', '#2
 
 // ── Main ────────────────────────────────────────────────────────
 
+/**
+ * ## ScheduleSingle — Recurring Schedule Editor
+ *
+ * Spreadsheet-style editor for recurring event schedules with an inline
+ * timeline (Gantt) view.
+ *
+ * ### Keyboard shortcuts (when a row is focused)
+ *
+ * | Key            | Action                                   |
+ * | -------------- | ---------------------------------------- |
+ * | **Tab**        | Indent event one level deeper            |
+ * | **Shift+Tab**  | Outdent event one level (repeat to root) |
+ * | **Enter**      | Commit draft row / create sibling        |
+ * | **Escape**     | Clear draft name field                   |
+ *
+ * ### Inline creation (draft rows)
+ *
+ * A blank "draft" row is seeded when the schedule is empty.  Fill in a
+ * **name**, then press Enter to create the event.  Start date and other
+ * fields are optional — dates are never auto-filled.
+ */
 export const ScheduleSingle: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -225,6 +248,8 @@ export const ScheduleSingle: React.FC = () => {
   const treeInfo = useMemo(() => {
     if (!schedule) return { flat: [] as (RecurringEvent & { depth: number; hasChildren: boolean; connectors: boolean[] })[], childrenOf: new Map<string, string[]>() };
     const events = schedule.events;
+
+    // Build children lookup
     const childrenOf = new Map<string, string[]>();
     for (const e of events) {
       const pid = e.parentId || '__root__';
@@ -233,61 +258,54 @@ export const ScheduleSingle: React.FC = () => {
       childrenOf.set(pid, list);
     }
 
-    const getDepth = (eventId: string): number => {
-      let d = 0;
-      let cur = events.find((e) => e.id === eventId);
-      while (cur?.parentId) { d++; cur = events.find((e) => e.id === cur!.parentId); }
+    // Compute depth for each event (walk parent chain)
+    const depthOf = new Map<string, number>();
+    const computeDepth = (eventId: string): number => {
+      if (depthOf.has(eventId)) return depthOf.get(eventId)!;
+      const ev = events.find((x) => x.id === eventId);
+      if (!ev?.parentId) { depthOf.set(eventId, 0); return 0; }
+      const d = computeDepth(ev.parentId) + 1;
+      depthOf.set(eventId, d);
       return d;
     };
+    for (const e of events) computeDepth(e.id);
 
-    // Flatten in tree order (DFS), respecting collapsed
-    const flat: (RecurringEvent & { depth: number; hasChildren: boolean; connectors: boolean[] })[] = [];
-    const walk = (parentId: string | undefined, depth: number, parentConnectors: boolean[]) => {
-      const kids = childrenOf.get(parentId || '__root__') || [];
-      for (let i = 0; i < kids.length; i++) {
-        const eid = kids[i];
-        const event = events.find((e) => e.id === eid);
-        if (!event) continue;
-        const hasKids = childrenOf.has(eid);
-        const isLast = i === kids.length - 1;
-        const connectors = [...parentConnectors, !isLast];
-        flat.push({ ...event, depth, hasChildren: hasKids, connectors });
-        if (hasKids && !collapsed.has(eid)) {
-          walk(eid, depth + 1, connectors);
+    // Build flat list sorted by lexorank
+    type FlatEvent = RecurringEvent & { depth: number; hasChildren: boolean; connectors: boolean[] };
+    const flat: FlatEvent[] = events.map((e) => {
+      const depth = depthOf.get(e.id) ?? 0;
+      const hasChildren = childrenOf.has(e.id);
+      const rank = e.rowOrder ? (() => { try { return LexoRank.parse(e.rowOrder); } catch { return LexoRank.middle(); } })() : LexoRank.middle();
+      return { ...e, depth, hasChildren, connectors: [], _rank: rank } as FlatEvent & { _rank: LexoRank };
+    });
+    flat.sort((a: any, b: any) => a._rank.compareTo(b._rank));
+
+    // Compute connectors from flat lexorank order
+    for (let i = 0; i < flat.length; i++) {
+      const depth = flat[i].depth;
+      const connectors: boolean[] = [];
+      for (let level = 0; level < depth; level++) {
+        let hasLater = false;
+        for (let j = i + 1; j < flat.length; j++) {
+          if (flat[j].depth <= level) break;
+          if (flat[j].depth > level) { hasLater = true; break; }
         }
+        connectors.push(hasLater);
       }
-    };
-    walk(undefined, 0, []);
+      (flat[i] as any).connectors = connectors;
+    }
+    // Strip temporary _rank
+    for (const f of flat) delete (f as any)._rank;
+
+    console.groupCollapsed('[treeInfo] flat lexorank order (%d events)', flat.length);
+    for (let i = 0; i < flat.length; i++) {
+      console.log('[treeInfo] %d: %s depth=%d rowOrder=%s parentId=%s connectors=%s',
+        i, flat[i].name || flat[i].id, flat[i].depth, flat[i].rowOrder || '(none)',
+        flat[i].parentId || '(root)', JSON.stringify(flat[i].connectors));
+    }
+    console.groupEnd();
     return { flat, childrenOf };
   }, [schedule, collapsed]);
-
-  const indentEvent = useCallback((eventId: string) => {
-    if (!schedule) return;
-    // Use treeInfo.flat (visual DFS order) instead of schedule.events (server order)
-    // so we find the correct visually-previous sibling.
-    const flat = treeInfo.flat;
-    const selfIdx = flat.findIndex((f) => f.id === eventId);
-    if (selfIdx <= 0) return;
-    const depth = flat[selfIdx].depth;
-    let prevSibling: RecurringEvent | undefined;
-    for (let i = selfIdx - 1; i >= 0; i--) {
-      if (flat[i].depth === depth) { prevSibling = flat[i]; break; }
-      if (flat[i].depth < depth) break;
-    }
-    if (prevSibling) {
-      updateEvent({ variables: { id: eventId, input: { parentId: prevSibling.id } } }).then(() => refetch());
-    }
-  }, [schedule, treeInfo, updateEvent, refetch]);
-
-  const outdentEvent = useCallback((eventId: string) => {
-    if (!schedule) return;
-    const event = schedule.events.find((e) => e.id === eventId);
-    if (!event?.parentId) return;
-    const parent = schedule.events.find((e) => e.id === event.parentId);
-    // Use null (not undefined) so Apollo sends parentId: null to clear it.
-    const grandParentId = parent?.parentId ?? null;
-    updateEvent({ variables: { id: eventId, input: { parentId: grandParentId as any } } }).then(() => refetch());
-  }, [schedule, updateEvent, refetch]);
 
   // ── Inline drafts (spreadsheet-style creation) ─────────────
   const [drafts, setDrafts] = useState<RecurringEvent[]>([]);
@@ -317,49 +335,106 @@ export const ScheduleSingle: React.FC = () => {
     try { return lower.between(upper); } catch { return lower.genNext(); }
   }, []);
 
-  // ── Stable ranked rows (lexorank — single source of truth) ─
+  // ── Stable ranked rows (global lexorank sort) ─
   const rankedRows = useMemo(() => {
     const rows: { id: string; event?: RecurringEvent; draft?: RecurringEvent; rank: LexoRank }[] = [];
-    let lastRank = LexoRank.middle();
-
-    // Events: use persisted rowOrder if available, else compute sequentially
+    // Events are already in lexorank order from treeInfo.flat
     for (const e of treeInfo.flat) {
-      const rank = e.rowOrder ? LexoRank.parse(e.rowOrder) : lastRank;
+      const rank = e.rowOrder ? LexoRank.parse(e.rowOrder) : LexoRank.middle();
       rows.push({ id: e.id, event: e, rank });
-      lastRank = rank.genNext();
     }
-
-    // Insert drafts at their _insertAfter positions
-    // Track the last inserted rank per position so multiple drafts
-    // at the same spot get unique, ordered ranks
-    const afterRanks = new Map<number, LexoRank>();
+    // Drafts appended at the end
     for (const draft of drafts) {
-      const afterId = (draft as any)._insertAfter as string | undefined;
-      if (afterId) {
-        const afterIdx = rows.findIndex((r) => r.id === afterId);
-        if (afterIdx >= 0) {
-          const lower = afterRanks.get(afterIdx) ?? rows[afterIdx].rank;
-          const nextRow = rows[afterIdx + 1];
-          const insertRank = nextRow ? safeBetween(lower, nextRow.rank) : lower.genNext();
-          rows.push({ id: draft.id, draft, rank: insertRank });
-          afterRanks.set(afterIdx, insertRank);
-        } else {
-          const last = rows[rows.length - 1];
-          rows.push({ id: draft.id, draft, rank: last ? last.rank.genNext() : LexoRank.middle() });
-        }
-      } else {
-        const last = rows[rows.length - 1];
-        rows.push({ id: draft.id, draft, rank: last ? last.rank.genNext() : LexoRank.middle() });
-      }
+      const last = rows[rows.length - 1];
+      const rank = last ? last.rank.genNext() : LexoRank.middle();
+      rows.push({ id: draft.id, draft, rank });
     }
-
-    rows.sort((a, b) => a.rank.compareTo(b.rank));
+    console.groupCollapsed('[rankedRows] final order (%d rows)', rows.length);
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const label = r.event?.name || r.draft?.name || r.id;
+      const kind = r.draft ? 'draft' : 'event';
+      console.log('[rankedRows] %d: %s %s rank=%s parentId=%s', i, kind, label, r.rank.toString(), r.event?.parentId || r.draft && (r.draft as any).parentId || '(root)');
+    }
+    console.groupEnd();
     return rows;
   }, [treeInfo.flat, drafts]);
+
+  const indentEvent = useCallback((eventId: string) => {
+    const s = scheduleRef.current;
+    if (!s) return;
+    const info = treeInfo.flat.find((f) => f.id === eventId);
+    const depth = info?.depth ?? 0;
+    const selfIdx = rankedRows.findIndex((r) => r.id === eventId);
+    if (selfIdx <= 0) return;
+    let targetId: string | undefined;
+    for (let i = selfIdx - 1; i >= 0; i--) {
+      const r = rankedRows[i];
+      if (!r.event) continue;
+      const ri = treeInfo.flat.find((f) => f.id === r.event!.id);
+      const rd = ri?.depth ?? 0;
+      if (rd === depth) { targetId = r.event!.id; break; }
+      if (rd < depth) break;
+    }
+    if (targetId) {
+      updateEvent({ variables: { id: eventId, input: { parentId: targetId } } }).then(() => refetch());
+    }
+  }, [treeInfo, rankedRows, updateEvent, refetch]);
+
+  const outdentEvent = useCallback((eventId: string) => {
+    const s = scheduleRef.current;
+    if (!s) return;
+    const event = s.events.find((e) => e.id === eventId);
+    if (!event?.parentId) return;
+    const parent = s.events.find((e) => e.id === event.parentId);
+    const newParentId = parent?.parentId ?? null;
+    updateEvent({ variables: { id: eventId, input: { parentId: newParentId } } }).then(() => refetch());
+  }, [updateEvent, refetch]);
 
   const updateDraftField = useCallback((draftId: string, field: keyof RecurringEvent, value: string) => {
     setDrafts((prev) => prev.map((d) => (d.id === draftId ? { ...d, [field]: value } : d)));
   }, []);
+
+  // ── Draft indent / outdent ─────────────────────────────
+  const indentDraft = useCallback((draftId: string) => {
+    setDrafts((prev) => {
+      const draft = prev.find((d) => d.id === draftId);
+      if (!draft) return prev;
+      const parentId = (draft as any).parentId as string | undefined;
+      const currentDepth = parentId
+        ? (treeInfo.flat.find((f) => f.id === parentId)?.depth ?? 0) + 1
+        : 0;
+      // Find the visually-previous row at the same depth
+      const selfIdx = rankedRows.findIndex((r) => r.id === draftId);
+      let targetId: string | undefined;
+      for (let i = selfIdx - 1; i >= 0; i--) {
+        const r = rankedRows[i];
+        if (r.event) {
+          const e = treeInfo.flat.find((f) => f.id === r.event!.id);
+          if ((e?.depth ?? 0) === currentDepth) { targetId = r.event!.id; break; }
+          if ((e?.depth ?? 0) < currentDepth) break;
+        }
+      }
+      if (!targetId) return prev;
+      return prev.map((d) =>
+        d.id === draftId ? { ...d, parentId: targetId } as any : d
+      );
+    });
+  }, [rankedRows, treeInfo]);
+
+  const outdentDraft = useCallback((draftId: string) => {
+    setDrafts((prev) => {
+      const draft = prev.find((d) => d.id === draftId);
+      if (!draft) return prev;
+      const parentId = (draft as any).parentId as string | undefined;
+      if (!parentId) return prev; // Already at root
+      const parent = treeInfo.flat.find((f) => f.id === parentId);
+      const newParentId = parent?.parentId ?? undefined;
+      return prev.map((d) =>
+        d.id === draftId ? { ...d, parentId: newParentId || undefined } as any : d
+      );
+    });
+  }, [treeInfo]);
 
   const commitDraft = useCallback((draftId: string) => {
     const currentSchedule = scheduleRef.current;
@@ -384,38 +459,21 @@ export const ScheduleSingle: React.FC = () => {
                 name: draft!.name.trim(),
                 description: draft!.description,
                 frequency: draft!.frequency,
-                startDate: draft!.startDate || moment().format('YYYY-MM-DD'),
+                startDate: draft!.startDate,
                 endDate: draft!.endDate || undefined,
                 assignedTo: draft!.assignedTo || undefined,
+                parentId: draft!.parentId || undefined,
                 rowOrder: rowRank ? rowRank.toString() : undefined,
               },
             },
           }).then(() => refetch());
         }
 
-        // For Enter-created drafts, replace with a new blank one at the
-        // same position so the user can keep adding siblings.
-        const insertAfter = (draft as any)?._insertAfter as string | undefined;
-        if (insertAfter) {
-          const replacement: any = {
-            id: `draft-${Date.now()}`,
-            scheduleId: draft!.scheduleId,
-            parentId: draft!.parentId,
-            name: '',
-            description: '',
-            frequency: 'monthly',
-            startDate: '',
-            endDate: '',
-            assignedTo: '',
-            _insertAfter: insertAfter,
-          };
-          return prev.map((d) => (d.id === draftId ? replacement : d));
-        }
-        // Seed draft (no _insertAfter): remove it; the seed effect recreates.
+        // Remove the committed draft; the seed effect recreates a fresh one.
         return prev.filter((d) => d.id !== draftId);
       }
 
-      // Draft is invalid (empty name or date) — just remove it.
+      // Draft is invalid (empty name) — just remove it.
       // If it was an Enter-created draft, the seed draft will still be there.
       return prev.filter((d) => d.id !== draftId);
     });
@@ -423,26 +481,10 @@ export const ScheduleSingle: React.FC = () => {
   }, [drafts, rankedRows, createEvent, refetch]);
   // ↑ schedule intentionally omitted — we use scheduleRef for freshness.
 
-  // ── Enter in filled row → new sibling row ───────────────
-  const handleEnterInRow = useCallback((afterEventId: string, parentId?: string) => {
-    setDrafts((prev) => {
-      const scheduleId = scheduleRef.current?.id ?? '';
-      const newDraft: RecurringEvent & { _insertAfter?: string } = {
-        id: `draft-${Date.now()}`,
-        scheduleId,
-        parentId: parentId || undefined,
-        name: '',
-        description: '',
-        frequency: 'monthly',
-        startDate: '',
-        endDate: '',
-        assignedTo: '',
-        _insertAfter: afterEventId,
-      };
-      return [...prev, newDraft as RecurringEvent];
-    });
+  // ── Enter on event row: focus the seed draft at the bottom
+  const handleEnterInRow = useCallback(() => {
     setTimeout(() => draftInputRef.current?.focus(), 0);
-  }, []); // scheduleRef is stable across renders
+  }, []);
 
   // ── Stable ranked rows (lexorank — single source of truth) ─
   // ── Edit modal (kept for editing existing events) ──────────
@@ -846,7 +888,11 @@ export const ScheduleSingle: React.FC = () => {
           }
         })() : '';
         return (
-          <Box sx={{ display: 'grid', gridTemplateColumns: gridColumns, alignItems: 'center', height: '100%', borderBottom: '1px solid', borderColor: 'grey.200', bgcolor: '#f0f7ff', boxSizing: 'border-box' }}>
+          <Box tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Tab') { e.preventDefault(); if (e.shiftKey) outdentDraft(draft.id); else indentDraft(draft.id); }
+            }}
+            sx={{ display: 'grid', gridTemplateColumns: gridColumns, alignItems: 'center', height: '100%', borderBottom: '1px solid', borderColor: 'grey.200', bgcolor: '#f0f7ff', boxSizing: 'border-box' }}>
             <Box sx={{ display: 'flex', height: '100%' }}>
               <TreeBranchVSCode
                 variant="depth-borders"
@@ -956,7 +1002,7 @@ export const ScheduleSingle: React.FC = () => {
           <Box sx={cellSx}>
             <TextField key={`name-${event.id}-${event.name}`} size="small" variant="standard" defaultValue={event.name}
               onBlur={(e) => { if (e.target.value !== event.name && e.target.value.trim()) updateEvent({ variables: { id: event.id, input: { name: e.target.value } } }).then(() => refetch()); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); handleEnterInRow(event.id, event.parentId); } }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); handleEnterInRow(); } }}
               sx={{ flex: 1, minWidth: 0, height: '100%', '& .MuiInputBase-root': { py: 0, fontSize: '0.75rem', height: '100%' }, '& .MuiInputBase-input': { px: '8px', py: '2px' } }}
             />
           </Box>
@@ -998,7 +1044,7 @@ export const ScheduleSingle: React.FC = () => {
         </Box>
       );
     },
-    [treeInfo, rankedRows, collapsed, toggleCollapse, indentEvent, outdentEvent, users, debouncedUpdate, updateDraftField, commitDraft, handleEnterInRow, handleDeleteRow, removeDraft, handleDragStart, handleDragOver, handleDrop, dropTargetId, draftInputRef, colTree, colFreq, colStart, colEnd, colAssigned, gridColumns, schedule],
+    [treeInfo, rankedRows, collapsed, toggleCollapse, indentEvent, outdentEvent, indentDraft, outdentDraft, users, debouncedUpdate, updateDraftField, commitDraft, handleEnterInRow, handleDeleteRow, removeDraft, handleDragStart, handleDragOver, handleDrop, dropTargetId, draftInputRef, colTree, colFreq, colStart, colEnd, colAssigned, gridColumns, schedule],
   );
 
   const handleItemCreate = useCallback((start: Date, _end: Date, groupId?: string) => {
