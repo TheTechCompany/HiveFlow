@@ -7,7 +7,6 @@ import {
   Typography,
   Button,
   IconButton,
-  Chip,
   CircularProgress,
   Dialog,
   DialogTitle,
@@ -296,14 +295,29 @@ export const ScheduleSingle: React.FC = () => {
     // Strip temporary _rank
     for (const f of flat) delete (f as any)._rank;
 
-    console.groupCollapsed('[treeInfo] flat lexorank order (%d events)', flat.length);
-    for (let i = 0; i < flat.length; i++) {
+    // Filter out descendants of collapsed nodes
+    const hidden = new Set<string>();
+    const collectDescendants = (parentId: string): string[] => {
+      const direct = childrenOf.get(parentId) || [];
+      const all: string[] = [...direct];
+      for (const cid of direct) all.push(...collectDescendants(cid));
+      return all;
+    };
+    for (const e of flat) {
+      if (collapsed.has(e.id)) {
+        for (const descId of collectDescendants(e.id)) hidden.add(descId);
+      }
+    }
+    const visibleFlat = flat.filter((e) => !hidden.has(e.id));
+
+    console.groupCollapsed('[treeInfo] flat lexorank order (%d events)', visibleFlat.length);
+    for (let i = 0; i < visibleFlat.length; i++) {
       console.log('[treeInfo] %d: %s depth=%d rowOrder=%s parentId=%s connectors=%s',
-        i, flat[i].name || flat[i].id, flat[i].depth, flat[i].rowOrder || '(none)',
-        flat[i].parentId || '(root)', JSON.stringify(flat[i].connectors));
+        i, visibleFlat[i].name || visibleFlat[i].id, visibleFlat[i].depth, visibleFlat[i].rowOrder || '(none)',
+        visibleFlat[i].parentId || '(root)', JSON.stringify(visibleFlat[i].connectors));
     }
     console.groupEnd();
-    return { flat, childrenOf };
+    return { flat: visibleFlat, childrenOf };
   }, [schedule, collapsed]);
 
   // ── Inline drafts (spreadsheet-style creation) ─────────────
@@ -857,12 +871,12 @@ export const ScheduleSingle: React.FC = () => {
         <Box sx={{ ...hdrCell, justifyContent: 'center', position: 'relative' }}>End<Box data-testid="resize-end" onMouseDown={onResizeStart('end', colEnd, 'assigned', colAssigned)} sx={resizeHandleSx} /></Box>
         <Box sx={{ ...hdrCell, justifyContent: 'center', position: 'relative', borderRight: 'none' }}>Assigned<Box data-testid="resize-assigned" onMouseDown={onResizeStart('assigned', colAssigned, '', 0)} sx={resizeHandleSx} /></Box>
       </Box>
-      {/* Sidebar ↔ timeline resize handle */}
+      {/* Sidebar ↔ timeline resize handle — absolute so it doesn't shift column alignment */}
       <Box
         data-testid="resize-sidebar"
         onMouseDown={onSidebarResizeStart}
         sx={{
-          width: 6, flexShrink: 0, cursor: 'col-resize', zIndex: 1,
+          position: 'absolute', right: -3, top: 0, bottom: 0, width: 6, cursor: 'col-resize', zIndex: 1,
           bgcolor: 'transparent',
           '&:hover': { bgcolor: 'primary.light', opacity: 0.4 },
           '&:active': { bgcolor: 'primary.main', opacity: 0.6 },
@@ -1179,12 +1193,6 @@ export const ScheduleSingle: React.FC = () => {
           <Typography sx={{ color: 'navigation.main' }} fontWeight="bold" variant="h6">
             {schedule.name}
           </Typography>
-          <Chip
-            label={`${schedule.events.length} event${schedule.events.length !== 1 ? 's' : ''}`}
-            size="small"
-            variant="outlined"
-            sx={{ ml: 1 }}
-          />
         </Box>
       </Paper>
 
