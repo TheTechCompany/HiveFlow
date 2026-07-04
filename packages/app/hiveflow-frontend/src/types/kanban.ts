@@ -4,9 +4,9 @@ import type { DropResult } from 'react-beautiful-dnd';
 export const KANBAN_STATUSES = ['Backlog', 'In Progress', 'Reviewing', 'Finished'] as const;
 export type KanbanStatus = typeof KANBAN_STATUSES[number];
 
-/** A card on the kanban board — common fields from both task types */
+/** A card on the kanban board — common fields from all task types */
 export interface KanbanTask {
-  __typename?: 'ProjectTask' | 'EstimateTask';
+  __typename?: 'ProjectTask' | 'EstimateTask' | 'RecurringEvent';
   id: string;
   title: string;
   description?: string | null;
@@ -19,6 +19,18 @@ export interface KanbanTask {
   members?: Array<{ id: string; name: string }> | null;
   project?: { id: string; displayId: string; name: string } | null;
   estimate?: { id: string; displayId: string; name: string } | null;
+  /** Set when a task was generated from a RecurringEvent */
+  recurringEvent?: {
+    id: string;
+    frequency?: string | null;
+    schedule?: { id: string; name: string } | null;
+  } | null;
+  /** RecurringEvent-specific fields (legacy, for raw templates without horizon) */
+  scheduleId?: string | null;
+  frequency?: string | null;
+  assignedTo?: string | { id: string; name: string } | null;
+  exceptionDates?: unknown | null;
+  schedule?: { id: string; name: string } | null;
 }
 
 /** Row shape the KanbanBoard expects per card */

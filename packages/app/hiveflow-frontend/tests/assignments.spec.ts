@@ -127,6 +127,17 @@ test.describe('Assignments Kanban Board', () => {
         project: null,
         estimate: { id: 'est-1', displayId: 'E-001', name: 'Beta' },
       },
+      {
+        __typename: 'RecurringEvent',
+        id: 're-0',
+        name: 'Monthly Audit',
+        description: null,
+        frequency: 'monthly',
+        startDate: '2025-06-01',
+        endDate: null,
+        assignedTo: 'user-1',
+        schedule: { id: 'sched-1', name: 'Audit Schedule' },
+      },
     ];
     await setupGraphQLMock(page, tasks);
 
@@ -140,6 +151,10 @@ test.describe('Assignments Kanban Board', () => {
     // Estimate task card shows estimate prefix + title
     await expect(page.locator('text=E-001 - Beta')).toBeVisible();
     await expect(page.locator('text=Estimate Q1')).toBeVisible();
+
+    // Recurring event card shows schedule header and event name
+    await expect(page.locator('text=Monthly — Audit Schedule')).toBeVisible();
+    await expect(page.locator('text=Monthly Audit')).toBeVisible();
   });
 
   test('drag-and-drop moves a card between columns', async ({ page }) => {

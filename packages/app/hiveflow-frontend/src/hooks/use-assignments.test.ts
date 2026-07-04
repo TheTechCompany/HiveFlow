@@ -46,10 +46,10 @@ import { useAssignments, type UseAssignmentsReturn } from './use-assignments';
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
-function renderUseAssignments() {
+function renderUseAssignments(horizonDays = 90) {
   let captured!: UseAssignmentsReturn;
   function Probe() {
-    captured = useAssignments();
+    captured = useAssignments(horizonDays);
     return null;
   }
   const utils = render(React.createElement(Probe));
@@ -95,6 +95,33 @@ function makeEstimateTask(overrides: Record<string, unknown> = {}) {
     members: [],
     project: null,
     estimate: { id: 'est-1', displayId: 'E-001', name: 'Beta' },
+    ...overrides,
+  };
+}
+
+/**
+ * A generated recurring task — now arrives as a ProjectTask with
+ * recurringEvent populated instead of a raw RecurringEvent template.
+ */
+function makeGeneratedRecurringTask(overrides: Record<string, unknown> = {}) {
+  return {
+    __typename: 'ProjectTask' as const,
+    id: 're-1',
+    title: 'Monthly Compliance Check',
+    description: 'Review compliance docs',
+    startDate: '2025-06-01',
+    endDate: null,
+    status: 'Backlog',
+    timelineRank: 'a0',
+    columnRank: 'a0',
+    members: [{ id: 'user-1', name: 'Alice' }],
+    project: { id: 'rproj-1', displayId: '', name: 'Recurring Tasks' },
+    estimate: null,
+    recurringEvent: {
+      id: 'evt-1',
+      frequency: 'monthly',
+      schedule: { id: 'sched-1', name: 'Compliance Schedule' },
+    },
     ...overrides,
   };
 }
@@ -192,7 +219,7 @@ describe('useAssignments hook', () => {
 
   // ── Column building ────────────────────────────────────────────
 
-  it('builds 4 columns from tasks grouped by status', () => {
+  it('builds 5 columns from tasks grouped by status', () => {
     (useQuery as jest.Mock).mockReturnValue({
       data: {
         users: [],
@@ -208,15 +235,16 @@ describe('useAssignments hook', () => {
     });
     const { result } = renderUseAssignments();
     const cols = result.buildColumns([]);
-    expect(cols).toHaveLength(4);
+    expect(cols).toHaveLength(5);
     expect(cols.map((c) => c.id)).toEqual([
       'Backlog',
       'In Progress',
       'Reviewing',
+      'my-reviews',
       'Finished',
     ]);
     expect(cols[0].rows).toHaveLength(1);
-    expect(cols[3].rows).toHaveLength(1);
+    expect(cols[4].rows).toHaveLength(1);
   });
 
   it('filters columns by a project filter', () => {
@@ -292,6 +320,97 @@ describe('useAssignments hook', () => {
     const { result } = renderUseAssignments();
     const cols = result.buildColumns([]);
     expect(cols[0].rows.map((r) => r.id)).toEqual(['t2', 't3', 't1']);
+  });
+
+  // ── Generated recurring tasks ───────────────────────────────────
+
+  it('passes generated recurring ProjectTask through without normalization', () => {
+    (useQuery as jest.Mock).mockReturnValue({
+      data: {
+        users: [],
+        assignments: [makeGeneratedRecurringTask()],
+      },
+      loading: false,
+      error: undefined,
+    });
+    const { result } = renderUseAssignments();
+    const recurring = result.tasks[0];
+    // Generated tasks are already ProjectTasks — the hook passes them through unchanged
+    expect(recurring.title).toBe('Monthly Compliance Check');
+    expect(recurring.status).toBe('Backlog');
+    expect(recurring.project?.name).toBe('Recurring Tasks');
+    expect(recurring.recurringEvent?.frequency).toBe('monthly');
+  });
+
+  it('places generated recurring tasks in Backlog column alongside other tasks', () => {
+    (useQuery as jest.Mock).mockReturnValue({
+      data: {
+        users: [],
+        assignments: [
+          makeGeneratedRecurringTask({ id: 're-1', startDate: '2025-06-01' }),
+          makeTask({ id: 't1', status: 'In Progress' }),
+        ],
+      },
+      loading: false,
+      error: undefined,
+    });
+    const { result } = renderUseAssignments();
+    const cols = result.buildColumns([]);
+    expect(cols[0].id).toBe('Backlog');
+    expect(cols[0].rows).toHaveLength(1);
+    expect(cols[0].rows[0].id).toBe('re-1');
+    expect(cols[0].rows[0].title).toBe('Monthly Compliance Check');
+    expect(cols[1].rows).toHaveLength(1);
+    expect(cols[1].rows[0].id).toBe('t1');
+  });
+
+  it('sorts generated recurring tasks by startDate (soonest first)', () => {
+    (useQuery as jest.Mock).mockReturnValue({
+      data: {
+        users: [],
+        assignments: [
+          makeGeneratedRecurringTask({ id: 're-1', startDate: '2025-12-01', columnRank: '2025-12-01' }),
+          makeGeneratedRecurringTask({ id: 're-2', startDate: '2025-03-15', columnRank: '2025-03-15' }),
+          makeGeneratedRecurringTask({ id: 're-3', startDate: '2025-08-01', columnRank: '2025-08-01' }),
+        ],
+      },
+      loading: false,
+      error: undefined,
+    });
+    const { result } = renderUseAssignments();
+    const cols = result.buildColumns([]);
+    expect(cols[0].rows.map((r) => r.id)).toEqual(['re-2', 're-3', 're-1']);
+  });
+
+  it('onDrag can move a generated recurring task (it is a real ProjectTask now)', async () => {
+    (useQuery as jest.Mock).mockReturnValue({
+      data: {
+        users: [],
+        assignments: [makeGeneratedRecurringTask({ id: 're-1', status: 'Backlog' })],
+      },
+      loading: false,
+      error: undefined,
+    });
+    const { result } = renderUseAssignments();
+
+    await act(async () => {
+      await result.onDrag({
+        draggableId: 're-1',
+        type: 'LIST',
+        reason: 'DROP',
+        mode: 'FLUID',
+        source: { droppableId: '0', index: 0 },
+        destination: { droppableId: '1', index: 0 },
+      } as any);
+    });
+
+    // Generated tasks have a project → taskType is 'project' → updateProjectTask is called
+    expect(mockUpdateProjectTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 're-1',
+        input: { status: 'In Progress' },
+      }),
+    );
   });
 
   // ── Drag handler ───────────────────────────────────────────────
@@ -390,6 +509,7 @@ describe('useAssignments hook', () => {
     });
     const { result } = renderUseAssignments();
 
+    // Drop into In Progress (index 1) — Reviewing (2) triggers handover modal
     await act(async () => {
       await result.onDrag({
         draggableId: 'e1',
@@ -397,14 +517,14 @@ describe('useAssignments hook', () => {
         reason: 'DROP',
         mode: 'FLUID',
         source: { droppableId: '0', index: 0 },
-        destination: { droppableId: '2', index: 0 },
+        destination: { droppableId: '1', index: 0 },
       } as any);
     });
 
     expect(mockUpdateEstimateTask).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'e1',
-        input: { status: 'Reviewing' },
+        input: { status: 'In Progress' },
       }),
     );
     expect(mockRefetchQueries).toHaveBeenCalled();

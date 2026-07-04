@@ -69,6 +69,9 @@ model ProjectTask {
   dependencyOf ProjectTask[] @relation(name: "dependencyOf")
   dependencyOn ProjectTask[] @relation(name: "dependencyOf")
 
+  recurringEvent   RecurringEvent? @relation(name: "generatedFrom", fields: [recurringEventId], references: [id], onDelete: Cascade)
+  recurringEventId String?
+
   lastUpdated   DateTime?
   PlanBatchItem PlanBatchItem[]
 
@@ -435,6 +438,9 @@ model RecurringEvent {
   endDate     String?
   assignedTo  String?
   rowOrder    String?
+  exceptionDates Json?
+
+  generatedTasks ProjectTask[] @relation(name: "generatedFrom")
 
   organisation String
 }

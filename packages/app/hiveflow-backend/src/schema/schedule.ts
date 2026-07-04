@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client"
 import { nanoid } from "nanoid";
 import { LexoRank } from 'lexorank';
+import { ensureGeneratedTasks } from "../utils/recurring";
 
 export default (prisma: PrismaClient) => {
 
@@ -52,6 +53,7 @@ export default (prisma: PrismaClient) => {
             createRecurringEvent(scheduleId: ID!, input: RecurringEventInput!): RecurringEvent!
             updateRecurringEvent(id: ID!, input: RecurringEventUpdateInput!): RecurringEvent!
             deleteRecurringEvent(id: ID!): RecurringEvent!
+            splitRecurringEvent(id: ID!, newStartDate: String!, newEndDate: String): RecurringEvent!
         }
         
         input CalendarWhere {
@@ -242,7 +244,7 @@ export default (prisma: PrismaClient) => {
             scheduleId: ID!
             parent: RecurringEvent
             parentId: ID
-            children: [RecurringEvent!]!
+            children: [RecurringEvent!]
             name: String
             description: String
             frequency: String
@@ -250,6 +252,7 @@ export default (prisma: PrismaClient) => {
             endDate: String
             assignedTo: String
             rowOrder: String
+            exceptionDates: JSON
         }
 
         input RecurringScheduleInput {
@@ -271,6 +274,7 @@ export default (prisma: PrismaClient) => {
             assignedTo: String
             rowOrder: String
             parentId: ID
+            exceptionDates: JSON
         }
 
         input RecurringEventUpdateInput {
@@ -282,6 +286,7 @@ export default (prisma: PrismaClient) => {
             assignedTo: String
             rowOrder: String
             parentId: ID
+            exceptionDates: JSON
         }
     `
 
@@ -851,7 +856,7 @@ export default (prisma: PrismaClient) => {
             },
 
             createRecurringEvent: async (root: any, args: any, context: any) => {
-                return prisma.recurringEvent.create({
+                const event = await prisma.recurringEvent.create({
                     data: {
                         id: nanoid(),
                         scheduleId: args.scheduleId,
@@ -863,13 +868,25 @@ export default (prisma: PrismaClient) => {
                         assignedTo: args.input.assignedTo,
                         parentId: args.input.parentId || undefined,
                         rowOrder: args.input.rowOrder || undefined,
+                        exceptionDates: args.input.exceptionDates || undefined,
                         organisation: context?.jwt?.organisation,
                     },
                 });
+
+                // Seed upcoming tasks for the new event
+                if (event.assignedTo) {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const horizonEnd = new Date(today);
+                    horizonEnd.setDate(horizonEnd.getDate() + 90);
+                    await ensureGeneratedTasks(prisma, event as any, today, horizonEnd);
+                }
+
+                return event;
             },
 
             updateRecurringEvent: async (root: any, args: any, context: any) => {
-                return prisma.recurringEvent.update({
+                const updated = await prisma.recurringEvent.update({
                     where: { id: args.id },
                     data: {
                         name: args.input.name ?? undefined,
@@ -880,13 +897,49 @@ export default (prisma: PrismaClient) => {
                         assignedTo: args.input.assignedTo ?? undefined,
                         parentId: 'parentId' in (args.input || {}) ? args.input.parentId : undefined,
                         rowOrder: args.input.rowOrder ?? undefined,
+                        exceptionDates: 'exceptionDates' in (args.input || {}) ? args.input.exceptionDates : undefined,
                     },
                 });
+
+                // Reseed tasks after changes (e.g. assignedTo changed, startDate moved)
+                if (updated.assignedTo) {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const horizonEnd = new Date(today);
+                    horizonEnd.setDate(horizonEnd.getDate() + 90);
+                    await ensureGeneratedTasks(prisma, updated as any, today, horizonEnd);
+                }
+
+                return updated;
             },
 
             deleteRecurringEvent: async (root: any, args: any, context: any) => {
                 return prisma.recurringEvent.delete({
                     where: { id: args.id },
+                });
+            },
+
+            splitRecurringEvent: async (root: any, args: any, context: any) => {
+                // Find the original event
+                const original = await prisma.recurringEvent.findUnique({
+                    where: { id: args.id },
+                });
+                if (!original) throw new Error('Event not found');
+
+                // Create a new child event with the same properties but shifted start
+                return prisma.recurringEvent.create({
+                    data: {
+                        id: nanoid(),
+                        scheduleId: original.scheduleId,
+                        parentId: original.id,
+                        name: original.name,
+                        description: original.description,
+                        frequency: original.frequency,
+                        startDate: args.newStartDate,
+                        endDate: args.newEndDate || undefined,
+                        assignedTo: original.assignedTo,
+                        organisation: context?.jwt?.organisation || original.organisation,
+                    },
                 });
             },
         }

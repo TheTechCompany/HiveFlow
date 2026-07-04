@@ -6,6 +6,7 @@ import FormData from 'form-data';
 
 import axios from 'axios';``
 import { LexoRank } from "lexorank";
+import { ensureGeneratedTasks } from "../utils/recurring";
 // import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 // import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 
@@ -211,6 +212,7 @@ export default (prisma: PrismaClient) => {
                                 status: args.input.status,
                                 taskType: args.input.taskType || 'task',
                                 category: args.input.category,
+                                recurringEventId: args.input.recurringEventId,
                                 lastUpdated: new Date()
                             }
                         }
@@ -289,6 +291,24 @@ export default (prisma: PrismaClient) => {
 
                 if(!rootTask) throw new Error("No task found");
 
+                // ── Completion cascade: when a generated task finishes, seed the next occurrence ──
+                if (
+                    args.input?.status === 'Finished' &&
+                    rootTask.status !== 'Finished' &&
+                    rootTask.recurringEventId
+                ) {
+                    const event = await prisma.recurringEvent.findUnique({
+                        where: { id: rootTask.recurringEventId },
+                    });
+                    if (event) {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const horizonEnd = new Date(today);
+                        horizonEnd.setDate(horizonEnd.getDate() + 365); // look up to a year ahead for the next one
+                        await ensureGeneratedTasks(prisma, event as any, today, horizonEnd);
+                    }
+                }
+
                 let projectId;
                 if(args.input.projectId) {
                     const p = await prisma.project.findFirst({
@@ -363,6 +383,7 @@ export default (prisma: PrismaClient) => {
                         status: args.input.status,
                         taskType: args.input.taskType,
                         category: args.input.category,
+                        recurringEventId: args.input.recurringEventId,
                         projectId: projectId,
                         lastUpdated: new Date()
                     }
@@ -701,6 +722,8 @@ export default (prisma: PrismaClient) => {
 
         taskType: String
         category: String
+
+        recurringEventId: String
     }
 
     type ProjectTask {
@@ -733,6 +756,9 @@ export default (prisma: PrismaClient) => {
 
         dependencyOf: [ProjectTask]
         dependencyOn: [ProjectTask]
+
+        recurringEvent: RecurringEvent
+        recurringEventId: String
     }
     
 `

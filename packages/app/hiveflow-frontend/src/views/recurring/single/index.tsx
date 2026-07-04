@@ -40,6 +40,8 @@ interface RecurringEvent {
   endDate?: string;
   assignedTo?: string;
   rowOrder?: string;
+  exceptionDates?: { originalDate: string; newStartDate: string; newEndDate?: string }[];
+  children?: RecurringEvent[];
 }
 
 interface Schedule {
@@ -78,6 +80,19 @@ const GET_SCHEDULE = gql`
         endDate
         assignedTo
         rowOrder
+        exceptionDates
+        children {
+          id
+          scheduleId
+          parentId
+          name
+          frequency
+          startDate
+          endDate
+          assignedTo
+          rowOrder
+          exceptionDates
+        }
       }
     }
   }
@@ -100,6 +115,22 @@ const CREATE_EVENT = gql`
 const UPDATE_EVENT = gql`
   mutation UpdateEvent($id: ID!, $input: RecurringEventUpdateInput!) {
     updateRecurringEvent(id: $id, input: $input) {
+      id
+      parentId
+      name
+      frequency
+      startDate
+      endDate
+      assignedTo
+      rowOrder
+      exceptionDates
+    }
+  }
+`;
+
+const SPLIT_EVENT = gql`
+  mutation SplitEvent($id: ID!, $newStartDate: String!, $newEndDate: String) {
+    splitRecurringEvent(id: $id, newStartDate: $newStartDate, newEndDate: $newEndDate) {
       id
       parentId
       name
@@ -131,9 +162,14 @@ const GET_USERS = gql`
 
 // ── Helpers ─────────────────────────────────────────────────────
 
-function generateOccurrences(event: RecurringEvent, windowStart: Date, windowEnd: Date): Date[] {
+function generateOccurrences(event: RecurringEvent, windowStart: Date, windowEnd: Date, stopBefore?: Date): Date[] {
   const occurrences: Date[] = [];
   const start = moment(event.startDate);
+
+  // Build a set of exception originalDates to skip
+  const exceptionDates = new Set(
+    (event.exceptionDates || []).map((ex) => ex.originalDate),
+  );
 
   let i = 0;
   // eslint-disable-next-line no-constant-condition
@@ -151,8 +187,16 @@ function generateOccurrences(event: RecurringEvent, windowStart: Date, windowEnd
 
     if (cursor.isSameOrAfter(moment(windowEnd))) break;
     if (i > 500) break; // safety
+
+    // Stop before a split child's start date
+    if (stopBefore && cursor.isSameOrAfter(moment(stopBefore), 'day')) break;
+
     if (cursor.isSameOrAfter(moment(windowStart))) {
-      occurrences.push(cursor.toDate());
+      const dateStr = cursor.format('YYYY-MM-DD');
+      // Skip dates that are overridden by an exception
+      if (!exceptionDates.has(dateStr)) {
+        occurrences.push(cursor.toDate());
+      }
     }
     i++;
   }
@@ -197,6 +241,7 @@ export const ScheduleSingle: React.FC = () => {
   const [createEvent] = useMutation(CREATE_EVENT, { refetchQueries: ['GetSchedule'] });
   const [updateEvent] = useMutation(UPDATE_EVENT);
   const [deleteEvent] = useMutation(DELETE_EVENT);
+  const [splitEvent] = useMutation(SPLIT_EVENT, { refetchQueries: ['GetSchedule'] });
   const client = useApolloClient();
 
   const { data: usersData } = useQuery(GET_USERS);
@@ -693,6 +738,19 @@ export const ScheduleSingle: React.FC = () => {
     // Expand horizon slightly so occurrences near edges don't pop in/out
     const occWindowStart = moment(horizon.start).subtract(1, 'month').toDate();
     const occWindowEnd = moment(horizon.end).add(1, 'month').toDate();
+
+    // Build map of parent→earliest split child start date
+    const splitChildren = new Map<string, Date>();
+    for (const e of schedule.events) {
+      if (e.parentId) {
+        const existing = splitChildren.get(e.parentId);
+        const childStart = new Date(e.startDate);
+        if (!existing || childStart < existing) {
+          splitChildren.set(e.parentId, childStart);
+        }
+      }
+    }
+
     schedule.events.forEach((event) => {
       const startDate = new Date(event.startDate);
       const endDate = event.endDate
@@ -706,7 +764,9 @@ export const ScheduleSingle: React.FC = () => {
         ? moment(event.endDate).diff(moment(event.startDate), 'milliseconds')
         : 86400000; // default 1 day
 
-      const occurrences = generateOccurrences(event, occWindowStart, occWindowEnd);
+      // Stop generating occurrences before a split child's start date
+      const stopBefore = splitChildren.get(event.id);
+      const occurrences = generateOccurrences(event, occWindowStart, occWindowEnd, stopBefore);
 
       // Push occurrences first so they render behind the range bar
       occurrences.forEach((occDate, i) => {
@@ -721,6 +781,25 @@ export const ScheduleSingle: React.FC = () => {
           movable: true,
           resizable: false,
           data: { event, occurrence: true, occurrenceIndex: i },
+        });
+      });
+
+      // Render exception items (one-off overrides)
+      (event.exceptionDates || []).forEach((ex) => {
+        const excStart = new Date(ex.newStartDate);
+        const excEnd = ex.newEndDate
+          ? new Date(ex.newEndDate)
+          : new Date(excStart.getTime() + templateDuration);
+        items.push({
+          id: `${event.id}-exc-${ex.originalDate}`,
+          start: excStart,
+          end: excEnd,
+          groupId: event.id,
+          color: `${color}`,
+          selectable: false,
+          movable: true,
+          resizable: true,
+          data: { event, occurrence: true, exception: true, exceptionDate: ex.originalDate },
         });
       });
 
@@ -1105,17 +1184,106 @@ export const ScheduleSingle: React.FC = () => {
     }
   }, [updateDraftField, updateEvent, refetch]);
 
+  // ── Occurrence move dialog state ──────────────────────
+  const [occurrenceMoveDialog, setOccurrenceMoveDialog] = useState<{
+    open: boolean;
+    eventId: string;
+    originalDate: string;
+    newStart: string;
+    newEnd?: string;
+  } | null>(null);
+
+  const handleOccurrenceMoveThisOne = useCallback(() => {
+    const d = occurrenceMoveDialog;
+    if (!d) return;
+    const event = scheduleRef.current?.events.find((e) => e.id === d.eventId);
+    if (!event) return;
+
+    const excDates = [...(event.exceptionDates || [])];
+    const existingIdx = excDates.findIndex((ex) => ex.originalDate === d.originalDate);
+    const entry = { originalDate: d.originalDate, newStartDate: d.newStart, newEndDate: d.newEnd };
+    if (existingIdx >= 0) {
+      excDates[existingIdx] = entry;
+    } else {
+      excDates.push(entry);
+    }
+
+    updateEvent({
+      variables: { id: d.eventId, input: { exceptionDates: excDates } },
+    }).then(() => refetch());
+    setOccurrenceMoveDialog(null);
+  }, [occurrenceMoveDialog, updateEvent, refetch]);
+
+  const handleOccurrenceMoveAllFuture = useCallback(() => {
+    const d = occurrenceMoveDialog;
+    if (!d) return;
+    splitEvent({
+      variables: { id: d.eventId, newStartDate: d.newStart, newEndDate: d.newEnd },
+    }).then(() => refetch());
+    setOccurrenceMoveDialog(null);
+  }, [occurrenceMoveDialog, splitEvent, refetch]);
+
   const handleItemChange = useCallback((change: { id: string; start?: Date; end?: Date; groupId?: string }) => {
     console.log('[handleItemChange] raw change', {
       id: change.id,
       start: change.start ? moment(change.start).format('YYYY-MM-DD') : undefined,
-      startISO: change.start?.toISOString(),
       end: change.end ? moment(change.end).format('YYYY-MM-DD') : undefined,
-      endISO: change.end?.toISOString(),
-      startRaw: change.start,
-      endRaw: change.end,
     });
-    const eventId = change.id.replace(/-occ-\d+$/, '');
+
+    // Check if this is a generated occurrence (not the range bar, not an exception item)
+    const occMatch = change.id.match(/^(.+)-occ-(\d+)$/);
+    const excMatch = change.id.match(/^(.+)-exc-(.+)$/);
+
+    if (occMatch) {
+      // Generated occurrence moved — show dialog instead of directly mutating
+      const eventId = occMatch[1];
+      const occIndex = parseInt(occMatch[2], 10);
+      const event = scheduleRef.current?.events.find((e) => e.id === eventId);
+      if (!event || !change.start) return;
+
+      // Compute the original date of this occurrence
+      const originalDate = moment(event.startDate);
+      switch (event.frequency) {
+        case 'daily': originalDate.add(occIndex, 'day'); break;
+        case 'weekly': originalDate.add(occIndex, 'week'); break;
+        case 'monthly': originalDate.add(occIndex, 'month'); break;
+        case 'quarterly': originalDate.add(occIndex * 3, 'month'); break;
+        case 'yearly': originalDate.add(occIndex, 'year'); break;
+        default: originalDate.add(occIndex, 'month'); break;
+      }
+
+      setOccurrenceMoveDialog({
+        open: true,
+        eventId,
+        originalDate: originalDate.format('YYYY-MM-DD'),
+        newStart: moment(change.start).format('YYYY-MM-DD'),
+        newEnd: change.end ? moment(change.end).format('YYYY-MM-DD') : undefined,
+      });
+      return;
+    }
+
+    if (excMatch) {
+      // Exception item moved/resized — update the exceptionDates entry
+      const eventId = excMatch[1];
+      const excOriginalDate = excMatch[2];
+      const event = scheduleRef.current?.events.find((e) => e.id === eventId);
+      if (!event) return;
+
+      const excDates = [...(event.exceptionDates || [])];
+      const idx = excDates.findIndex((ex) => ex.originalDate === excOriginalDate);
+      if (idx < 0) return;
+
+      if (change.start) excDates[idx].newStartDate = moment(change.start).format('YYYY-MM-DD');
+      if (change.end) excDates[idx].newEndDate = moment(change.end).format('YYYY-MM-DD');
+
+      updateEvent({
+        variables: { id: eventId, input: { exceptionDates: excDates } },
+      }).then(() => refetch());
+      return;
+    }
+
+    // Range bar move/resize — existing behavior
+    const eventId = change.id;
     const event = scheduleRef.current?.events.find((e) => e.id === eventId);
     if (!event) return;
     if (!change.start && !change.end) return;
@@ -1124,19 +1292,16 @@ export const ScheduleSingle: React.FC = () => {
     const bothEdges = change.start && change.end;
 
     if (bothEdges) {
-      // Move: shift startDate, preserve duration by shifting endDate
       input.startDate = moment(change.start).format('YYYY-MM-DD');
       if (event.endDate) {
         const shiftMs = moment(change.start).valueOf() - moment(event.startDate).valueOf();
         input.endDate = moment(moment(event.endDate).valueOf() + shiftMs).format('YYYY-MM-DD');
       }
     } else {
-      // Resize: only one edge changed — set it directly
       if (change.start) input.startDate = moment(change.start).format('YYYY-MM-DD');
       if (change.end) input.endDate = moment(change.end).format('YYYY-MM-DD');
     }
 
-    // Optimistic cache update: show the new position immediately
     client.cache.modify({
       id: client.cache.identify({ __typename: 'RecurringEvent', id: eventId }),
       fields: {
@@ -1148,7 +1313,7 @@ export const ScheduleSingle: React.FC = () => {
     updateEvent({ variables: { id: eventId, input } })
       .then(() => refetch())
       .catch((err) => console.error('[handleItemChange] mutation failed', err));
-  }, [updateEvent, refetch, client]);
+  }, [updateEvent, refetch, client, splitEvent]);
 
   if (loading) {
     return (
@@ -1262,6 +1427,50 @@ export const ScheduleSingle: React.FC = () => {
         }}
       />
       </Paper>
+
+      {/* ── Occurrence move dialog ────────────────────────── */}
+      <Dialog
+        open={occurrenceMoveDialog?.open ?? false}
+        onClose={() => { setOccurrenceMoveDialog(null); refetch(); }}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Move Recurring Occurrence</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            You moved an occurrence from{' '}
+            <strong>{occurrenceMoveDialog?.originalDate}</strong> to{' '}
+            <strong>{occurrenceMoveDialog?.newStart}</strong>.
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            How would you like to apply this change?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ flexDirection: 'column', gap: 0.5, alignItems: 'stretch', px: 3, pb: 2 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleOccurrenceMoveThisOne}
+            fullWidth
+          >
+            Change this occurrence only
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={handleOccurrenceMoveAllFuture}
+            fullWidth
+          >
+            Change this and all future occurrences
+          </Button>
+          <Button
+            variant="text"
+            onClick={() => { setOccurrenceMoveDialog(null); refetch(); }}
+            fullWidth
+          >
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ── Event create / edit dialog ────────────────────────── */}
       <Dialog

@@ -12,12 +12,12 @@ import type {
 // ── GraphQL ─────────────────────────────────────────────────────────
 
 const GET_ASSIGNED_TASKS = gql`
-  query GetAssignedTasks {
+  query GetAssignedTasks($horizonDays: Int) {
     users(active: true) {
       id
       name
     }
-    assignments {
+    assignments(horizonDays: $horizonDays) {
       ... on EstimateTask {
         id
         title
@@ -43,6 +43,22 @@ const GET_ASSIGNED_TASKS = gql`
         handoverNote
         members { id name }
         project { id displayId name }
+        recurringEvent {
+          id
+          frequency
+          schedule { id name }
+        }
+      }
+      ... on RecurringEvent {
+        id
+        name
+        description
+        frequency
+        start: startDate
+        end: endDate
+        assignedTo
+        exceptionDates
+        schedule { id name }
       }
     }
   }
@@ -99,6 +115,9 @@ function taskMatchesFilter(
     if (task.estimate) {
       return f.__typename === 'Estimate' && f.id === task.estimate.id;
     }
+    if (task.schedule) {
+      return f.__typename === 'RecurringSchedule' && f.id === task.schedule.id;
+    }
     return false;
   });
 }
@@ -107,7 +126,7 @@ function deriveTaskFilters(tasks: KanbanTask[]): TaskFilterOption[] {
   const seen = new Set<string>();
   const result: TaskFilterOption[] = [];
   for (const t of tasks) {
-    const src = t.project ?? t.estimate;
+    const src = t.project ?? t.estimate ?? t.schedule;
     if (src) {
       const key = `${t.__typename}:${src.id}`;
       if (!seen.has(key)) {
@@ -115,7 +134,7 @@ function deriveTaskFilters(tasks: KanbanTask[]): TaskFilterOption[] {
         result.push({
           __typename: t.__typename ?? 'Project',
           id: src.id,
-          displayId: src.displayId,
+          displayId: (src as any).displayId ?? '',
           name: src.name,
         });
       }
@@ -126,14 +145,39 @@ function deriveTaskFilters(tasks: KanbanTask[]): TaskFilterOption[] {
 
 // ── Hook ────────────────────────────────────────────────────────────
 
-export function useAssignments(): UseAssignmentsReturn {
+export function useAssignments(horizonDays: number = 90): UseAssignmentsReturn {
   const client = useApolloClient();
   const { data, loading, error } = useQuery<AssignmentsQueryData>(
     GET_ASSIGNED_TASKS,
-    { fetchPolicy: 'cache-and-network' },
+    {
+      fetchPolicy: 'cache-and-network',
+      variables: { horizonDays },
+    },
   );
 
-  const tasks: KanbanTask[] = data?.assignments ?? [];
+  const rawTasks: KanbanTask[] = data?.assignments ?? [];
+
+  // Generated recurring tasks arrive as ProjectTask rows when the server
+  // has been restarted with the new code.  Until then, raw RecurringEvent
+  // templates may still come through — normalize them as a fallback.
+  const tasks: KanbanTask[] = useMemo(
+    () =>
+      rawTasks.map((t) => {
+        if (t.__typename === 'RecurringEvent' || (!t.project && !t.estimate && t.scheduleId)) {
+          const rec = t as any;
+          return {
+            ...t,
+            title: rec.name ?? t.title,
+            status: t.status || 'Backlog',
+            startDate: rec.start ?? t.startDate,
+            endDate: rec.end ?? t.endDate,
+            columnRank: (rec.start ?? t.startDate) ?? 'z',
+          };
+        }
+        return t;
+      }),
+    [rawTasks],
+  );
   const users = data?.users ?? [];
 
   // ── Mutations ──────────────────────────────────────────────────

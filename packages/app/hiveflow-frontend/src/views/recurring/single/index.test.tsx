@@ -396,4 +396,141 @@ describe('ScheduleSingle — sidebar', () => {
     });
   });
 
+  // ── Occurrence move dialog ──────────────────────────────────
+
+  describe('occurrence move dialog', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockGanttProps = null;
+    });
+
+    it('moving a generated occurrence opens the dialog instead of mutating', () => {
+      const event = makeEvent({ startDate: '2025-01-15', frequency: 'monthly' });
+      setupQueryMocks([event]);
+      render(<ScheduleSingle />);
+      const [mutateFn] = mockUseMutation();
+      mutateFn.mockClear();
+
+      // Drag the 2nd occurrence (index 2 = March 15) to a new date
+      mockGanttProps.callbacks.onItemChange({
+        id: 'evt-1-occ-2',
+        start: new Date('2025-03-22'),
+        end: new Date('2025-03-22'),
+      });
+
+      // Should NOT have fired a mutation yet — dialog should be open
+      expect(mutateFn).not.toHaveBeenCalled();
+
+      // Dialog should be visible
+      const dialogTitle = screen.queryByText('Move Recurring Occurrence');
+      expect(dialogTitle).toBeTruthy();
+    });
+
+    it('"Change this occurrence only" adds an exceptionDates entry', () => {
+      const event = makeEvent({ startDate: '2025-01-15', frequency: 'monthly', exceptionDates: undefined });
+      setupQueryMocks([event]);
+      render(<ScheduleSingle />);
+      const [mutateFn] = mockUseMutation();
+      mutateFn.mockClear();
+
+      // Drag the 2nd occurrence to a new date
+      mockGanttProps.callbacks.onItemChange({
+        id: 'evt-1-occ-2',
+        start: new Date('2025-03-22'),
+        end: new Date('2025-03-22'),
+      });
+
+      // Click "Change this occurrence only"
+      const thisOneBtn = screen.getByText('Change this occurrence only');
+      fireEvent.click(thisOneBtn);
+
+      expect(mutateFn).toHaveBeenCalledTimes(1);
+      const vars = mutateFn.mock.calls[0][0].variables;
+      expect(vars.id).toBe('evt-1');
+      expect(vars.input.exceptionDates).toEqual([
+        {
+          originalDate: '2025-03-15',
+          newStartDate: '2025-03-22',
+          newEndDate: '2025-03-22',
+        },
+      ]);
+    });
+
+    it('"Change this and all future occurrences" calls splitRecurringEvent', () => {
+      const event = makeEvent({ startDate: '2025-01-15', frequency: 'monthly' });
+      setupQueryMocks([event]);
+      render(<ScheduleSingle />);
+      const [mutateFn] = mockUseMutation();
+      mutateFn.mockClear();
+
+      // Drag the 2nd occurrence to a new date
+      mockGanttProps.callbacks.onItemChange({
+        id: 'evt-1-occ-2',
+        start: new Date('2025-03-22'),
+        end: new Date('2025-07-22'),
+      });
+
+      // Click "Change this and all future occurrences"
+      const allFutureBtn = screen.getByText('Change this and all future occurrences');
+      fireEvent.click(allFutureBtn);
+
+      expect(mutateFn).toHaveBeenCalledTimes(1);
+      const vars = mutateFn.mock.calls[0][0].variables;
+      expect(vars.id).toBe('evt-1');
+      expect(vars.newStartDate).toBe('2025-03-22');
+      expect(vars.newEndDate).toBe('2025-07-22');
+    });
+
+    it('"Cancel" reverts without calling any mutation', () => {
+      const event = makeEvent({ startDate: '2025-01-15', frequency: 'monthly' });
+      setupQueryMocks([event]);
+      render(<ScheduleSingle />);
+      const [mutateFn] = mockUseMutation();
+      mutateFn.mockClear();
+
+      // Drag a generated occurrence
+      mockGanttProps.callbacks.onItemChange({
+        id: 'evt-1-occ-2',
+        start: new Date('2025-03-22'),
+      });
+
+      // Click Cancel
+      const cancelBtn = screen.getByText('Cancel');
+      fireEvent.click(cancelBtn);
+
+      // Should not have fired any mutation
+      expect(mutateFn).not.toHaveBeenCalled();
+    });
+
+    it('moving an exception item updates its exceptionDates entry', () => {
+      const event = makeEvent({
+        startDate: '2025-01-15',
+        frequency: 'monthly',
+        exceptionDates: [{ originalDate: '2025-03-15', newStartDate: '2025-03-20' }],
+      });
+      setupQueryMocks([event]);
+      render(<ScheduleSingle />);
+      const [mutateFn] = mockUseMutation();
+      mutateFn.mockClear();
+
+      // Resize the exception item
+      mockGanttProps.callbacks.onItemChange({
+        id: 'evt-1-exc-2025-03-15',
+        start: new Date('2025-03-20'),
+        end: new Date('2025-03-25'),
+      });
+
+      expect(mutateFn).toHaveBeenCalledTimes(1);
+      const vars = mutateFn.mock.calls[0][0].variables;
+      expect(vars.id).toBe('evt-1');
+      expect(vars.input.exceptionDates).toEqual([
+        {
+          originalDate: '2025-03-15',
+          newStartDate: '2025-03-20',
+          newEndDate: '2025-03-25',
+        },
+      ]);
+    });
+  });
+
 });

@@ -4,6 +4,9 @@ import {
   Box,
   CircularProgress,
   Paper,
+  Select,
+  MenuItem as SelectMenuItem,
+  FormControl,
   TextField,
   Typography,
   Alert,
@@ -31,6 +34,7 @@ import {
   NoteAddOutlined,
   ExpandMore,
   ExpandLess,
+  Loop,
 } from '@mui/icons-material';
 import { gql, useQuery } from '@apollo/client';
 import { AvatarList } from '@hexhive/ui';
@@ -104,9 +108,44 @@ function hasVisibleContent(html: string | null | undefined): boolean {
 
 // ── Render-card sub-component ───────────────────────────────────────
 
+function freqLabel(frequency: string | null | undefined): string {
+  if (!frequency) return '';
+  switch (frequency) {
+    case 'daily': return 'Daily';
+    case 'weekly': return 'Weekly';
+    case 'monthly': return 'Monthly';
+    case 'quarterly': return 'Quarterly';
+    case 'yearly': return 'Yearly';
+    default: return frequency;
+  }
+}
+
+/** Returns true if a task came from a recurring event (generated ProjectTask or raw legacy RecurringEvent). */
+function isRecurringTask(t: KanbanTask): boolean {
+  return !!(t.recurringEvent || t.scheduleId || t.__typename === 'RecurringEvent');
+}
+
+function recurringBadge(t: KanbanTask): { freq?: string | null; scheduleName?: string } | null {
+  if (t.recurringEvent) {
+    return {
+      freq: t.recurringEvent.frequency,
+      scheduleName: t.recurringEvent.schedule?.name,
+    };
+  }
+  if (t.scheduleId || t.__typename === 'RecurringEvent') {
+    return {
+      freq: t.frequency,
+      scheduleName: t.schedule?.name,
+    };
+  }
+  return null;
+}
+
 const TaskCard: React.FC<{ row: KanbanRow }> = ({ row }) => {
   const t = row._task;
   const src = t.project ?? t.estimate;
+  const isRecurring = isRecurringTask(t);
+  const badge = recurringBadge(t);
   return (
     <Paper
       sx={{
@@ -117,13 +156,20 @@ const TaskCard: React.FC<{ row: KanbanRow }> = ({ row }) => {
         boxShadow: 1,
       }}
     >
-      {src && (
+      {isRecurring && badge ? (
+        <Box sx={{ bgcolor: 'primary.main', padding: '6px', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Loop sx={{ fontSize: 14, color: 'white' }} />
+          <Typography variant="caption" sx={{ color: 'white' }}>
+            {freqLabel(badge.freq)}{badge.scheduleName ? ` — ${badge.scheduleName}` : ''}
+          </Typography>
+        </Box>
+      ) : src ? (
         <Box sx={{ bgcolor: 'secondary.main', padding: '6px' }}>
           <Typography variant="caption" sx={{ color: 'white' }}>
             {src.displayId} - {src.name}
           </Typography>
         </Box>
-      )}
+      ) : null}
       <Box sx={{ padding: '6px' }}>
         <Typography variant="body2">{t.title}</Typography>
         <Box
@@ -136,6 +182,16 @@ const TaskCard: React.FC<{ row: KanbanRow }> = ({ row }) => {
         >
           <Box>
             {(() => {
+              if (isRecurring && badge?.freq) {
+                return (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                    <Loop sx={{ fontSize: 13 }} />
+                    <Typography variant="caption" sx={{ fontSize: 11, fontWeight: 600 }}>
+                      {freqLabel(badge.freq)}
+                    </Typography>
+                  </Box>
+                );
+              }
               const checklist = extractChecklistFromHtml(t.description);
               if (checklist.length > 0) {
                 const done = checklist.filter(i => i.checked).length;
@@ -161,9 +217,22 @@ const TaskCard: React.FC<{ row: KanbanRow }> = ({ row }) => {
   );
 };
 
+// ── Horizon selector ───────────────────────────────────────────────
+
+const HORIZON_OPTIONS: Array<{ value: number; label: string }> = [
+  { value: 30, label: '30 days' },
+  { value: 90, label: '90 days' },
+  { value: 180, label: '6 months' },
+  { value: 365, label: 'This year' },
+];
+
 // ── Main view ───────────────────────────────────────────────────────
 
 export const Assignments: React.FC = () => {
+  // ── Local UI state (horizon must be set before hook call) ────
+
+  const [horizonDays, setHorizonDays] = useState<number>(90);
+
   const {
     loading,
     error,
@@ -180,7 +249,7 @@ export const Assignments: React.FC = () => {
     submitHandover,
     cancelHandover,
     startNextTask,
-  } = useAssignments();
+  } = useAssignments(horizonDays);
 
   // ── Local UI state ─────────────────────────────────────────────
 
@@ -369,6 +438,26 @@ export const Assignments: React.FC = () => {
           >
             Assigned tasks
           </Typography>
+
+          <FormControl size="small" sx={{ minWidth: 105 }}>
+            <Select
+              value={horizonDays}
+              onChange={(e) => setHorizonDays(e.target.value as number)}
+              sx={{
+                color: 'white',
+                fontSize: '0.7rem',
+                '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
+                '.MuiSvgIcon-root': { color: 'white' },
+                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.5)' },
+              }}
+            >
+              {HORIZON_OPTIONS.map((opt) => (
+                <SelectMenuItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectMenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
           <ToggleButtonGroup
             value={viewMode}

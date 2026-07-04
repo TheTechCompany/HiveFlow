@@ -109,6 +109,27 @@ function makeEstimateTask(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function makeRecurringEvent(overrides: Record<string, unknown> = {}) {
+  return {
+    __typename: 'RecurringEvent' as const,
+    id: 're-1',
+    name: 'Monthly Compliance Check',
+    title: 'Monthly Compliance Check',
+    description: 'Review docs',
+    frequency: 'monthly',
+    startDate: '2025-06-01',
+    endDate: null,
+    scheduleId: 'sched-1',
+    schedule: { id: 'sched-1', name: 'Compliance Schedule' },
+    members: null,
+    project: null,
+    estimate: null,
+    status: 'Backlog',
+    columnRank: '2025-06-01',
+    ...overrides,
+  };
+}
+
 function defaultHookReturn(overrides: Record<string, unknown> = {}) {
   return {
     loading: false,
@@ -256,6 +277,31 @@ describe('Assignments view', () => {
     );
     render(<Assignments />);
     expect(screen.getByText('E-001 - Beta')).toBeInTheDocument();
+  });
+
+  it('renders recurring event cards with schedule name and frequency', () => {
+    const task = makeRecurringEvent();
+    mockUseAssignments.mockReturnValue(
+      defaultHookReturn({
+        buildColumns: jest.fn(() => [
+          {
+            id: 'Backlog',
+            title: 'Backlog',
+            rows: [
+              { id: 're-1', title: 'Monthly Compliance Check', _task: task },
+            ],
+          },
+          { id: 'In Progress', title: 'In Progress', rows: [] },
+          { id: 'Reviewing', title: 'Reviewing', rows: [] },
+          { id: 'Finished', title: 'Finished', rows: [] },
+        ]),
+      }),
+    );
+    render(<Assignments />);
+    // Schedule header shows frequency and schedule name
+    expect(screen.getByText('Monthly — Compliance Schedule')).toBeInTheDocument();
+    // Event name as title
+    expect(screen.getByText('Monthly Compliance Check')).toBeInTheDocument();
   });
 
   // ── Card selection / modal ────────────────────────────────────
