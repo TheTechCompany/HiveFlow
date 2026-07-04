@@ -24,7 +24,7 @@ import {
   Close,
 } from '@mui/icons-material';
 import { GanttView, type TimelineItem, type TimelineStep, TreeBranchVSCode, VSCODE_TWISTY_WIDTH, DEPTH_BORDER_WIDTH } from '@hive-flow/ui';
-import { gql, useQuery, useMutation } from '@apollo/client';
+import { gql, useQuery, useMutation, useApolloClient } from '@apollo/client';
 import moment from 'moment';
 import { LexoRank } from 'lexorank';
 
@@ -198,6 +198,7 @@ export const ScheduleSingle: React.FC = () => {
   const [createEvent] = useMutation(CREATE_EVENT, { refetchQueries: ['GetSchedule'] });
   const [updateEvent] = useMutation(UPDATE_EVENT);
   const [deleteEvent] = useMutation(DELETE_EVENT);
+  const client = useApolloClient();
 
   const { data: usersData } = useQuery(GET_USERS);
   const users: { id: string; name: string }[] = usersData?.users || [];
@@ -1121,14 +1122,19 @@ export const ScheduleSingle: React.FC = () => {
       if (change.end) input.endDate = moment(change.end).format('YYYY-MM-DD');
     }
 
-    console.log('[handleItemChange] firing mutation', { id: eventId, input });
+    // Optimistic cache update: show the new position immediately
+    client.cache.modify({
+      id: client.cache.identify({ __typename: 'RecurringEvent', id: eventId }),
+      fields: {
+        startDate: (existing) => input.startDate ?? existing,
+        endDate: (existing) => input.endDate !== undefined ? input.endDate : existing,
+      },
+    });
+
     updateEvent({ variables: { id: eventId, input } })
-      .then((result) => {
-        console.log('[handleItemChange] mutation ok', result?.data);
-        return refetch();
-      })
+      .then(() => refetch())
       .catch((err) => console.error('[handleItemChange] mutation failed', err));
-  }, [updateEvent, refetch]);
+  }, [updateEvent, refetch, client]);
 
   if (loading) {
     return (

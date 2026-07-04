@@ -20,6 +20,12 @@ jest.mock('@apollo/client', () => ({
   gql: (strings) => strings.join(''),
   useQuery: jest.fn(),
   useMutation: jest.fn(),
+  useApolloClient: () => ({
+    cache: {
+      identify: (obj: any) => `${obj.__typename}:${obj.id}`,
+      modify: jest.fn(),
+    },
+  }),
 }));
 
 let mockGanttProps = null;
@@ -53,7 +59,7 @@ jest.mock('@hive-flow/ui', () => ({
   ),
 }));
 
-import { useQuery, useMutation } from '@apollo/client';
+import { useQuery, useMutation, useApolloClient } from '@apollo/client';
 import { ScheduleSingle } from './index';
 
 // ── Helpers ─────────────────────────────────────────────────────────
