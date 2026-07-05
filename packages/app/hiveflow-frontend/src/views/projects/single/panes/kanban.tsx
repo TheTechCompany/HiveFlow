@@ -1,5 +1,5 @@
 import React, { useContext, useMemo } from "react";
-import { CheckBoxOutlined, Subject } from '@mui/icons-material';
+import { Subject } from '@mui/icons-material';
 import { AvatarList } from "@hexhive/ui";
 import { Box, Paper, Typography } from '@mui/material';
 import { KanbanBoard } from "../../../../components/KanbanBoard";
@@ -7,7 +7,6 @@ import { KANBAN_STATUSES } from "../../../../types/kanban";
 import type { KanbanColumn, KanbanRow } from "../../../../types/kanban";
 import type { DropResult } from "react-beautiful-dnd";
 import { ProjectSingleContext } from "../context";
-import { extractChecklistFromHtml } from '@hive-flow/ui';
 
 export const KanbanPane: React.FC = () => {
   const {
@@ -107,14 +106,14 @@ export const KanbanPane: React.FC = () => {
             >
               <Box>
                 {(() => {
-                  const checklist = extractChecklistFromHtml(row._task.description);
-                  if (checklist.length > 0) {
-                    const done = checklist.filter(i => i.checked).length;
+                  const subtasks = row._task.children;
+                  if (subtasks && subtasks.length > 0) {
+                    const done = subtasks.filter(s => s.status === 'Finished').length;
                     return (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                        <CheckBoxOutlined sx={{ fontSize: 13 }} />
+                        <Subject sx={{ fontSize: 13 }} />
                         <Typography variant="caption" sx={{ fontSize: 11, fontWeight: 600 }}>
-                          {done}/{checklist.length}
+                          {done}/{subtasks.length}
                         </Typography>
                       </Box>
                     );

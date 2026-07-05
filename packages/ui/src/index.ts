@@ -60,6 +60,7 @@ export type {
   ItemChange,
   TimelineGeometry,
   HeaderTier,
+  HighlightedDay,
   UseTimelineReturn,
   BarLayout,
 } from './Timeline';

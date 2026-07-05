@@ -15,12 +15,10 @@ import {
   LinearProgress,
 } from '@mui/material';
 import {
-  CheckBoxOutlined,
   Subject,
   Schedule,
 } from '@mui/icons-material';
 import { AvatarList } from '@hexhive/ui';
-import { extractChecklistFromHtml } from '@hive-flow/ui';
 import type { KanbanColumn, KanbanRow, KanbanTask } from '../../types/kanban';
 
 // ── Types ───────────────────────────────────────────────────────────
@@ -41,8 +39,8 @@ interface FlatRow {
   sourceName: string;
   title: string;
   status: string;
-  checklistDone: number;
-  checklistTotal: number;
+  subtaskDone: number;
+  subtaskCount: number;
   hasDescription: boolean;
   startDate: string | null;
   endDate: string | null;
@@ -60,8 +58,9 @@ function flattenRows(columns: KanbanColumn[]): FlatRow[] {
   return columns.flatMap((col) =>
     col.rows.map((row) => {
       const t = row._task;
-      const checklist = extractChecklistFromHtml(t.description);
       const src = t.project ?? t.estimate;
+      const subtaskTotal = t.children?.length ?? 0;
+      const subtaskDone = t.children?.filter(s => s.status === 'Finished').length ?? 0;
       return {
         _row: row,
         task: t,
@@ -69,8 +68,8 @@ function flattenRows(columns: KanbanColumn[]): FlatRow[] {
         sourceName: src?.name ?? '',
         title: t.title,
         status: col.id,
-        checklistDone: checklist.filter((i) => i.checked).length,
-        checklistTotal: checklist.length,
+        subtaskDone,
+        subtaskCount: subtaskTotal,
         hasDescription: !!(t.description && t.description.replace(/<[^>]*>/g, '').trim()),
         startDate: t.startDate ?? null,
         endDate: t.endDate ?? null,
@@ -113,8 +112,8 @@ export const TableView: React.FC<TableViewProps> = ({
         case 'title':
           return a.title.localeCompare(b.title) * dir;
         case 'progress': {
-          const pctA = a.checklistTotal > 0 ? a.checklistDone / a.checklistTotal : -1;
-          const pctB = b.checklistTotal > 0 ? b.checklistDone / b.checklistTotal : -1;
+          const pctA = a.subtaskCount > 0 ? a.subtaskDone / a.subtaskCount : -1;
+          const pctB = b.subtaskCount > 0 ? b.subtaskDone / b.subtaskCount : -1;
           return (pctA - pctB) * dir;
         }
         case 'startDate':
@@ -291,11 +290,11 @@ export const TableView: React.FC<TableViewProps> = ({
 
               {/* Progress */}
               <TableCell>
-                {row.checklistTotal > 0 ? (
+                {row.subtaskCount > 0 ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                     <LinearProgress
                       variant="determinate"
-                      value={(row.checklistDone / row.checklistTotal) * 100}
+                      value={(row.subtaskDone / row.subtaskCount) * 100}
                       sx={{
                         flex: 1,
                         height: 6,
@@ -303,7 +302,7 @@ export const TableView: React.FC<TableViewProps> = ({
                         bgcolor: 'rgba(255,255,255,0.1)',
                         '& .MuiLinearProgress-bar': {
                           bgcolor:
-                            row.checklistDone === row.checklistTotal
+                            row.subtaskDone === row.subtaskCount
                               ? '#4caf50'
                               : '#ff9800',
                           borderRadius: 3,
@@ -311,7 +310,7 @@ export const TableView: React.FC<TableViewProps> = ({
                       }}
                     />
                     <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 28 }}>
-                      {row.checklistDone}/{row.checklistTotal}
+                      {row.subtaskDone}/{row.subtaskCount}
                     </Typography>
                   </Box>
                 ) : (

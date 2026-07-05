@@ -21,7 +21,6 @@ import {
 } from '@mui/material';
 import {
   Build,
-  CheckBoxOutlined,
   Subject,
   Dashboard,
   TableChart,
@@ -30,7 +29,6 @@ import { gql, useQuery } from '@apollo/client';
 import { AvatarList } from '@hexhive/ui';
 import { KanbanBoard } from '../../components/KanbanBoard';
 import type { KanbanTask, KanbanColumn, KanbanRow } from '../../types/kanban';
-import { extractChecklistFromHtml } from '@hive-flow/ui';
 import { useTypeConfiguration } from '../../context';
 import { CiUpdateModal, CiDetail } from '../../modals/new-task/ci-update';
 
@@ -209,14 +207,14 @@ const ManagementTaskCard: React.FC<{ row: KanbanRow }> = ({ row }) => {
         >
           <Box>
             {(() => {
-              const checklist = extractChecklistFromHtml(t.description);
-              if (checklist.length > 0) {
-                const done = checklist.filter((i) => i.checked).length;
+              const subtasks = t.children;
+              if (subtasks && subtasks.length > 0) {
+                const done = subtasks.filter(s => s.status === 'Finished').length;
                 return (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                    <CheckBoxOutlined sx={{ fontSize: 13 }} />
+                    <Subject sx={{ fontSize: 13 }} />
                     <Typography variant="caption" sx={{ fontSize: 11, fontWeight: 600 }}>
-                      {done}/{checklist.length}
+                      {done}/{subtasks.length}
                     </Typography>
                   </Box>
                 );

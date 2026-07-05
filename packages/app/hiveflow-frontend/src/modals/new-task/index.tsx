@@ -43,6 +43,8 @@ interface TaskModalProps {
   onDelete?: () => Promise<void>;
   /** Called to quickly create a subtask with just a title */
   onAddSubtask?: (parentId: string, title: string) => Promise<void>;
+  /** Called when a subtask row is clicked — navigates to that subtask's detail */
+  onSelectTask?: (taskId: string) => void;
   /** Called when description changes from a checklist toggle — auto-saves immediately */
   onAutoSaveDescription?: (html: string) => void;
 }
@@ -181,14 +183,35 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
             justifyContent: 'space-between',
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="h6" fontWeight="bold">
-              {props.selected?.id
-                ? editing
-                  ? 'Edit Task'
-                  : 'Task Details'
-                : 'New Task'}
-            </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+            {props.selected?.parent ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                <Typography
+                  variant="body2"
+                  onClick={() => props.onSelectTask?.(props.selected.parent.id)}
+                  sx={{
+                    color: 'primary.main',
+                    cursor: 'pointer',
+                    fontWeight: 500,
+                    '&:hover': { textDecoration: 'underline' },
+                  }}
+                >
+                  {props.selected.parent.title || '(Untitled)'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mx: 0.25 }}>›</Typography>
+                <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1.1rem' }}>
+                  {task.title || 'Subtask'}
+                </Typography>
+              </Box>
+            ) : (
+              <Typography variant="h6" fontWeight="bold">
+                {props.selected?.id
+                  ? editing
+                    ? 'Edit Task'
+                    : 'Task Details'
+                  : 'New Task'}
+              </Typography>
+            )}
           </Box>
           <MemberList
             editable={editing}
@@ -302,6 +325,8 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
               label={props.selected.parent.title}
               size="small"
               variant="outlined"
+              onClick={() => props.onSelectTask?.(props.selected.parent.id)}
+              sx={{ cursor: 'pointer' }}
             />
           </Box>
         )}
@@ -314,7 +339,20 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
           {(props.selected?.children?.length ?? 0) > 0 ? (
             <Stack spacing={0.5}>
               {props.selected.children.map((child: any) => (
-                <Box key={child.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box
+                  key={child.id}
+                  onClick={() => props.onSelectTask?.(child.id)}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    px: 1,
+                    py: 0.5,
+                    borderRadius: 1,
+                    '&:hover': { bgcolor: 'action.hover' },
+                  }}
+                >
                   <Typography variant="body2">{child.title}</Typography>
                   <Chip
                     label={child.status || 'Backlog'}

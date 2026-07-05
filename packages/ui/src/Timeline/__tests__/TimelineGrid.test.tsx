@@ -70,8 +70,8 @@ describe('TimelineGrid', () => {
   it('renders vertical grid lines for day step', () => {
     renderGrid({ step: 'day' });
     const grid = document.querySelector('[data-timeline-grid]')!;
-    // Each day line is an absolutely positioned div with 1px width, bg #f0f0f0
-    const lines = grid.querySelectorAll('[style*="background-color: rgb(240, 240, 240)"]');
+    // Each day line is an absolutely positioned div with 1px width, bg #d8d8d8
+    const lines = grid.querySelectorAll('[style*="background-color: rgb(216, 216, 216)"]');
     // 14 days → should have lines for each day boundary
     expect(lines.length).toBeGreaterThanOrEqual(7);
   });
@@ -79,7 +79,7 @@ describe('TimelineGrid', () => {
   it('grid lines span the full totalHeight', () => {
     renderGrid({ step: 'day', totalHeight: 500 });
     const grid = document.querySelector('[data-timeline-grid]')!;
-    const lines = grid.querySelectorAll('[style*="background-color: rgb(240, 240, 240)"]');
+    const lines = grid.querySelectorAll('[style*="background-color: rgb(216, 216, 216)"]');
     const first = lines[0] as HTMLElement;
     expect(first.style.height).toBe('500px');
   });
@@ -98,7 +98,7 @@ describe('TimelineGrid', () => {
       }),
     });
     const grid = document.querySelector('[data-timeline-grid]')!;
-    const lines = grid.querySelectorAll('[style*="background-color: rgb(240, 240, 240)"]');
+    const lines = grid.querySelectorAll('[style*="background-color: rgb(216, 216, 216)"]');
     // 24 hours → at least 24 grid lines
     expect(lines.length).toBeGreaterThanOrEqual(12);
   });
@@ -118,7 +118,7 @@ describe('TimelineGrid', () => {
     });
     const grid = document.querySelector('[data-timeline-grid]')!;
     // Week step → finest tier is 'day', so there should be day grid lines
-    const lines = grid.querySelectorAll('[style*="background-color: rgb(240, 240, 240)"]');
+    const lines = grid.querySelectorAll('[style*="background-color: rgb(216, 216, 216)"]');
     expect(lines.length).toBeGreaterThan(0);
   });
 
@@ -136,7 +136,7 @@ describe('TimelineGrid', () => {
       }),
     });
     const grid = document.querySelector('[data-timeline-grid]')!;
-    const lines = grid.querySelectorAll('[style*="background-color: rgb(240, 240, 240)"]');
+    const lines = grid.querySelectorAll('[style*="background-color: rgb(216, 216, 216)"]');
     // Month step → finest tier is 'month'
     expect(lines.length).toBeGreaterThanOrEqual(3);
   });
@@ -208,8 +208,8 @@ describe('TimelineGrid', () => {
       end: d('2025-06-15'),
     });
     const grid = document.querySelector('[data-timeline-grid]')!;
-    // Weekend shading has rgba(0,0,0,0.03) background
-    const shades = grid.querySelectorAll('[style*="rgba(0, 0, 0, 0.03)"]');
+    // Weekend shading has rgba(0,0,0,0.06) background
+    const shades = grid.querySelectorAll('[style*="rgba(0, 0, 0, 0.06)"]');
     expect(shades.length).toBeGreaterThan(0);
   });
 
@@ -225,11 +225,11 @@ describe('TimelineGrid', () => {
       }),
     });
     const grid = document.querySelector('[data-timeline-grid]')!;
-    const shades = grid.querySelectorAll('[style*="rgba(0, 0, 0, 0.03)"]');
+    const shades = grid.querySelectorAll('[style*="rgba(0, 0, 0, 0.06)"]');
     expect(shades.length).toBeGreaterThan(0);
   });
 
-  it('does not render weekend shading for hour step', () => {
+  it('renders weekend shading for hour step', () => {
     renderGrid({
       step: 'hour',
       start: d('2025-06-01T00:00:00'),
@@ -240,9 +240,10 @@ describe('TimelineGrid', () => {
         stepDurationMs: 3600000,
       }),
     });
+    // June 1 2025 is a Sunday — weekend shading should render
     const grid = document.querySelector('[data-timeline-grid]')!;
-    const shades = grid.querySelectorAll('[style*="rgba(0, 0, 0, 0.03)"]');
-    expect(shades.length).toBe(0);
+    const shades = grid.querySelectorAll('[style*="rgba(0, 0, 0, 0.06)"]');
+    expect(shades.length).toBeGreaterThan(0);
   });
 
   it('does not render weekend shading for month step', () => {
@@ -257,7 +258,7 @@ describe('TimelineGrid', () => {
       }),
     });
     const grid = document.querySelector('[data-timeline-grid]')!;
-    const shades = grid.querySelectorAll('[style*="rgba(0, 0, 0, 0.03)"]');
+    const shades = grid.querySelectorAll('[style*="rgba(0, 0, 0, 0.06)"]');
     expect(shades.length).toBe(0);
   });
 
@@ -268,7 +269,7 @@ describe('TimelineGrid', () => {
     renderGrid({ step: 'day' });
     const grid = document.querySelector('[data-timeline-grid]')!;
     const lines = Array.from(
-      grid.querySelectorAll('[style*="background-color: rgb(240, 240, 240)"]'),
+      grid.querySelectorAll('[style*="background-color: rgb(216, 216, 216)"]'),
     ) as HTMLElement[];
     for (const line of lines) {
       const left = parseFloat(line.style.left);

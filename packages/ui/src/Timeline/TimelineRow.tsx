@@ -40,7 +40,6 @@ export interface TimelineRowProps {
 const ROW_BORDER_SOLID: React.CSSProperties = {
   display: 'flex',
   borderBottom: '1px solid #e8e8e8',
-  backgroundColor: '#fff',
   boxSizing: 'border-box',
 };
 

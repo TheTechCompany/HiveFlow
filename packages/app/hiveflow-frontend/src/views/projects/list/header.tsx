@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, IconButton, Paper, TextField } from '@mui/material';
 import { FormControl } from '@hexhive/ui';
-import { Maybe } from '@hive-flow/api';
+import { Maybe } from '../../../types/generated';
 import { Add } from '@mui/icons-material';
 
 export interface HeaderProps {

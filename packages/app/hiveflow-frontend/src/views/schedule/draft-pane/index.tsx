@@ -1,6 +1,5 @@
 import React from  'react';
 import { Box, Typography, Collapse } from '@mui/material'
-import { useQuery } from '@hive-flow/api';
 import { stringToColor } from "@hexhive/utils"
 import { useNavigate } from 'react-router';
 export const DraftPane = (props: any) => {

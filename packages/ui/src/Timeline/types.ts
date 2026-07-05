@@ -1,6 +1,18 @@
 // ── Timeline — Unified types ────────────────────────────────────────
 // Covers both Gantt-chart (project timeline) and lane-based schedule use cases.
 
+/** A highlighted day on the timeline grid (public holiday, important date, etc.). */
+export interface HighlightedDay {
+  /** The date to highlight. Only the date portion is used (time is ignored). */
+  date: Date;
+  /** Optional label shown in a tooltip on hover. */
+  label?: string;
+  /** CSS background color for the highlight strip. Overrides the preset type color. */
+  color?: string;
+  /** Preset type — maps to a default color if `color` is not provided. */
+  type?: 'holiday' | 'important';
+}
+
 /** A single bar on the timeline. */
 export interface TimelineItem {
   /** Unique identifier. */
@@ -194,6 +206,11 @@ export interface TimelineProps {
   fullHeight?: boolean;
   /** When true, the date header sticks to the top of the scroll container. */
   stickyHeader?: boolean;
+
+  /** Days to highlight on the grid (public holidays, important dates, etc.).
+   *  Rendered as coloured vertical strips behind the grid lines and as
+   *  small indicator dots in the header. */
+  highlightedDays?: HighlightedDay[];
 
   // ── Callbacks ───────────────────────────────────────────────────
   callbacks?: TimelineCallbacks;

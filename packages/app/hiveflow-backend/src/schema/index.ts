@@ -11,6 +11,7 @@ import assignment from './assignment';
 import planbatch from './planbatch';
 import compliance from './compliance';
 import improvement from './improvement';
+import holidays from './holidays';
 
 import { JSONDefinition, JSONResolver } from 'graphql-scalars';
 
@@ -25,6 +26,7 @@ export default (prisma: PrismaClient) => {
 	const { typeDefs: planBatchTypeDefs, resolvers: planBatchResolvers } = planbatch(prisma);
 	const { typeDefs: complianceTypeDefs, resolvers: complianceResolvers } = compliance(prisma);
 	const { typeDefs: improvementTypeDefs, resolvers: improvementResolvers } = improvement(prisma);
+	const { typeDefs: holidaysTypeDefs, resolvers: holidaysResolvers } = holidays();
 
 
 	const resolvers = {
@@ -103,7 +105,8 @@ export default (prisma: PrismaClient) => {
 			planBatchTypeDefs,
 			scheduleTypeDefs,
 			complianceTypeDefs,
-			improvementTypeDefs
+			improvementTypeDefs,
+			holidaysTypeDefs
 		]),
 		resolvers: mergeResolvers([
 			{JSON: JSONResolver},
@@ -116,7 +119,8 @@ export default (prisma: PrismaClient) => {
 			planBatchResolvers,
 			scheduleResolvers,
 			complianceResolvers,
-			improvementResolvers
+			improvementResolvers,
+			holidaysResolvers
 		])
 	}
 }

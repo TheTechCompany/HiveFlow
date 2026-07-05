@@ -17,6 +17,8 @@ export default (prisma: PrismaClient) => {
                     include: {
                         dependencyOf: true,
                         dependencyOn: true,
+                        children: true,
+                        parent: true,
                     },
                 });
             },

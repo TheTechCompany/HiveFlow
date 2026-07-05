@@ -139,6 +139,7 @@ const BODY_STYLE: React.CSSProperties = {
   position: 'relative',
   overscrollBehavior: 'contain',
   contain: 'layout style paint',
+  background: '#fff',
 };
 
 const SIDEBAR_LABEL_STYLE: React.CSSProperties = {
@@ -193,6 +194,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
     stickyHeader = false,
     sidebarWidth: sidebarWidthProp,
     sidebarPadding,
+    highlightedDays,
     callbacks,
     renderers,
     loading,
@@ -655,7 +657,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
         )}
         <div style={{ ...HEADER_SPACER_STYLE, overflow: stickyHeader ? 'visible' : HEADER_SPACER_STYLE.overflow }}>
           <div style={{ flex: 1, overflow: stickyHeader ? 'visible' : 'hidden' }}>
-            <TimelineHeader geometry={geometry} start={activeStart} end={activeEnd} step={step} height={headerHeight} renderDay={renderers?.renderDay} />
+            <TimelineHeader geometry={geometry} start={activeStart} end={activeEnd} step={step} height={headerHeight} renderDay={renderers?.renderDay} highlightedDays={highlightedDays} />
           </div>
         </div>
       </div>
@@ -669,6 +671,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
         <TimelineGrid
           geometry={geometry} start={activeStart} end={activeEnd} step={step}
           totalHeight={totalRowsHeight} showToday={showToday} sidebarWidth={sidebarW}
+          highlightedDays={highlightedDays}
         />
 
         {showLinks && links.length > 0 && (

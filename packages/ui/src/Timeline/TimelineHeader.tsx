@@ -2,7 +2,7 @@
 // Renders multi-tier date labels above the grid.
 
 import React, { useMemo } from 'react';
-import type { TimelineGeometry, TimelineStep } from './types';
+import type { TimelineGeometry, TimelineStep, HighlightedDay } from './types';
 import { generateTierIntervals, dateToX } from './utils';
 import { HEADER_TIERS } from './constants';
 
@@ -17,6 +17,8 @@ export interface TimelineHeaderProps {
   renderDay?: (date: Date, step: TimelineStep) => React.ReactNode;
   /** Optional extra content rendered below each top-level interval. */
   renderDayContent?: (start: Date, end: Date) => React.ReactNode;
+  /** Days to highlight with indicator dots in the day header cells. */
+  highlightedDays?: HighlightedDay[];
 }
 
 // ── Module-level style constants ──────────────────────────────────
@@ -59,7 +61,25 @@ export const TimelineHeader: React.FC<TimelineHeaderProps> = React.memo(
     height,
     renderDay,
     renderDayContent,
+    highlightedDays,
   }) {
+    // ── Highlighted days lookup (keyed by ISO date string) ───────
+    const highlightMap = useMemo(() => {
+      if (!highlightedDays || highlightedDays.length === 0) return null;
+      const map = new Map<string, HighlightedDay>();
+      for (const h of highlightedDays) {
+        const key = `${h.date.getFullYear()}-${String(h.date.getMonth() + 1).padStart(2, '0')}-${String(h.date.getDate()).padStart(2, '0')}`;
+        map.set(key, h);
+      }
+      return map;
+    }, [highlightedDays]);
+
+    /** Default dot colours for highlighted day types. */
+    const HIGHLIGHT_DOT_COLORS: Record<string, string> = {
+      holiday: '#ea4335',
+      important: '#f9ab00',
+    };
+
     const tiers = useMemo(() => HEADER_TIERS[step], [step]);
 
     const tierRows = useMemo(() => {
@@ -122,6 +142,26 @@ export const TimelineHeader: React.FC<TimelineHeaderProps> = React.memo(
                   >
                     {label}
                   </span>
+                  {/* Highlighted day indicator dot (only on day-tier cells) */}
+                  {tier.unit === 'day' && highlightMap && (() => {
+                    const key = `${interval.start.getFullYear()}-${String(interval.start.getMonth() + 1).padStart(2, '0')}-${String(interval.start.getDate()).padStart(2, '0')}`;
+                    const hd = highlightMap.get(key);
+                    if (!hd) return null;
+                    const dotColor = hd.color ?? HIGHLIGHT_DOT_COLORS[hd.type ?? ''] ?? HIGHLIGHT_DOT_COLORS.important;
+                    return (
+                      <div
+                        title={hd.label}
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: '50%',
+                          backgroundColor: dotColor,
+                          flexShrink: 0,
+                          marginTop: 1,
+                        }}
+                      />
+                    );
+                  })()}
                   {tierIndex === tiers.length - 1 && renderDay && (
                     <div style={{ fontSize: '10px', color: '#999' }}>
                       {renderDay(interval.start, tier.unit)}
@@ -133,7 +173,7 @@ export const TimelineHeader: React.FC<TimelineHeaderProps> = React.memo(
           </div>
         );
       }).filter(Boolean); // remove null entries from dropped tiers
-    }, [tiers, start, end, geometry.pxPerMs, height, renderDay]);
+    }, [tiers, start, end, geometry.pxPerMs, height, renderDay, highlightMap]);
 
     return (
       <div

@@ -15,7 +15,6 @@ import {
   ArrowForward,
 } from '@mui/icons-material';
 import { AvatarList } from '@hexhive/ui';
-import { extractChecklistFromHtml } from '@hive-flow/ui';
 import type { KanbanColumn, KanbanRow, KanbanTask } from '../../types/kanban';
 
 // ── Types ───────────────────────────────────────────────────────────
@@ -36,8 +35,8 @@ interface GridCard {
   status: string;
   statusColor: string;
   statusLabel: string;
-  checklistDone: number;
-  checklistTotal: number;
+  subtaskDone: number;
+  subtaskCount: number;
   hasDescription: boolean;
   descriptionSnippet: string;
   startDate: string | null;
@@ -72,7 +71,8 @@ function buildCards(columns: KanbanColumn[]): GridCard[] {
     const meta = STATUS_META[col.id] ?? { label: col.title, color: '#9e9e9e' };
     for (const row of col.rows) {
       const t = row._task;
-      const checklist = extractChecklistFromHtml(t.description);
+      const subtaskTotal = (t.children?.length ?? 0);
+      const subtaskDone = t.children?.filter(s => s.status === 'Finished').length ?? 0;
       const src = t.project ?? t.estimate;
       const now = new Date();
       cards.push({
@@ -84,16 +84,16 @@ function buildCards(columns: KanbanColumn[]): GridCard[] {
         status: col.id,
         statusColor: meta.color,
         statusLabel: meta.label,
-        checklistDone: checklist.filter((i) => i.checked).length,
-        checklistTotal: checklist.length,
+        subtaskDone,
+        subtaskCount: subtaskTotal,
         hasDescription: !!(t.description && t.description.replace(/<[^>]*>/g, '').trim()),
         descriptionSnippet: stripHtml(t.description, 80),
         startDate: t.startDate ?? null,
         endDate: t.endDate ?? null,
         members: t.members ?? [],
         isOverdue: !!(t.endDate && new Date(t.endDate) < now && col.id !== 'Finished'),
-        progressPct: checklist.length > 0
-          ? (checklist.filter((i) => i.checked).length / checklist.length) * 100
+        progressPct: subtaskTotal > 0
+          ? (subtaskDone / subtaskTotal) * 100
           : col.id === 'Finished' ? 100 : 0,
       });
     }
@@ -257,7 +257,7 @@ export const CardGrid: React.FC<CardGridProps> = ({ columns, onSelectCard }) => 
             {/* Bottom row: progress + members */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
-                {card.checklistTotal > 0 ? (
+                {card.subtaskCount > 0 ? (
                   <>
                     <LinearProgress
                       variant="determinate"
@@ -277,7 +277,7 @@ export const CardGrid: React.FC<CardGridProps> = ({ columns, onSelectCard }) => 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
                       <CheckBoxOutlined sx={{ fontSize: 13, color: 'text.secondary' }} />
                       <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.65rem' }}>
-                        {card.checklistDone}/{card.checklistTotal}
+                        {card.subtaskDone}/{card.subtaskCount}
                       </Typography>
                     </Box>
                   </>

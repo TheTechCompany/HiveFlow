@@ -1,11 +1,11 @@
 import { Timeline } from "@hexhive/ui";
 import { stringToColor } from "@hexhive/utils";
-import { refetch, useMutation } from "@hive-flow/api";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { EstimateSingleContext } from "../context";
 import { Box } from '@mui/material'
 import { arrayMove } from '@dnd-kit/sortable'
-import { useMutation as useApolloMutation, gql } from '@apollo/client'
+import { useMutation as useApolloMutation } from '@apollo/client'
+import { UPDATE_ESTIMATE_TASK, UPDATE_ESTIMATE_TASK_TIMELINE_ORDER } from '@hive-flow/api';
 export const TimelinePane = () => {
     // const [ links, setLinks ] = useState([]);
 
@@ -21,22 +21,9 @@ export const TimelinePane = () => {
     setTasks(tasks);
   }, [JSON.stringify(tasks)])
 
-  const [ updateTaskDirect ] = useMutation((mutation, args: any) => {
-    const item = mutation.updateEstimateTask({id: args.id, input: args.input})
-    return {
-      item: {
-        ...item
-      }
-    }
-  })
+  const [ updateTaskDirect ] = useApolloMutation(UPDATE_ESTIMATE_TASK)
 
-  const [ updateTimelineItemOrder ] = useApolloMutation(gql`
-    mutation UpdateTimelineOrder ($id: ID, $above: String, $below: String){
-      updateEstimateTaskTimelineOrder(id: $id, above: $above, below: $below){
-        id
-      }
-    }
-  `, {
+  const [ updateTimelineItemOrder ] = useApolloMutation(UPDATE_ESTIMATE_TASK_TIMELINE_ORDER, {
     refetchQueries: ['GetProject']
   })
   
@@ -161,7 +148,7 @@ export const TimelinePane = () => {
                   return newTasks
                 })
 
-                updateTaskDirect({args: {id: task.id, input: {startDate: position.start, endDate: position.end, estimateId } }}).then(() => {
+                updateTaskDirect({ variables: { id: task.id, input: { startDate: position.start, endDate: position.end, estimateId } } }).then(() => {
                   refetch()
                 })
               }}

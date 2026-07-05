@@ -2,7 +2,7 @@
 // Renders vertical dividers and a "today" marker over the timeline area.
 
 import React, { useMemo } from 'react';
-import type { TimelineGeometry, TimelineStep } from './types';
+import type { TimelineGeometry, TimelineStep, HighlightedDay } from './types';
 import { generateTierIntervals, dateToX } from './utils';
 import { HEADER_TIERS } from './constants';
 
@@ -15,6 +15,8 @@ export interface TimelineGridProps {
   showToday?: boolean;
   /** Left offset to skip sidebar area. */
   sidebarWidth?: number;
+  /** Days to highlight with coloured strips. */
+  highlightedDays?: HighlightedDay[];
 }
 
 // ── Module-level style constants ──────────────────────────────────
@@ -32,7 +34,7 @@ const GRID_LINE_STYLE: React.CSSProperties = {
   position: 'absolute',
   top: 0,
   width: '1px',
-  backgroundColor: '#f0f0f0',
+  backgroundColor: '#d8d8d8',
   pointerEvents: 'none',
 };
 
@@ -48,8 +50,20 @@ const TODAY_LINE_STYLE: React.CSSProperties = {
 const WEEKEND_STYLE: React.CSSProperties = {
   position: 'absolute',
   top: 0,
-  backgroundColor: 'rgba(0,0,0,0.03)',
+  backgroundColor: 'rgba(0,0,0,0.06)',
   pointerEvents: 'none',
+};
+
+/** Default background colours for highlighted day types. */
+const HIGHLIGHT_COLORS: Record<string, string> = {
+  holiday: 'rgba(234, 67, 53, 0.08)',
+  important: 'rgba(251, 188, 4, 0.10)',
+};
+
+const HIGHLIGHT_STRIP_STYLE: React.CSSProperties = {
+  position: 'absolute',
+  top: 0,
+  pointerEvents: 'auto',
 };
 
 // ── Component ───────────────────────────────────────────────────────
@@ -63,6 +77,7 @@ export const TimelineGrid: React.FC<TimelineGridProps> = React.memo(
     totalHeight,
     showToday = true,
     sidebarWidth = 0,
+    highlightedDays,
   }) {
     // Get the finest tier (last one) for grid lines
     const tiers = useMemo(() => HEADER_TIERS[step], [step]);
@@ -109,9 +124,53 @@ export const TimelineGrid: React.FC<TimelineGridProps> = React.memo(
       );
     }, [showToday, start, end, geometry.pxPerMs, totalHeight]);
 
-    // Weekend shading (for day/week steps)
+    // ── Highlighted days lookup (keyed by ISO date string) ───────
+    const highlightMap = useMemo(() => {
+      if (!highlightedDays || highlightedDays.length === 0) return null;
+      const map = new Map<string, HighlightedDay>();
+      for (const h of highlightedDays) {
+        const key = `${h.date.getFullYear()}-${String(h.date.getMonth() + 1).padStart(2, '0')}-${String(h.date.getDate()).padStart(2, '0')}`;
+        map.set(key, h);
+      }
+      return map;
+    }, [highlightedDays]);
+
+    // Highlighted day strips (for hour/day/week steps)
+    const highlightedStrips = useMemo(() => {
+      if (!highlightMap || (step !== 'hour' && step !== 'day' && step !== 'week')) return null;
+      const dayTier = { unit: 'day' as TimelineStep, format: 'ddd' };
+      const intervals = generateTierIntervals(start, end, dayTier);
+
+      return intervals
+        .map((iv) => {
+          const key = `${iv.start.getFullYear()}-${String(iv.start.getMonth() + 1).padStart(2, '0')}-${String(iv.start.getDate()).padStart(2, '0')}`;
+          const hd = highlightMap.get(key);
+          if (!hd) return null;
+
+          const x = dateToX(iv.start, start, geometry.pxPerMs);
+          const w = dateToX(iv.end, start, geometry.pxPerMs) - x;
+          const bgColor = hd.color ?? HIGHLIGHT_COLORS[hd.type ?? ''] ?? HIGHLIGHT_COLORS.important;
+
+          return (
+            <div
+              key={`hl-${key}`}
+              title={hd.label}
+              style={{
+                ...HIGHLIGHT_STRIP_STYLE,
+                left: `${x}px`,
+                width: `${Math.max(0, w)}px`,
+                height: `${totalHeight}px`,
+                backgroundColor: bgColor,
+              }}
+            />
+          );
+        })
+        .filter(Boolean);
+    }, [highlightMap, step, start, end, geometry.pxPerMs, totalHeight]);
+
+    // Weekend shading (for hour/day/week steps — not month/year where days are too narrow)
     const weekendShading = useMemo(() => {
-      if (step === 'hour' || step === 'month' || step === 'year') return null;
+      if (step === 'month' || step === 'year') return null;
       const dayTier = { unit: 'day' as TimelineStep, format: 'ddd' };
       const intervals = generateTierIntervals(start, end, dayTier);
 
@@ -146,6 +205,7 @@ export const TimelineGrid: React.FC<TimelineGridProps> = React.memo(
         }}
       >
         {weekendShading}
+        {highlightedStrips}
         {gridLines}
         {todayLine}
       </div>

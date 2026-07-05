@@ -40,6 +40,7 @@ export const GanttView: React.FC<GanttViewProps> = ({
   readonly,
   fullHeight,
   stickyHeader,
+  highlightedDays,
   callbacks,
   renderers,
   selectedItemIds,
@@ -103,6 +104,7 @@ export const GanttView: React.FC<GanttViewProps> = ({
               readonly={readonly}
               fullHeight={fullHeight}
               stickyHeader={stickyHeader}
+              highlightedDays={highlightedDays}
               sidebarWidth={0}
               callbacks={callbacks}
               renderers={renderers}
@@ -148,6 +150,7 @@ export const GanttView: React.FC<GanttViewProps> = ({
         readonly={readonly}
         fullHeight={fullHeight}
         stickyHeader={stickyHeader}
+        highlightedDays={highlightedDays}
         sidebarWidth={sidebarWidth}
         callbacks={callbacks}
         renderers={renderers}

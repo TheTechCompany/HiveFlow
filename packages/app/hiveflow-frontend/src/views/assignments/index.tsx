@@ -22,7 +22,6 @@ import {
   Collapse,
 } from '@mui/material';
 import {
-  CheckBoxOutlined,
   Subject,
   TableChart,
   Timeline,
@@ -48,7 +47,6 @@ import { TaskModal } from '../../modals/new-task';
 import { CiUpdateModal } from '../../modals/new-task/ci-update';
 import { ProjectNoteModal } from '../../modals/new-task/project-note';
 import { HandoverModal } from '../../components/HandoverModal';
-import { extractChecklistFromHtml } from '@hive-flow/ui';
 import type {
   KanbanTask,
   KanbanRow,
@@ -193,14 +191,14 @@ const TaskCard: React.FC<{ row: KanbanRow }> = ({ row }) => {
                   </Box>
                 );
               }
-              const checklist = extractChecklistFromHtml(t.description);
-              if (checklist.length > 0) {
-                const done = checklist.filter(i => i.checked).length;
+              const subtasks = t.children;
+              if (subtasks && subtasks.length > 0) {
+                const done = subtasks.filter(s => s.status === 'Finished').length;
                 return (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                    <CheckBoxOutlined sx={{ fontSize: 13 }} />
+                    <Subject sx={{ fontSize: 13 }} />
                     <Typography variant="caption" sx={{ fontSize: 11, fontWeight: 600 }}>
-                      {done}/{checklist.length}
+                      {done}/{subtasks.length}
                     </Typography>
                   </Box>
                 );

@@ -5,10 +5,21 @@ import moment from 'moment';
 import { stringToColor } from '@hexhive/utils';
 import { Box, Typography } from '@mui/material';
 import { Add } from '@mui/icons-material';
-import { TimelineItem, TimelineItemItems, useMutation } from '@hive-flow/api';
 import { TimelineHeader, TimelineView } from './Header';
 import _, { filter, toUpper } from 'lodash';
-import { useQuery, useMutation as useApolloMutation, useApolloClient, gql } from '@apollo/client';
+import { useQuery, useMutation, useApolloClient } from '@apollo/client';
+import {
+  GET_TIMELINES,
+  GET_TIMELINE_DATA,
+  GET_PROJECT_INFO,
+  CREATE_TIMELINE,
+  CREATE_TIMELINE_ITEM,
+  DELETE_TIMELINE_ITEM,
+  UPDATE_TIMELINE_ITEM,
+  UPDATE_TIMELINE_ITEM_ORDER,
+  CREATE_TIMELINE_ITEM_DEPENDENCY,
+  DELETE_TIMELINE_ITEM_DEPENDENCY,
+} from '@hive-flow/api';
 import { TimelineModal } from '../../modals/timeline';
 import { CreateTimelineModal } from '../../modals/create-timeline';
 import { Paper } from '@mui/material';
@@ -72,56 +83,11 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     //     staleWhileRevalidate: true
     // })
 
-    const { data: timelineData } = useQuery(gql`
-        query Timelines {
-            timelines {
-                id
-                name
-            }
-        }
-    `)
+    const { data: timelineData } = useQuery(GET_TIMELINES)
 
     const { timelines = [] } = timelineData || {}
 
-    const { data } = useQuery(gql`
-        query TimelineData($timeline: String, $startDate: DateTime, $endDate: DateTime){
-      
-
-            timelineItems(where: {timeline: $timeline, startDate_LTE: $endDate, endDate_GTE: $startDate}) {
-                id
-
-                blocks {
-                    id
-                }
-
-                rank
-
-                startDate
-                endDate
-                notes
-
-                timeline 
-
-                project {
-                    id
-                    displayId
-                    name
-                }
-                estimate {
-                    id
-                    displayId
-                    name
-                }
-
-                data {
-                    item
-                    location
-                    quantity
-                }
-           
-            }
-        }
-    `, {
+    const { data } = useQuery(GET_TIMELINE_DATA, {
         fetchPolicy: 'cache-and-network',
         variables: {
             timeline: view,
@@ -132,24 +98,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
     // ($start: DateTime, $end: DateTime) 
     //(where: {date_GTE: $start, date_LTE: $end})
-    const { data: projectInfo } = useQuery(gql`
-        query ProjectInfo{
-            projects {
-                id
-                displayId
-                name
-
-            }
-            estimates {
-                id
-                displayId
-                name
-                status
-                date
-                price
-            }
-        }
-    `, {
+    const { data: projectInfo } = useQuery(GET_PROJECT_INFO, {
         variables: {
             start: horizon?.start.toISOString(),
             end: horizon?.end.toISOString()
@@ -206,26 +155,9 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
     console.log(data)
 
-    const [createTimeline] = useMutation((mutation, args: {
-        name: string
+    const [createTimeline] = useMutation(CREATE_TIMELINE)
 
-    }) => {
-        const item = mutation.createTimeline({ input: { name: args.name } })
-
-        return {
-            item: {
-                ...item,
-            }
-        }
-    })
-
-    const [ createTimelineItem ] = useApolloMutation(gql`
-        mutation CreateTimelineItem ($prev: ID, $input: TimelineItemInput){
-            createTimelineItem(prev: $prev, input: $input){
-                id
-            }
-        }
-    `)
+    const [ createTimelineItem ] = useMutation(CREATE_TIMELINE_ITEM)
 
     // const [createTimelineItem, createInfo] = useMutation((mutation, args: {
     //     item: {
@@ -263,140 +195,20 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
     //     suspense: false,
     // })
 
-    const [deleteTimelineItem, deleteInfo] = useMutation((mutation, args: { id: string }) => {
-        if (!args.id) return { err: "No ID Supplied" }
-        const result = mutation.deleteTimelineItem({
-            id: args.id
-
-        })
-        return {
-            item: {
-                ...result
-            },
-            error: null
-        }
-    }, {
-        onCompleted(data) { },
-        onError(error) { },
+    const [deleteTimelineItem, deleteInfo] = useMutation(DELETE_TIMELINE_ITEM, {
         refetchQueries: [],
-        awaitRefetchQueries: true,
-        suspense: false,
     })
 
-    const [updateTimelineItem, updateInfo] = useMutation((mutation, args: {
-        id: string, item: {
-            project?: string,
-            estimate?: string,
-            notes?: string,
-            items?: any[],
-            startDate?: string,
-            endDate?: string
-        }
-    }) => {
-
-        if (!args.id) return;
-
-        let update: any = {};
-
-        if (args.item.project) update.project = args.item.project;
-        if (args.item.estimate) update.estimate = args.item.estimate;
-
-        if (args.item.startDate) update.startDate = args.item.startDate;
-        if (args.item.endDate) update.endDate = args.item.endDate;
-
-        if (args.item.notes) update.notes = args.item.notes;
-        if (args.item.items) update.data = args.item.items;
-        // if(args.item.items){
-        //     let items = args.item.items?.map((x) => ({
-        //         id: x?.id,
-        //         type: x?.type,
-        //         location: x?.location,
-        //         estimate: x?.estimate
-        //     }))
-
-        //     let old_item = capacity.find((a: { id: string; }) => a.id == args.id)
-
-        //     let delete_items = old_item.items?.filter((a: { id: any; }) => items?.map((x) => x.id).indexOf(a.id) < 0)
-        //     let update_items = items?.filter((a) => a.id)
-        //     let create_items = items?.filter((a) => !a.id)
-
-        //     update = {
-        //         ...update,
-        //         items: (delete_items?.map((item: { id: any; }) => ({
-        //             delete: {
-        //                 where: {node: {id: item.id}}
-        //             }
-        //         }))).concat((create_items?.map((item) => ({
-        //             create: [{node: item}]
-        //         })) as any[]).concat(update_items?.map((item) => ({
-        //             where: {node: {id: item.id}}, update: {node: {
-        //                 location: item.location,
-        //                 type: item.type,
-        //                 estimate: item.estimate
-        //             }}
-        //         }))
-        //         )
-        //         )
-        //     }
-        // }
-
-        const item = mutation.updateTimelineItem({
-            id: args.id,
-            input: {
-                ...update
-            }
-        });
-        // const item = mutation.updateHiveOrganisations({
-        //     update: {
-        //         timeline: [{
-        //             where: {node: {id: args.id}}, 
-        //             update: {
-        //                 node: {
-        //                     ...update,
-        //                 }
-        //         }}]
-        //     }
-        // })
-
-        return {
-            item: {
-                ...item
-            }
-        }
-    }, {
-        onCompleted(data) { },
-        onError(error) { },
-        refetchQueries: [],
-        awaitRefetchQueries: true,
-        suspense: false,
-    })
+    const [updateTimelineItem, updateInfo] = useMutation(UPDATE_TIMELINE_ITEM)
 
 
-    const [ updateTimelineItemOrder ] = useApolloMutation(gql`
-        mutation UpdateTimelineOrder ($item: ID, $prev: ID, $next: ID){
-            updateTimelineItemOrder(id: $item, prev: $prev, next: $next){
-                id
-            }
-        }
-    `)
+    const [ updateTimelineItemOrder ] = useMutation(UPDATE_TIMELINE_ITEM_ORDER)
 
-    const [createTimelineItemDependency] = useApolloMutation(gql`
-        mutation CreateDependency ($source: ID, $target: ID){
-            createTimelineItemDependency(source: $source, target: $target){
-                id
-            }
-        }
-    `, {
+    const [createTimelineItemDependency] = useMutation(CREATE_TIMELINE_ITEM_DEPENDENCY, {
         refetchQueries: ['TimelineData']
     })
 
-    const [deleteTimelineItemDependency] = useApolloMutation(gql`
-        mutation DeleteDependency ($source: ID, $target: ID){
-            deleteTimelineItemDependency(source: $source, target: $target){
-                id
-            }
-        }
-    `, {
+    const [deleteTimelineItemDependency] = useMutation(DELETE_TIMELINE_ITEM_DEPENDENCY, {
         refetchQueries: ['TimelineData']
     })
 
@@ -710,14 +522,14 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
             endDate?.setDate(endDate.getDate() - 1)
 
             updateTimelineItem({
-                args: {
+                variables: {
                     id: plan.id,
-                    item: {
+                    input: {
                         ...attachUpdate,
                         startDate: plan.startDate?.toISOString(),
                         endDate: endDate?.toISOString(),
                         notes: plan.notes,
-                        items: plan.data || []
+                        data: plan.data || []
                     }
                 }
             }).then(() => {
@@ -772,9 +584,9 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
 
         try {
             const result = await updateTimelineItem({
-                args: {
+                variables: {
                     id: id?.toString() || '',
-                    item: {
+                    input: {
                         startDate: item.start?.toISOString(),
                         endDate: item.end?.toISOString(),
                         notes: item.notes
@@ -801,8 +613,10 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                 onClose={() => openCreateModal(false)}
                 onSubmit={(timeline) => {
                     createTimeline({
-                        args: {
-                            name: timeline.name
+                        variables: {
+                            input: {
+                                name: timeline.name
+                            }
                         }
                     }).then(() => {
                         refetchTimeline()
@@ -820,7 +634,7 @@ const BaseTimeline: React.FC<TimelineProps> = (props) => {
                 onDelete={() => {
                     openERP(false);
                     if (!selected) return;
-                    deleteTimelineItem({ args: { id: selected.id } }).then(() => {
+                    deleteTimelineItem({ variables: { id: selected.id } }).then(() => {
                         refetchTimeline()
                         setSelected(undefined)
                     })

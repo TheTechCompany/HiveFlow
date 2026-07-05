@@ -2,7 +2,6 @@ import React, {
   Component, useMemo, useState
 } from 'react';
 // import { ScheduleView } from '@hexhive/ui';
-import { mutation, useRefetch, useMutation, useQuery, resolved } from '@hive-flow/api';
 import moment from 'moment';
 import { schedule as scheduleActions } from '../../actions'
 import { useContext } from 'react';
@@ -12,7 +11,7 @@ import { Menu, ChevronLeft as Previous, ChevronRight as Next, X } from '@mui/ico
 import { DraftPane } from './draft-pane';
 import { useQuery as useApollo, useMutation as useApolloMutation, gql, useApolloClient } from '@apollo/client';
 import { ScheduleItem, ScheduleModal } from '../../modals/schedule';
-import { Timeline, type TimelineItem, type TimelineGroup, type TimelineStep, type ItemChange } from '@hive-flow/ui';
+import { Timeline, type TimelineItem, type TimelineGroup, type TimelineStep, type ItemChange, type HighlightedDay } from '@hive-flow/ui';
 import { SchedulingModal } from './modal';
 import { mergeDateRanges } from './utils';
 import { Collapse, Typography, Button, Box, Paper, Popover, Menu as UIMenu, MenuItem } from '@mui/material';
@@ -92,6 +91,29 @@ export const Schedule: React.FC<any> = (props) => {
     }
   `)
   const slowData = slowResult.data;
+
+  // ── Public holidays ────────────────────────────────────────────
+  const { data: holidaysData } = useApollo(gql`
+    query PublicHolidays($year: Int!) {
+      publicHolidays(year: $year) {
+        date
+        name
+      }
+    }
+  `, {
+    variables: {
+      year: moment(horizon.start).year(),
+    },
+  });
+
+  const highlightedDays = useMemo((): HighlightedDay[] => {
+    if (!holidaysData?.publicHolidays) return [];
+    return holidaysData.publicHolidays.map((h: { date: string; name: string }) => ({
+      date: new Date(h.date),
+      label: h.name,
+      type: 'holiday' as const,
+    }));
+  }, [holidaysData]);
 
   const { createCalendarItem, updateCalendarItem, deleteCalendarItem } = useAPIFunctions();
   const { calendarData } = useAPIData(horizon);
@@ -540,6 +562,7 @@ export const Schedule: React.FC<any> = (props) => {
           movable={true}
           showLinks={false}
           showToday={true}
+          highlightedDays={highlightedDays}
           fitContainer
           callbacks={{
             onItemChange: (change: ItemChange) => {

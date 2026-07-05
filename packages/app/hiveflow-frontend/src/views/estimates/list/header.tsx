@@ -1,5 +1,4 @@
 import React from 'react';
-import { Maybe } from '@hive-flow/api';
 import { Add } from '@mui/icons-material';
 import { Box, IconButton, Paper, TextField } from '@mui/material';
 import { FormControl } from '@hexhive/ui';

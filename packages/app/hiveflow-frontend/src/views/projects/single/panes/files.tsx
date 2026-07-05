@@ -2,8 +2,8 @@ import { FileExplorer, FileDialog } from "@hexhive/ui";
 import { createTheme, Divider, Menu, MenuItem, ThemeProvider } from "@mui/material";
 import { Box } from "@mui/material";
 import React, { useRef, useState } from "react";
-import { mutate, useMutation } from "@hive-flow/api";
-import { useMutation as useApolloMutation, useQuery, gql, useApolloClient } from "@apollo/client";
+import { useMutation as useApolloMutation, useQuery, useApolloClient } from "@apollo/client";
+import { GET_PROJECT_FILES, CREATE_PROJECT_FOLDER, MOVE_PROJECT_FILE, DELETE_PROJECT_FILE, RENAME_PROJECT_FILE, UPLOAD_PROJECT_FILES } from '@hive-flow/api';
 import { useProjectInfo } from "../context";
 import { FilePreviewDialog } from "../../../../modals/file-preview";
 import {nanoid} from 'nanoid'
@@ -66,50 +66,15 @@ export const FilePane = () => {
 
     const uploading = useRef<{loading?: {id?: string, name?: string, percent?: number}[]}>({loading: []})
 
-    const [createDirectory] = useMutation((mutation, args: any) => {
-        const item = mutation.createProjectFolder({ project: projectId, path: `${activePath}/${args.path}` })
-        return {
-            item: {
-                ...item
-            }
-        }
-    })
+    const [createDirectory] = useApolloMutation(CREATE_PROJECT_FOLDER)
 
-    const [ moveFile ] = useMutation((mutation, args: any) => {
-      const item = mutation.moveProjectFile({project: projectId, path: `${activePath}/${args.path}`, newPath: args.newPath})
-      return {
-        item: {
-          ...item
-        }
-      }
-    })
+    const [ moveFile ] = useApolloMutation(MOVE_PROJECT_FILE)
 
-    const [ deleteFile ] = useMutation((mutation, args: any) => {
-      const item = mutation.deleteProjectFile({ project: projectId, path: `${activePath}/${args.path}` })
-      return {
-        item: {
-          ...item
-        }
-      }
-    })
+    const [ deleteFile ] = useApolloMutation(DELETE_PROJECT_FILE)
 
-    const [ renameFile ] = useMutation((mutation, args: { path: string, newPath: string }) => {
-      const item = mutation.renameProjectFile({project: projectId, path: `${activePath}/${args.path}`, newPath: args.newPath})
-      return {
-        item: {
-          ...item
-        }
-      }
-    })
+    const [ renameFile ] = useApolloMutation(RENAME_PROJECT_FILE)
 
-    const [uploadFiles] = useApolloMutation(gql`
-        mutation UploadFile($project: ID!, $path: String, $files: [Upload]){
-            uploadProjectFiles(project: $project, path: $path, files: $files){
-                id
-                name
-            }
-        }
-    `, {
+    const [uploadFiles] = useApolloMutation(UPLOAD_PROJECT_FILES, {
       context: {
         fetchOptions: {
           onUploadProgress: (event) => {
@@ -125,22 +90,7 @@ export const FilePane = () => {
       }
     })
 
-    const { data, loading } = useQuery(gql`
-        query GetProjectFiles($id: String, $path: String) {
-            projects(where: {displayId: $id}){
-            
-                files(path: $path) {
-                    id
-                    name
-                    url
-                    directory
-                    size
-                    lastUpdated:createdAt
-                }
-            
-            }
-        }
-    `, {
+    const { data, loading } = useQuery(GET_PROJECT_FILES, {
         variables: {
             id: projectId,
             path: activePath
@@ -164,8 +114,9 @@ export const FilePane = () => {
               }}
               onSubmit={(path) => {
                 moveFile({
-                  args: {
-                    path: moveOpen.name,
+                  variables: {
+                    project: projectId,
+                    path: `${activePath}/${moveOpen.name}`,
                     newPath: path
                   }
                 }).then(() => {
@@ -230,8 +181,9 @@ export const FilePane = () => {
               ]}
               onCreateFolder={async (folder) => {
                 await createDirectory({
-                  args: {
-                    path: folder
+                  variables: {
+                    project: projectId,
+                    path: `${activePath}/${folder}`
                   }
                 })
                   refetch()
@@ -240,18 +192,19 @@ export const FilePane = () => {
               onDelete={async (file) => {
                 if(Array.isArray(file)){
                   await Promise.all(file.map(async (file) => {
-                    await deleteFile({args: {path: file.name}})
+                    await deleteFile({ variables: { project: projectId, path: `${activePath}/${file.name}` } })
                   }))
                 }else{
-                  await deleteFile({args: {path: file.name}})
+                  await deleteFile({ variables: { project: projectId, path: `${activePath}/${file.name}` } })
                 }
                 await refetch()
               }}
               onRename={async (file, newName) => {
                 await renameFile({
-                  args: {
-                    path: file.name,
-                    newPath: newName
+                  variables: {
+                    project: projectId,
+                    path: `${activePath}/${file.name}`,
+                    newPath: `${activePath}/${newName}`
                   }
                 })
                 

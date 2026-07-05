@@ -15,9 +15,16 @@ import moment from 'moment';
 
 import { Kanban, FileDialog, FileExplorer, Timeline } from '@hexhive/ui';
 
-import { useMutation, useRefetch } from '@hive-flow/api';
+import { useApolloClient, useMutation, useQuery } from '@apollo/client'
+import {
+  GET_PROJECT,
+  UPDATE_PROJECT_TASK,
+  CREATE_PROJECT_TASK,
+  DELETE_PROJECT_TASK,
+  CREATE_PROJECT_TASK_DEPENDENCY,
+  DELETE_PROJECT_TASK_DEPENDENCY,
+} from '@hive-flow/api';
 import { KanbanModal } from './KanbanModal';
-import { gql, useApolloClient, useMutation as useApolloMutation, useQuery } from '@apollo/client'
 import { Outlet, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { TimelinePane, FilePane, KanbanPane } from './panes';
 import { ProjectSingleProvider } from './context';
@@ -82,64 +89,11 @@ console.log({pathname})
   //   staleWhileRevalidate: true
   // })
 
-  const { data } = useQuery(gql`
-    query GetProject($id: String) {
-      users (active: true) {
-        id
-        name
-      }
-
-      skills{
-        skill
-      }
-
-      projects(where: {displayId: $id}){
-        id
-        displayId
-        name
-        startDate
-        endDate
-    
-        tasks {
-          id
-
-          title
-          description
-          startDate
-          endDate
-          status
-
-          timelineRank
-          columnRank
-
-          members {
-            id
-            name
-          }
-
-          requiredSkills
-
-          lastUpdated
-
-          dependencyOn {
-            id
-            title
-            status
-            endDate
-          }
-          dependencyOf {
-            id
-            title
-            status
-            endDate
-          }
-        }
-      }
-    }
-  `, {
+  const { data } = useQuery(GET_PROJECT, {
     variables: {
       id: job_id,
-    }
+    },
+    fetchPolicy: 'network-only',
   })
 
   
@@ -153,7 +107,23 @@ console.log({pathname})
 
   const users = data?.users || [];
 
-  const job = data?.projects?.[0] //query.projects({where: {id: job_id}})?.[0]
+  const job = data?.projects?.[0]
+
+  // Keep selectedTask in sync with refetched data so subtasks etc. update
+  useEffect(() => {
+    if (selectedTask?.id && job?.tasks) {
+      const refreshed = job.tasks.find((t: any) => t.id === selectedTask.id);
+      if (refreshed) {
+        setSelectedTask((prev: any) => ({
+          ...prev,
+          children: refreshed.children,
+          ...refreshed,
+          startDate: refreshed.start,
+          endDate: refreshed.end,
+        }));
+      }
+    }
+  }, [job?.tasks]);
 
   useEffect(() => {
     console.log("JOB Changed")
@@ -250,52 +220,11 @@ console.log({pathname})
     );
   }
 
-  const [ createTask ] = useMutation((mutation, args: any) => {
-    const item = mutation.createProjectTask({input: args.input})
-    return {
-      item: {
-        ...item
-      }
-    }
-  })
-
-  const [ updateTask ] = useMutation((mutation, args: any) => {
-    const item = mutation.updateProjectTask({id: args.id, input: args.input})
-    return {
-      item: {
-        ...item
-      }
-    }
-  })
-
-  const [ deleteTask ] = useMutation((mutation, args: any) => {
-    const item = mutation.deleteProjectTask({id: args.id})
-    return {
-      item: {
-        ...item
-      }
-    }
-  })
-
-  const [ createTaskDependency ] = useMutation((mutation, args: any) => {
-    const item = mutation.createProjectTaskDependency({project: job_id, source: args.source, target: args.target});
-    return {
-      item: {
-        ...item
-      }
-    }
-  })
-
-
-  const [ deleteTaskDependency ] = useMutation((mutation, args: any) => {
-    const item = mutation.deleteProjectTaskDependency({project: job_id, source: args.source, target: args.target});
-    return {
-      item: {
-        ...item
-      }
-    }
-  })
-  
+  const [createTask] = useMutation(CREATE_PROJECT_TASK);
+  const [updateTask] = useMutation(UPDATE_PROJECT_TASK);
+  const [deleteTask] = useMutation(DELETE_PROJECT_TASK);
+  const [createTaskDependency] = useMutation(CREATE_PROJECT_TASK_DEPENDENCY);
+  const [deleteTaskDependency] = useMutation(DELETE_PROJECT_TASK_DEPENDENCY);
 
   return (
     <ProjectSingleProvider value={{
@@ -314,7 +243,7 @@ console.log({pathname})
         let below = statusTasks?.[index + 1]?.id
 
           updateTask({
-            args: {
+            variables: {
               id: taskId,
               input: {
                 status,
@@ -343,7 +272,7 @@ console.log({pathname})
       },
       deleteDependency: (source: string, target: string) => {
         deleteTaskDependency({
-          args: {
+          variables: {
             source,
             target
           }
@@ -353,7 +282,7 @@ console.log({pathname})
       },
       createDependency: (source: string, target: string) => {
         createTaskDependency({
-          args: {
+          variables: {
             source,
             target
           }
@@ -376,17 +305,23 @@ console.log({pathname})
         }}
         onAddSubtask={async (parentId, title) => {
           await createTask({
-            args: {
+            variables: {
               input: { title, parentId, status: 'Backlog', projectId: job_id }
             }
           });
           refetch();
         }}
+        onSelectTask={(taskId) => {
+          const task = job?.tasks?.find((t: any) => t.id === taskId);
+          if (task) {
+            setSelectedTask({ ...task, startDate: task.start, endDate: task.end });
+          }
+        }}
         onDelete={async () => {
           if(!selectedTask) return;
 
           await deleteTask({
-            args: {
+            variables: {
               id: selectedTask?.id
             }
           })
@@ -401,7 +336,7 @@ console.log({pathname})
           if(task.id){
             //Update
             await updateTask({
-              args: { 
+              variables: { 
                 id: task.id, 
                 input: {
                    title: task.title,
@@ -419,7 +354,7 @@ console.log({pathname})
           }else{
             //Create
             await createTask({
-              args: {
+              variables: {
                  input: {
                   title: task.title,
                   members: task.members,
