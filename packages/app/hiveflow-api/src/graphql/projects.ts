@@ -33,6 +33,10 @@ export const GET_PROJECT = gql`
       name
       startDate
       endDate
+      managers {
+        id
+        name
+      }
       tasks {
         id
         title

@@ -29,7 +29,7 @@ export const MemberList : React.FC<MemberListProps> = (props) => {
                 <IconButton 
                     onClick={() => setOpen(true)}
                     ref={addRef}
-                    sx={{ color: 'white' }} size="small">
+                    sx={{ color: 'inherit' }} size="small">
                     <Add />
                 </IconButton>
                 <Menu

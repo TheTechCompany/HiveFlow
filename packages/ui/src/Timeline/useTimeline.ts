@@ -144,6 +144,8 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
   const [viewportHeight, setViewportHeight] = useState(600);
   const observerRef = useRef<ResizeObserver | null>(null);
 
+  const rafRef = useRef<number | null>(null);
+
   const setContainerRef = useCallback((el: HTMLDivElement | null) => {
     if (observerRef.current) {
       observerRef.current.disconnect();
@@ -151,17 +153,26 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
     }
     if (el) {
       observerRef.current = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const { width, height } = entry.contentRect;
-          if (width > 0) setViewportWidth(width);
-          if (height > 0) setViewportHeight(height);
-        }
+        // Defer state updates via rAF to avoid "ResizeObserver loop"
+        // errors in Chrome.  The loop is benign but clutters the console.
+        if (rafRef.current !== null) return; // already queued
+        rafRef.current = requestAnimationFrame(() => {
+          rafRef.current = null;
+          for (const entry of entries) {
+            const { width, height } = entry.contentRect;
+            if (width > 0) setViewportWidth(width);
+            if (height > 0) setViewportHeight(height);
+          }
+        });
       });
       observerRef.current.observe(el);
     }
   }, []);
 
-  useEffect(() => () => observerRef.current?.disconnect(), []);
+  useEffect(() => () => {
+    observerRef.current?.disconnect();
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+  }, []);
 
   // ── Derived ────────────────────────────────────────────────────
   const stepCount = stepCountProp ?? DEFAULT_STEP_COUNTS[step];

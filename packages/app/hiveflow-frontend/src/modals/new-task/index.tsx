@@ -3,6 +3,8 @@ import {
   Add,
   Close,
   Edit,
+  ExpandLess,
+  ExpandMore,
   Label,
 } from '@mui/icons-material';
 import {
@@ -116,6 +118,7 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [editing, setEditing] = useState(!props.selected?.id);
+  const [subtasksOpen, setSubtasksOpen] = useState(false);
 
   const [task, setTask] = useState<TaskState>({
     status: 'Backlog',
@@ -333,48 +336,70 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
 
         {/* Children / subtasks */}
         <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: (props.selected?.children?.length ?? 0) > 0 ? 1 : 0 }}>
-            <Typography variant="subtitle2">Subtasks</Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+            }}
+            onClick={() => setSubtasksOpen(!subtasksOpen)}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Typography variant="subtitle2">Subtasks</Typography>
+              <Chip
+                label={props.selected?.children?.length ?? 0}
+                size="small"
+                sx={{ height: 18, fontSize: '0.65rem' }}
+              />
+            </Box>
+            <IconButton size="small" sx={{ p: 0 }}>
+              {subtasksOpen ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
+            </IconButton>
           </Box>
-          {(props.selected?.children?.length ?? 0) > 0 ? (
-            <Stack spacing={0.5}>
-              {props.selected.children.map((child: any) => (
-                <Box
-                  key={child.id}
-                  onClick={() => props.onSelectTask?.(child.id)}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    px: 1,
-                    py: 0.5,
-                    borderRadius: 1,
-                    '&:hover': { bgcolor: 'action.hover' },
-                  }}
-                >
-                  <Typography variant="body2">{child.title}</Typography>
-                  <Chip
-                    label={child.status || 'Backlog'}
-                    size="small"
-                    sx={{
-                      fontSize: '0.65rem',
-                      height: 20,
-                      bgcolor:
-                        child.status === 'Finished' ? '#4caf50' :
-                        child.status === 'In Progress' ? '#2196f3' :
-                        child.status === 'Reviewing' ? '#ff9800' :
-                        '#9e9e9e',
-                      color: 'white',
-                    }}
-                  />
-                </Box>
-              ))}
-            </Stack>
-          ) : (
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>No subtasks yet</Typography>
+          {subtasksOpen && (
+            <>
+              {(props.selected?.children?.length ?? 0) > 0 ? (
+                <Stack spacing={0.5} sx={{ mt: 1 }}>
+                  {props.selected.children.map((child: any) => (
+                    <Box
+                      key={child.id}
+                      onClick={() => props.onSelectTask?.(child.id)}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: 1,
+                        '&:hover': { bgcolor: 'action.hover' },
+                      }}
+                    >
+                      <Typography variant="body2">{child.title}</Typography>
+                      <Chip
+                        label={child.status || 'Backlog'}
+                        size="small"
+                        sx={{
+                          fontSize: '0.65rem',
+                          height: 20,
+                          bgcolor:
+                            child.status === 'Finished' ? '#4caf50' :
+                            child.status === 'In Progress' ? '#2196f3' :
+                            child.status === 'Reviewing' ? '#ff9800' :
+                            '#9e9e9e',
+                          color: 'white',
+                        }}
+                      />
+                    </Box>
+                  ))}
+                </Stack>
+              ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>No subtasks yet</Typography>
+              )}
+              {props.selected?.id && <Box sx={{ mt: 1 }}><SubtasksInput parentId={props.selected.id} onAdd={props.onAddSubtask} /></Box>}
+            </>
           )}
-          {props.selected?.id && <SubtasksInput parentId={props.selected.id} onAdd={props.onAddSubtask} />}
         </Box>
 
         {/* Status */}

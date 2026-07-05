@@ -137,7 +137,9 @@ jest.mock('./KanbanModal', () => ({ KanbanModal: () => <div data-testid="kanban-
 jest.mock('./panes', () => ({
   KanbanPane: () => <div data-testid="kanban-pane" />,
   TimelinePane: () => <div data-testid="timeline-pane" />,
+  TicketsPane: () => <div data-testid="tickets-pane" />,
   FilePane: () => <div data-testid="file-pane" />,
+  InfoPane: () => <div data-testid="info-pane" />,
 }));
 
 // ── Import under test ───────────────────────────────────────────────

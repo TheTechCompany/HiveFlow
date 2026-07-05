@@ -13,7 +13,7 @@ import moment from 'moment';
 
 // import utils from '../../../utils';
 
-import { Kanban, FileDialog, FileExplorer, Timeline } from '@hexhive/ui';
+import { FileDialog, FileExplorer } from '@hexhive/ui';
 
 import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import {
@@ -26,10 +26,9 @@ import {
 } from '@hive-flow/api';
 import { KanbanModal } from './KanbanModal';
 import { Outlet, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { TimelinePane, FilePane, KanbanPane } from './panes';
+import { TicketsPane, FilePane, InfoPane } from './panes';
 import { ProjectSingleProvider } from './context';
 import { TaskModal } from '../../../modals/new-task';
-import { BatchView } from '../../batches';
 
 import { arrayMove } from '@dnd-kit/sortable'
 // const FileExplorer = lazy(() => {
@@ -138,25 +137,26 @@ console.log({pathname})
   const _tabs = [
    
     {
-      title: "Tickets",
-      path: "tickets",
-      element: <KanbanPane />
+      title: "Info",
+      path: "info",
+      element: <InfoPane project={job} users={users} onRefetch={refetch} />
     },
     {
-      title: "Timeline",
-      path: "timeline",
-      element: <TimelinePane />
+      title: "Tickets",
+      path: "tickets",
+      element: <TicketsPane />
     },
     {
       title: "Files",
       path: "files",
       element: <FilePane />
     },
-    {
-      title: "Batches",
-      path: "batches/*",
-      element: <BatchView />
-    },
+    // Batches tab hidden for now
+    // {
+    //   title: "Batches",
+    //   path: "batches/*",
+    //   element: <BatchView />
+    // },
   ]
 
   const view = _tabs.find((a) => pathname.indexOf(a.path) > -1)?.path?.replace('/*', '')
