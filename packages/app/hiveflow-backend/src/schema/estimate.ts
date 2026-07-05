@@ -10,6 +10,13 @@ import { PrismaClient } from "@prisma/client"
 export default (prisma: PrismaClient) => {
 
     const resolvers = {
+        Query: {
+            estimates: async (root: any, args: any, context: any) => {
+                return prisma.estimate.findMany({
+                    where: { organisation: context?.jwt?.organisation },
+                });
+            },
+        },
         Estimate: {
             tasks: async (root: any) => {
                 return prisma.task.findMany({
@@ -26,6 +33,10 @@ export default (prisma: PrismaClient) => {
     }
 
     const typeDefs = `
+        extend type Query {
+            estimates: [Estimate]
+        }
+
         type Estimate {
             id: ID!
             displayId: String

@@ -42,46 +42,30 @@ export const Schedule: React.FC<any> = (props) => {
     end: new Date(moment(new Date()).endOf('isoWeek').valueOf())
   })
 
-
   const slowResult = useApollo(gql`
     query Slow{
-
       estimates {
         id
         displayId
         name
-
-
         tasks {
           id
-          
-
           title
-
           startDate
           endDate
-
-
         }
-
       }
       projects{
         id
         displayId
         name
         colour
-
-        
         tasks {
           id
-
           title
-
           startDate
           endDate
-
           requiredSkills
-
         }
       }
       equipment {

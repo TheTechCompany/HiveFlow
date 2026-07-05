@@ -56,9 +56,14 @@ const STATUS_COLORS: Record<string, string> = {
 
 function flattenTasks(columns: KanbanColumn[]): FlatTask[] {
   const result: FlatTask[] = [];
+  const seen = new Set<string>();
   for (const col of columns) {
     for (const row of col.rows) {
       const t = row._task;
+      // Skip duplicate tasks that appear in multiple columns
+      // (e.g. "In Review" and "My Reviews" both match Reviewing tasks).
+      if (seen.has(t.id)) continue;
+      seen.add(t.id);
       const src = t.project ?? t.estimate;
       const label = src ? `${src.displayId} - ` : '';
       result.push({

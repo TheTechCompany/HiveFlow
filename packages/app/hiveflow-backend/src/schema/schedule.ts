@@ -352,7 +352,10 @@ export default (prisma: PrismaClient) => {
 
                 if(args.where?.end_GTE) query['end'] = {...query['end'], gt: args.where.end_GTE};
                 if(args.where?.start_LTE) query['start'] = {...query['start'], lt: args.where.start_LTE};
-                if(args.where.ids) query['id'] = {in: args.where.ids};
+                if(args.where?.ids) {
+                    const validIds = args.where.ids.filter((id: any) => id != null);
+                    if (validIds.length > 0) query['id'] = {in: validIds};
+                }
 
                 return await prisma.calendarItem.findMany({
                     where: {

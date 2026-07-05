@@ -33,8 +33,13 @@ export default (prisma: PrismaClient) => {
 		HiveOrganisation: {
 			projects: async (root: any) => {
 				return await prisma.project.findMany({where: {organisation: root.id}});
-
-			}
+			},
+			estimates: async (root: any) => {
+				return await prisma.estimate.findMany({where: {organisation: root.id}});
+			},
+			equipment: async (root: any) => {
+				return await prisma.equipment.findMany({where: {organisation: root.id}});
+			},
 		},
 		Query: {
 			organisation: (root: any, args: {ids: string[]}, context: any) => {

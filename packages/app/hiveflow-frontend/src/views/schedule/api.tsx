@@ -140,7 +140,6 @@ export const useAPIData = (horizon: any) => {
         }
     })
 
-
     return {
         calendarData
     }
