@@ -161,16 +161,6 @@ const ROWS_WRAPPER_STYLE: React.CSSProperties = {
 };
 
 
-/** Throttle helper: returns true if enough ms have passed since last call. */
-function useThrottle(ms: number) {
-  const last = useRef(0);
-  return useCallback(() => {
-    const now = performance.now();
-    if (now - last.current > ms) { last.current = now; return true; }
-    return false;
-  }, [ms]);
-}
-
 // ── Main component ──────────────────────────────────────────────────
 
 export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
@@ -237,13 +227,16 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
   }, [hasExternalHorizon, callbacks, activeStart, activeEnd]);
 
   // Build the props that useTimeline needs with the active date range.
-  const activeProps = useMemo(() => ({
+  // NOTE: we intentionally do NOT wrap this in useMemo — the spread of
+  // `props` makes the dependency list unstable (React creates a new props
+  // object on every render).  useTimeline internally memoises on the
+  // individual values it destructures, so the reference identity of the
+  // outer object is irrelevant.
+  const timeline = useTimeline({
     ...props,
     start: activeStart,
     end: activeEnd,
-  }), [props, activeStart, activeEnd]);
-
-  const timeline = useTimeline(activeProps);
+  });
 
   const {
     geometry,
@@ -255,6 +248,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
     updateDrag,
     endDrag,
     setContainerRef,
+    effectiveEnd,
   } = timeline;
 
   const hasGroups = !!(groups && groups.length > 0);
@@ -293,11 +287,20 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
     let h = 0;
     for (const e of rowEntries) h += Math.max(1, e.laneCount) * laneH;
     if (fullHeight) return Math.max(h, 200);
-    return Math.max(h, geometry.viewportHeight - headerHeight, 200);
-  }, [rowEntries, laneH, geometry.viewportHeight, headerHeight, fullHeight]);
+    // Use the actual row height — the Body's overflow-y:auto handles
+    // vertical scrolling when content exceeds the viewport.  The grid
+    // lines use a separate gridHeight so they always extend to the
+    // bottom even when rows are short.
+    return h;
+  }, [rowEntries, laneH, fullHeight]);
 
-  const actualH = rowEntries.reduce((s, e) => s + Math.max(1, e.laneCount) * laneH, 0);
-  const emptyRowCount = Math.max(0, Math.ceil((totalRowsHeight - actualH) / laneH));
+  // Grid lines and SVG links should extend to at least the full body
+  // height even when there are few rows.
+  const gridHeight = useMemo(() => {
+    let h = 0;
+    for (const e of rowEntries) h += Math.max(1, e.laneCount) * laneH;
+    return Math.max(h, geometry.viewportHeight - headerHeight, 200);
+  }, [rowEntries, laneH, geometry.viewportHeight, headerHeight]);
 
   // ── Drag for existing items ──────────────────────────────────────
   const dragRef = timeline.dragStateRef;
@@ -320,6 +323,10 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
   const panDragRef = useRef(panDrag);
   panDragRef.current = panDrag;
 
+  // Ref for tracking current position during regular pan
+  // (avoids setPanDrag → React re-render on every pointermove)
+  const panCurrentRef = useRef({ x: 0, y: 0 });
+
   // ── Consolidated ref bag for native listeners ────────────────────
   const timelineRef = useRef({
     updateDrag,
@@ -331,7 +338,6 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
     geometry,
     sidebarW,
     rowEntries,
-    emptyRowCount,
     laneH,
     shiftHorizon,
   });
@@ -345,7 +351,6 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
     geometry,
     sidebarW,
     rowEntries,
-    emptyRowCount,
     laneH,
     shiftHorizon,
   };
@@ -427,8 +432,9 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
     [],
   );
 
-  // ── Throttle for drag-to-pan date shifting ───────────────────────
-  const dragThrottle = useThrottle(32);
+  // ── rAF-based pan horizon updates (self-throttling, no backlog) ─
+  const panRafRef = useRef<number | null>(null);
+  const panPendingRef = useRef<{ newStart: Date; newEnd: Date } | null>(null);
 
   // ── Native pointer listeners ─────────────────────────────────────
   useEffect(() => {
@@ -447,19 +453,28 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
         const delta = e.clientX - pd.startX;
         const t = timelineRef.current;
         const rawMs = -delta / t.geometry.pxPerMs;
+        const newStart = new Date(pd.startMs + rawMs);
+        const newEnd = new Date(pd.endMs + rawMs);
 
-        if (dragThrottle()) {
-          const newStart = new Date(pd.startMs + rawMs);
-          const newEnd = new Date(pd.endMs + rawMs);
-          const t2 = timelineRef.current;
-          if (t2.callbacks?.onHorizonChange) {
-            t2.callbacks.onHorizonChange(newStart, newEnd);
-          } else {
-            setInternalStart(newStart);
-            setInternalEnd(newEnd);
-          }
+        // Track current position in ref only — no React re-render
+        panCurrentRef.current = { x: e.clientX, y: e.clientY };
+
+        // Store latest desired horizon and schedule at most one rAF update
+        panPendingRef.current = { newStart, newEnd };
+        if (!panRafRef.current) {
+          panRafRef.current = requestAnimationFrame(() => {
+            panRafRef.current = null;
+            const pending = panPendingRef.current;
+            if (!pending) return;
+            const t2 = timelineRef.current;
+            if (t2.callbacks?.onHorizonChange) {
+              t2.callbacks.onHorizonChange(pending.newStart, pending.newEnd);
+            } else {
+              setInternalStart(pending.newStart);
+              setInternalEnd(pending.newEnd);
+            }
+          });
         }
-        setPanDrag((prev) => (prev ? { ...prev, currentX: e.clientX, currentY: e.clientY } : null));
       }
     };
 
@@ -487,13 +502,20 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
             const dEnd = xToDate(maxX + Math.max(0, minWidthPx - (maxX - minX)), t.start, t.geometry.pxPerMs);
             t.callbacks.onItemCreate(dStart, dEnd, pd.targetGroupId ?? undefined);
           }
-        } else if (!pd.shiftKey && Math.abs(pd.currentX - pd.startX) < 3) {
+        } else if (!pd.shiftKey && Math.abs(panCurrentRef.current.x - pd.startX) < 3) {
           timelineRef.current.clearSelection();
         }
         stopEdgeLoop();
         try { (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); } catch { /* ok */ }
       }
       setPanDrag(null);
+      // Cancel any pending rAF pan update
+      if (panRafRef.current != null) {
+        cancelAnimationFrame(panRafRef.current);
+        panRafRef.current = null;
+      }
+      panPendingRef.current = null;
+      panCurrentRef.current = { x: 0, y: 0 };
     };
 
     document.addEventListener('pointermove', onMove);
@@ -501,6 +523,10 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
     return () => {
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
+      if (panRafRef.current != null) {
+        cancelAnimationFrame(panRafRef.current);
+        panRafRef.current = null;
+      }
     };
   }, []); // Mount once — all state via refs
 
@@ -518,13 +544,6 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
             rowTop: top,
             rowHeight: h,
           };
-        }
-        top += h;
-      }
-      for (let i = 0; i < t.emptyRowCount; i++) {
-        const h = t.laneH;
-        if (bodyY >= top && bodyY < top + h) {
-          return { groupId: null, rowTop: top, rowHeight: h };
         }
         top += h;
       }
@@ -598,7 +617,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
       const left = Math.min(sx, cx);
       const width = Math.max(4, Math.abs(cx - sx));
       const top = panDrag.targetRowTop;
-      const height = panDrag.targetRowHeight || actualH;
+      const height = panDrag.targetRowHeight || totalRowsHeight;
       return (
         <div
           style={{
@@ -657,7 +676,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
         )}
         <div style={{ ...HEADER_SPACER_STYLE, overflow: stickyHeader ? 'visible' : HEADER_SPACER_STYLE.overflow }}>
           <div style={{ flex: 1, overflow: stickyHeader ? 'visible' : 'hidden' }}>
-            <TimelineHeader geometry={geometry} start={activeStart} end={activeEnd} step={step} height={headerHeight} renderDay={renderers?.renderDay} highlightedDays={highlightedDays} />
+          <TimelineHeader geometry={geometry} start={activeStart} end={effectiveEnd} step={step} height={headerHeight} renderDay={renderers?.renderDay} highlightedDays={highlightedDays} />
           </div>
         </div>
       </div>
@@ -669,15 +688,15 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
         ...(fullHeight ? { overflowY: 'visible' as const, overflowX: 'visible' as const } : {}),
       }}>
         <TimelineGrid
-          geometry={geometry} start={activeStart} end={activeEnd} step={step}
-          totalHeight={totalRowsHeight} showToday={showToday} sidebarWidth={sidebarW}
+          geometry={geometry} start={activeStart} end={effectiveEnd} step={step}
+          totalHeight={gridHeight} showToday={showToday} sidebarWidth={sidebarW}
           highlightedDays={highlightedDays}
         />
 
         {showLinks && links.length > 0 && (
           <TimelineLinks
             links={links} barLayouts={barLayouts}
-            areaWidth={geometry.timelineWidth} areaHeight={totalRowsHeight}
+            areaWidth={geometry.timelineWidth} areaHeight={gridHeight}
             sidebarWidth={sidebarW}
             selectedLinkIds={selection.linkIds} onSelectLink={selectLink}
           />
@@ -705,20 +724,6 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
             renderGroupHeader={renderers?.renderGroupHeader}
             showSidebar={hasGroups}
             onDoubleClickItem={handleItemDoubleClick}
-            sidebarPadding={sidebarPadding}
-          />
-        ))}
-        {Array.from({ length: emptyRowCount }, (_, i) => (
-          <TimelineRow
-            key={`__empty_${i}`}
-            groupId={`__empty_${i}`} items={[]}
-            laneCount={1} itemHeight={itemHeight}
-            resizable={false} movable={false}
-            rowHeight={laneH} isExpanded={false}
-            timeline={timeline}
-            sidebarWidth={sidebarW}
-            showSidebar={hasGroups}
-            isPlaceholder
             sidebarPadding={sidebarPadding}
           />
         ))}

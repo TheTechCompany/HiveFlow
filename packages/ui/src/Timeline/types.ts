@@ -240,4 +240,8 @@ export interface TimelineGeometry {
   pxPerStep: number;
   /** Step duration in ms. */
   stepDurationMs: number;
+  /** Right edge of the visible date window in epoch ms — consistent
+   *  with pxPerMs and timelineWidth.  Prefer this over the consumer-
+   *  supplied `end` prop for rendering and filtering. */
+  effectiveEndMs: number;
 }

@@ -130,24 +130,39 @@ export function generateTierIntervals(
 
 // ── Geometry ────────────────────────────────────────────────────────
 
-/** Compute timeline geometry from props and container size. */
+/** Compute timeline geometry from props and container size.
+ *
+ * pxPerMs is a step-level constant (PX_PER_STEP / step duration), NOT
+ * derived from the consumer's date range.  This guarantees every step unit
+ * (hour, day, week, …) gets a stable pixel width regardless of the viewport
+ * or the consumer-supplied `end` date.
+ *
+ * effectiveEndMs is the right edge of the visible date window in epoch ms,
+ * consistent with pxPerMs and timelineWidth.  Callers should use this value
+ * (not the consumer-supplied `end`) for rendering headers, grids, and
+ * visibility filtering. */
 export function computeGeometry(
   viewportWidth: number,
   viewportHeight: number,
   start: Date,
-  end: Date,
+  _end: Date,
   step: TimelineStep,
   sidebarWidth: number,
   stepCount: number,
 ): TimelineGeometry {
-  const totalMs = end.getTime() - start.getTime();
+  const stepDurationMs = STEP_DURATIONS[step];
+  // Fixed pixels-per-ms for this step granularity — together with
+  // timelineWidth this determines how many step units are visible.
+  const pxPerMs = PX_PER_STEP[step] / stepDurationMs;
+
   // Content canvas is sized by step count × fixed px-per-step,
   // so the timeline extends beyond the viewport and panning reveals hidden content.
   const canvasWidth = stepCount * PX_PER_STEP[step];
   const timelineWidth = Math.max(canvasWidth, viewportWidth - sidebarWidth);
-  const pxPerMs = totalMs > 0 ? timelineWidth / totalMs : 0;
-  const stepDurationMs = stepDuration(step, 1);
-  const pxPerStep = pxPerMs * stepDurationMs;
+  const pxPerStep = pxPerMs * stepDurationMs; // === PX_PER_STEP[step]
+
+  // The right edge of the visible window, consistent with geometry.
+  const effectiveEndMs = start.getTime() + timelineWidth / pxPerMs;
 
   return {
     viewportWidth,
@@ -157,6 +172,7 @@ export function computeGeometry(
     pxPerMs,
     pxPerStep,
     stepDurationMs,
+    effectiveEndMs,
   };
 }
 

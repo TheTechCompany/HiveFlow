@@ -47,6 +47,10 @@ export interface KanbanRow {
   _task: KanbanTask;
   /** Timestamp of the last status change — used for TTL filtering */
   lastUpdated?: Date;
+  /** When grouped, identifies the group this row belongs to */
+  groupKey?: string;
+  /** Human-readable label for the group header */
+  groupLabel?: string;
 }
 
 /** Column appearance variant for stacked layouts */

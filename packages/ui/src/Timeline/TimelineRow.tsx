@@ -178,6 +178,7 @@ interface SidebarCellProps {
   groupId: string;
   isExpanded: boolean;
   renderGroupHeader?: (group: TimelineGroup, expanded: boolean) => React.ReactNode;
+  onDoubleClick?: () => void;
 }
 
 const SidebarCell = React.memo(function SidebarCell({
@@ -188,10 +189,12 @@ const SidebarCell = React.memo(function SidebarCell({
   groupId,
   isExpanded,
   renderGroupHeader,
+  onDoubleClick,
 }: SidebarCellProps) {
   return (
     <div
       data-timeline-sidebar
+      onDoubleClick={onDoubleClick}
       style={{
         ...SIDEBAR_STYLE,
         width: `${sidebarWidth}px`,
@@ -258,6 +261,10 @@ export const TimelineRow: React.FC<TimelineRowProps> = React.memo(
       [onDoubleClickItem],
     );
 
+    const handleSidebarDoubleClick = useCallback(() => {
+      onDoubleClickItem?.(groupId);
+    }, [onDoubleClickItem, groupId]);
+
     const handleDragStart = useCallback(
       (itemId: string, mode: 'move' | 'resize-left' | 'resize-right', clientX: number) => {
         startDrag(itemId, mode, clientX);
@@ -282,6 +289,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = React.memo(
             groupId={groupId}
             isExpanded={isExpanded}
             renderGroupHeader={renderGroupHeader}
+            onDoubleClick={handleSidebarDoubleClick}
           />
         )}
 

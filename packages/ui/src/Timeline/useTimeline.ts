@@ -30,8 +30,8 @@ import {
   DEFAULT_ITEM_HEIGHT,
   DEFAULT_MIN_BAR_WIDTH,
   DEFAULT_SIDEBAR_WIDTH,
-  DEFAULT_STEP_COUNTS,
   HEADER_TIERS,
+  STEP_DURATIONS,
 } from './constants';
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -108,6 +108,9 @@ export interface UseTimelineReturn {
   /** Layouts for every visible bar — used by link arrows. */
   barLayouts: BarLayout[];
 
+  /** Effective end of the visible date window, consistent with geometry. */
+  effectiveEnd: Date;
+
   setContainerRef: (el: HTMLDivElement | null) => void;
 }
 
@@ -175,12 +178,22 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
   }, []);
 
   // ── Derived ────────────────────────────────────────────────────
-  const stepCount = stepCountProp ?? DEFAULT_STEP_COUNTS[step];
+  // Derive stepCount from the consumer's date range when not explicitly
+  // provided — maintains backward compatibility with callers that pass
+  // start/end and expect the timeline to fill that window.
+  const stepCount = stepCountProp ?? Math.max(1, Math.ceil((end.getTime() - start.getTime()) / STEP_DURATIONS[step]));
   const sidebarWidth = props.sidebarWidth ?? (groups && groups.length > 0 ? DEFAULT_SIDEBAR_WIDTH : 0);
 
   const geometry = useMemo(
     () => computeGeometry(viewportWidth, viewportHeight, start, end, step, sidebarWidth, stepCount),
     [viewportWidth, viewportHeight, start, end, step, sidebarWidth, stepCount],
+  );
+
+  // Effective end date derived from geometry — consistent with pxPerMs
+  // and timelineWidth regardless of what the consumer passed as `end`.
+  const effectiveEnd = useMemo(
+    () => new Date(geometry.effectiveEndMs),
+    [geometry.effectiveEndMs],
   );
 
   const tiers = useMemo(() => HEADER_TIERS[step], [step]);
@@ -190,8 +203,8 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
   const dragStateRef = useRef<DragState>(IDLE_DRAG);
 
   const visibleItems = useMemo(
-    () => filterVisibleItems(items, start, end),
-    [items, start, end],
+    () => filterVisibleItems(items, start, effectiveEnd),
+    [items, start, effectiveEnd],
   );
 
   // Always include the item being dragged, even if edge-scroll pushed
@@ -577,6 +590,7 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
     visibleItems: visibleWithDragged,
     computeBarStyle,
     barLayouts,
+    effectiveEnd,
     setContainerRef,
   }), [
     geometry,
@@ -596,6 +610,7 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
     visibleWithDragged,
     computeBarStyle,
     barLayouts,
+    effectiveEnd,
     setContainerRef,
   ]);
 }

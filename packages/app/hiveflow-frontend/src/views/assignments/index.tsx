@@ -20,13 +20,11 @@ import {
   ListItemText,
   Chip,
   Collapse,
+  Switch,
 } from '@mui/material';
 import {
   Subject,
   TableChart,
-  Timeline,
-  Dashboard,
-  AccountTree,
   Add,
   TaskOutlined,
   BuildOutlined,
@@ -42,6 +40,7 @@ import {
   TableView,
   TimelineView,
 } from '../../components/TaskViews';
+import { Timeline, List } from '../../assets';
 import { useAssignments } from '../../hooks/use-assignments';
 import { TaskModal } from '../../modals/new-task';
 import { CiUpdateModal } from '../../modals/new-task/ci-update';
@@ -79,9 +78,9 @@ const VIEW_OPTIONS: Array<{
   label: string;
   icon: React.ReactNode;
 }> = [
-  { value: 'horizontal', label: 'Kanban', icon: <Dashboard fontSize="small" /> },
-  { value: 'table', label: 'Table', icon: <TableChart fontSize="small" /> },
-  { value: 'timeline', label: 'Timeline', icon: <Timeline fontSize="small" /> },
+  { value: 'horizontal', label: 'Kanban', icon: <TableChart fontSize="small" /> },
+  { value: 'table', label: 'Table', icon: <List width={20} /> },
+  { value: 'timeline', label: 'Timeline', icon: <Timeline width={20} /> },
 ];
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -219,6 +218,7 @@ const TaskCard: React.FC<{ row: KanbanRow }> = ({ row }) => {
 // ── Horizon selector ───────────────────────────────────────────────
 
 const HORIZON_OPTIONS: Array<{ value: number; label: string }> = [
+  { value: 7, label: '1 week' },
   { value: 30, label: '30 days' },
   { value: 90, label: '90 days' },
   { value: 180, label: '6 months' },
@@ -230,7 +230,7 @@ const HORIZON_OPTIONS: Array<{ value: number; label: string }> = [
 export const Assignments: React.FC = () => {
   // ── Local UI state (horizon must be set before hook call) ────
 
-  const [horizonDays, setHorizonDays] = useState<number>(90);
+  const [horizonDays, setHorizonDays] = useState<number>(7);
 
   const {
     loading,
@@ -269,6 +269,7 @@ export const Assignments: React.FC = () => {
   // ── Derived columns ────────────────────────────────────────────
 
   const columns = useMemo(() => buildColumns(filter, groupBy), [buildColumns, filter, groupBy]);
+  const hasData = columns.length > 0 || !loading;
 
   // ── Handlers ───────────────────────────────────────────────────
 
@@ -347,7 +348,7 @@ export const Assignments: React.FC = () => {
 
   // ── Render states ──────────────────────────────────────────────
 
-  if (loading) {
+  if (loading && !hasData) {
     return (
       <Paper
         sx={{
@@ -418,101 +419,26 @@ export const Assignments: React.FC = () => {
       />
 
       {/* ── Header ───────────────────────────────────────────── */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 1,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Box sx={{ borderBottom: '1px solid', borderColor: 'rgba(255,255,255,0.08)' }}>
+        {/* ── Row 1: title + actions ──────────────────────── */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            px: 1.5,
+            py: 0.5,
+            gap: 1,
+          }}
+        >
           <Typography
-            sx={{ color: 'navigation.main', padding: '6px' }}
+            sx={{ color: 'white', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
             fontWeight="bold"
           >
             Assigned tasks
           </Typography>
 
-          <FormControl size="small" sx={{ minWidth: 105 }}>
-            <Select
-              value={horizonDays}
-              onChange={(e) => setHorizonDays(e.target.value as number)}
-              sx={{
-                color: 'white',
-                fontSize: '0.7rem',
-                '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
-                '.MuiSvgIcon-root': { color: 'white' },
-                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.5)' },
-              }}
-            >
-              {HORIZON_OPTIONS.map((opt) => (
-                <SelectMenuItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectMenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Box sx={{ flex: 1 }} />
 
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            size="small"
-            onChange={(_ev, val) => val && setViewMode(val)}
-            sx={{
-              '& .MuiToggleButton-root': {
-                color: 'text.secondary',
-                borderColor: 'rgba(255,255,255,0.12)',
-                textTransform: 'none',
-                px: 1.25,
-                py: 0.25,
-                fontSize: '0.7rem',
-                '&.Mui-selected': {
-                  color: 'white',
-                  bgcolor: 'rgba(255,255,255,0.12)',
-                },
-              },
-            }}
-          >
-            {VIEW_OPTIONS.map((opt) => (
-              <Tooltip key={opt.value} title={opt.label}>
-                <ToggleButton value={opt.value}>
-                  {opt.icon}
-                </ToggleButton>
-              </Tooltip>
-            ))}
-          </ToggleButtonGroup>
-
-          <ToggleButtonGroup
-            value={groupBy}
-            exclusive
-            size="small"
-            onChange={(_ev, val) => val !== null && setGroupBy(val)}
-            sx={{
-              '& .MuiToggleButton-root': {
-                color: 'text.secondary',
-                borderColor: 'rgba(255,255,255,0.12)',
-                textTransform: 'none',
-                px: 1.25,
-                py: 0.25,
-                fontSize: '0.7rem',
-                '&.Mui-selected': {
-                  color: 'white',
-                  bgcolor: 'rgba(255,255,255,0.12)',
-                },
-              },
-            }}
-          >
-            <Tooltip title="Group by project">
-              <ToggleButton value="project">
-                <AccountTree fontSize="small" />
-              </ToggleButton>
-            </Tooltip>
-          </ToggleButtonGroup>
-        </Box>
-
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Button
             size="small"
             variant="outlined"
@@ -520,11 +446,12 @@ export const Assignments: React.FC = () => {
             onClick={(e) => setAddMenuAnchor(e.currentTarget)}
             sx={{
               textTransform: 'none',
-              fontSize: '0.75rem',
-              py: 0.5,
-              px: 1.5,
+              fontSize: '0.7rem',
+              py: 0.25,
+              px: 1,
               color: 'white',
               borderColor: 'rgba(255,255,255,0.3)',
+              whiteSpace: 'nowrap',
               '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.08)' },
             }}
           >
@@ -568,18 +495,132 @@ export const Assignments: React.FC = () => {
               <ListItemText>Project Note</ListItemText>
             </MenuItem>
           </Menu>
+        </Box>
+
+        {/* ── Row 2: filters + view controls ──────────────── */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            px: 1.5,
+            pb: 0.5,
+            gap: 0.75,
+          }}
+        >
+          <FormControl size="small" sx={{ minWidth: 90 }}>
+            <Select
+              value={horizonDays}
+              onChange={(e) => setHorizonDays(e.target.value as number)}
+              sx={{
+                color: 'white',
+                fontSize: '0.65rem',
+                '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.15)' },
+                '.MuiSvgIcon-root': { color: 'white', fontSize: 18 },
+                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.4)' },
+              }}
+            >
+              {HORIZON_OPTIONS.map((opt) => (
+                <SelectMenuItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectMenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
           <Autocomplete
-          multiple
-          sx={{ minWidth: '200px', padding: '6px' }}
-          value={filter}
-          onChange={(_ev, values) => setFilter(values)}
-          getOptionLabel={(opt) => `${opt.displayId} - ${opt.name}`}
-          options={taskFilters}
-          renderInput={(params) => (
-            <TextField {...params} size="small" label="Filter" />
-          )}
-        />
+            multiple
+            size="small"
+            sx={{ flex: 1, maxWidth: 480, minWidth: 180 }}
+            value={filter}
+            onChange={(_ev, values) => setFilter(values)}
+            getOptionLabel={(opt) => `${opt.displayId} - ${opt.name}`}
+            options={taskFilters}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                size="small"
+                placeholder="Filter projects, estimates, schedules..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    color: 'white',
+                    fontSize: '0.7rem',
+                    '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' },
+                    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
+                    '&.Mui-focused fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
+                  },
+                }}
+              />
+            )}
+            renderTags={(value, getTagProps) =>
+              value.map((option, index) => {
+                const { key, ...rest } = getTagProps({ index });
+                return (
+                  <Chip
+                    key={key}
+                    {...rest}
+                    label={option.displayId}
+                    size="small"
+                    onDelete={rest.onDelete}
+                    sx={{
+                      fontSize: '0.6rem',
+                      height: 20,
+                      bgcolor: 'rgba(255,255,255,0.1)',
+                      color: 'white',
+                      '& .MuiChip-deleteIcon': { color: 'rgba(255,255,255,0.5)', fontSize: 14 },
+                    }}
+                  />
+                );
+              })
+            }
+          />
+
+          <Box sx={{ flex: 1 }} />
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.65rem', userSelect: 'none' }}>
+              Group
+            </Typography>
+            <Switch
+              size="small"
+              checked={groupBy === 'project'}
+              onChange={() => setGroupBy(groupBy === 'project' ? 'none' : 'project')}
+              sx={{
+                '& .MuiSwitch-thumb': { bgcolor: groupBy === 'project' ? 'white' : 'rgba(255,255,255,0.3)' },
+                '& .MuiSwitch-track': { bgcolor: 'rgba(255,255,255,0.15)' },
+              }}
+            />
+          </Box>
+
+          <Box sx={{ width: 1, height: 14, borderLeft: '1px solid', borderColor: 'rgba(255,255,255,0.1)', mx: 0.25 }} />
+
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            size="small"
+            onChange={(_ev, val) => val && setViewMode(val)}
+            sx={{
+              '& .MuiToggleButton-root': {
+                color: 'text.secondary',
+                borderColor: 'rgba(255,255,255,0.1)',
+                textTransform: 'none',
+                px: 0.5,
+                py: 0,
+                minWidth: 28,
+                '&.Mui-selected': {
+                  color: 'white',
+                  bgcolor: 'rgba(255,255,255,0.1)',
+                },
+              },
+            }}
+          >
+            {VIEW_OPTIONS.map((opt) => (
+              <Tooltip key={opt.value} title={opt.label}>
+                <ToggleButton value={opt.value}>
+                  {opt.icon}
+                </ToggleButton>
+              </Tooltip>
+            ))}
+          </ToggleButtonGroup>
         </Box>
       </Box>
 
@@ -617,6 +658,7 @@ export const Assignments: React.FC = () => {
             onSelectCard={handleSelectCard}
             updateTask={updateTask}
             refetch={refetch}
+            horizonDays={horizonDays}
           />
         ) : null}
         </Box>

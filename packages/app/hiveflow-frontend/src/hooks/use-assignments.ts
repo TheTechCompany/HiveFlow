@@ -122,11 +122,18 @@ function deriveTaskFilters(tasks: KanbanTask[]): TaskFilterOption[] {
   for (const t of tasks) {
     const src = t.project ?? t.estimate ?? t.recurringEvent?.schedule;
     if (src) {
-      const key = `${t.__typename}:${src.id}`;
+      // Determine typename from which source field is present, not t.__typename
+      let typename: string;
+      if (t.project) typename = 'Project';
+      else if (t.estimate) typename = 'Estimate';
+      else if (t.recurringEvent?.schedule) typename = 'RecurringSchedule';
+      else typename = 'Project'; // fallback
+
+      const key = `${typename}:${src.id}`;
       if (!seen.has(key)) {
         seen.add(key);
         result.push({
-          __typename: t.__typename ?? 'Project',
+          __typename: typename,
           id: src.id,
           displayId: (src as any).displayId ?? '',
           name: src.name,
@@ -139,7 +146,7 @@ function deriveTaskFilters(tasks: KanbanTask[]): TaskFilterOption[] {
 
 // ── Hook ────────────────────────────────────────────────────────────
 
-export function useAssignments(horizonDays: number = 90): UseAssignmentsReturn {
+export function useAssignments(horizonDays: number = 7): UseAssignmentsReturn {
   const client = useApolloClient();
   const { data, loading, error } = useQuery<AssignmentsQueryData>(
     GET_ASSIGNED_TASKS,
@@ -264,8 +271,8 @@ export function useAssignments(horizonDays: number = 90): UseAssignmentsReturn {
         const sorted =
           groupBy === 'project'
             ? filtered.sort((a, b) => {
-                const projA = a.project?.name ?? a.estimate?.name ?? '';
-                const projB = b.project?.name ?? b.estimate?.name ?? '';
+                const projA = a.project?.name ?? a.estimate?.name ?? a.recurringEvent?.schedule?.name ?? '';
+                const projB = b.project?.name ?? b.estimate?.name ?? b.recurringEvent?.schedule?.name ?? '';
                 const projCmp = projA.localeCompare(projB);
                 if (projCmp !== 0) return projCmp;
                 return (a.columnRank ?? '').localeCompare(b.columnRank ?? '');
@@ -274,11 +281,20 @@ export function useAssignments(horizonDays: number = 90): UseAssignmentsReturn {
                 (a.columnRank ?? '').localeCompare(b.columnRank ?? ''),
               );
 
-        const rows = sorted.map((t) => ({
-          id: t.id,
-          title: t.title,
-          _task: t,
-        }));
+        const rows = sorted.map((t) => {
+          const src = t.project ?? t.estimate ?? t.recurringEvent?.schedule;
+          const groupKey = groupBy === 'project' && src ? `${src.id}` : undefined;
+          const groupLabel = groupBy === 'project' && src
+            ? `${(src as any).displayId ?? ''} - ${src.name}`
+            : undefined;
+          return {
+            id: t.id,
+            title: t.title,
+            _task: t,
+            groupKey,
+            groupLabel,
+          };
+        });
         return { id: status, title, rows, variant };
       }),
     [tasks],

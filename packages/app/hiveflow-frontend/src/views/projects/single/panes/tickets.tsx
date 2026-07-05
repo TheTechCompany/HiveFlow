@@ -12,8 +12,6 @@ import {
 import {
   Subject,
   TableChart,
-  Timeline as TimelineIcon,
-  Dashboard,
   Close,
 } from '@mui/icons-material';
 import {
@@ -22,6 +20,7 @@ import {
   VSCODE_TWISTY_WIDTH,
   DEPTH_BORDER_WIDTH,
 } from '@hive-flow/ui';
+import { Timeline as TimelineIcon, List } from '../../../../assets';
 import type {
   TimelineItem,
   TimelineLink,
@@ -49,9 +48,9 @@ const VIEW_OPTIONS: Array<{
   label: string;
   icon: React.ReactNode;
 }> = [
-  { value: 'gantt', label: 'Gantt', icon: <TimelineIcon fontSize="small" /> },
-  { value: 'kanban', label: 'Kanban', icon: <Dashboard fontSize="small" /> },
-  { value: 'list', label: 'List', icon: <TableChart fontSize="small" /> },
+  { value: 'gantt', label: 'Gantt', icon: <TimelineIcon width={20} /> },
+  { value: 'kanban', label: 'Kanban', icon: <TableChart fontSize="small" /> },
+  { value: 'list', label: 'List', icon: <List width={20} /> },
 ];
 
 // ── Constants ────────────────────────────────────────────────────────
@@ -731,6 +730,16 @@ export const TicketsPane: React.FC = () => {
             callbacks={{
               onItemChange: handleGanttItemChange,
               onSelect: handleGanttSelect,
+              onItemDoubleClick: (itemId: string) => {
+                const task = tasks.find((t: any) => t.id === itemId);
+                if (task) {
+                  updateTask?.({
+                    ...task,
+                    start: task.startDate ? new Date(task.startDate) : undefined,
+                    end: task.endDate ? new Date(task.endDate) : undefined,
+                  });
+                }
+              },
               onItemCreate: handleGanttItemCreate,
               onLinkCreate: handleGanttLinkCreate,
               onHorizonChange: handleGanttHorizonChange,

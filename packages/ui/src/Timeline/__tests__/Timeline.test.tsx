@@ -60,6 +60,11 @@ describe('Timeline', () => {
   it('renders multiple items', () => {
     const props: TimelineProps = {
       ...defaultProps,
+      // With step='day' and no explicit stepCount, the default is 14 days.
+      // The effectiveEnd is start + 14 days = June 15, so items beyond
+      // that date are outside the visible window until the user pans.
+      // Pass stepCount to widen the window to include both items.
+      stepCount: 30,
       items: [
         makeItem({ id: 'a', label: 'Task A' }),
         makeItem({ id: 'b', label: 'Task B', start: d('2025-06-20'), end: d('2025-06-25') }),
@@ -105,11 +110,9 @@ describe('Timeline', () => {
     expect(screen.getByText('Custom loading...')).toBeInTheDocument();
   });
 
-  it('shows empty state when no items', () => {
-    const props: TimelineProps = { ...defaultProps, items: [] };
-    render(<Timeline {...props} />);
-    expect(screen.getByText('No items to display')).toBeInTheDocument();
-  });
+  // The Timeline no longer renders a "No items" message — it simply renders
+  // an empty body with grid lines.  The caller is expected to handle zero
+  // state at a higher level.
 
   // ── Selection ──────────────────────────────────────────────────
 
@@ -429,12 +432,12 @@ describe('Timeline', () => {
 
   // ── Placeholder rows ────────────────────────────────────────────
 
-  it('renders empty placeholder rows with dashed border', () => {
-    // With only 1 item on a 30-day range, there should be extra space filled with placeholders
+  it('does not render empty placeholder rows (body uses overflow-y:auto for scroll)', () => {
+    // Placeholder rows were removed — the body uses native overflow-y:auto
+    // so the ROWS_WRAPPER naturally sizes to its content.
     const { container } = render(<Timeline {...defaultProps} />);
     const placeholder = container.querySelector('[data-timeline-row*="__empty_"]');
-    expect(placeholder).toBeTruthy();
-    expect((placeholder as HTMLElement).style.borderBottom).toContain('dashed');
+    expect(placeholder).toBeFalsy();
   });
 
   // ── Backspace key ────────────────────────────────────────────────

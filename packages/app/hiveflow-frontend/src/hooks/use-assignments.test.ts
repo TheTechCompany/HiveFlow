@@ -239,6 +239,34 @@ describe('useAssignments hook', () => {
     expect(result.taskFilters).toHaveLength(2);
   });
 
+  it('taskFilters use correct __typename from source field', () => {
+    (useQuery as jest.Mock).mockReturnValue({
+      data: {
+        users: [],
+        assignments: [
+          makeTask({ project: { id: 'p1', displayId: 'P-1', name: 'One' } }),
+          makeEstimateTask({ estimate: { id: 'e1', displayId: 'E-1', name: 'Estimate One' } }),
+          makeGeneratedRecurringTask({
+            project: null,
+            recurringEvent: {
+              id: 'evt-1',
+              frequency: 'monthly',
+              schedule: { id: 'sched-1', name: 'Schedule One' },
+            },
+          }),
+        ],
+      },
+      loading: false, error: undefined,
+    });
+    const { result } = renderUseAssignments();
+    expect(result.taskFilters).toHaveLength(3);
+    const byId: Record<string, (typeof result.taskFilters)[number]> = {};
+    result.taskFilters.forEach((f) => { byId[f.id] = f; });
+    expect(byId['p1'].__typename).toBe('Project');
+    expect(byId['e1'].__typename).toBe('Estimate');
+    expect(byId['sched-1'].__typename).toBe('RecurringSchedule');
+  });
+
   it('sorts tasks by columnRank ascending', () => {
     (useQuery as jest.Mock).mockReturnValue({
       data: {

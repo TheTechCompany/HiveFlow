@@ -10,7 +10,6 @@ import { SidebarLayout } from '@hive-flow/ui';
 import {
   Calendar as Schedule,
   People,
-  Timeline as TimelineIcon,
   Estimates,
   Projects,
   Equipment,
@@ -33,7 +32,6 @@ import {PeopleSingle} from '../people/single';
 import { EquipmentList } from '../equipment/list';
 import {EstimateView} from '../estimates';
 
-import Timeline from '../timeline/Timeline'
 import { ProjectView } from '../projects';
 import { PeopleView } from '../people';
 import { Assignments } from '../assignments';
@@ -68,12 +66,6 @@ export const Dashboard = (props: any) => {
                   label: "Schedule",
                   path: "schedule",
                   component: <> </>,
-                },
-                {
-                  icon: <TimelineIcon filter="invert(1)" />,
-                  label: "Timeline",
-                  path: "timeline",
-                  component: <></>
                 },
                 {
                   icon: <Estimates filter="invert(1)" />,
@@ -167,12 +159,6 @@ export const Dashboard = (props: any) => {
       label: 'Schedule',
       icon: <Schedule filter="invert(1)" />,
       component: <ScheduleView />
-    },
-    {
-      path: 'timeline',
-      label: 'Timeline',
-      icon: <TimelineIcon filter="invert(1)" />,
-      component: <Timeline />
     },
     {
       path: 'estimates',

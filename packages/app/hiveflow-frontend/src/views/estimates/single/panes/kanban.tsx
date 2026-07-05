@@ -49,7 +49,7 @@ export const KanbanPane: React.FC = () => {
     if (!result.destination) return;
     const newStatus =
       KANBAN_STATUSES[parseInt(result.destination.droppableId, 10)];
-    if (!newStatus || newStatus === result.source?.droppableId) return;
+    if (!newStatus) return;
 
     updateTaskStatus?.(
       result.draggableId,

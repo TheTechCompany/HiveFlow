@@ -135,10 +135,15 @@ export const EstimateSingle = (props) => {
                         
                 let ix = statusTasks.map((x) => x.id).indexOf(taskId);
 
-                statusTasks = arrayMove(statusTasks, ix, index)
+                if (ix >= 0) {
+                  // Same-column reorder: move the task within the array
+                  statusTasks = arrayMove(statusTasks, ix, index)
+                }
+                // For cross-column moves (ix === -1), the task isn't in the destination
+                // list yet, so compute neighbors directly from the target position.
 
                 let above = statusTasks?.[index - 1]?.id;
-                let below = statusTasks?.[index + 1]?.id
+                let below = ix >= 0 ? statusTasks?.[index + 1]?.id : statusTasks?.[index]?.id;
         
                   updateTask({
                     variables: {

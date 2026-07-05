@@ -166,7 +166,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = (props) => {
 
                     <Box sx={{ display: 'flex' }}>
                         <DatePicker
-                            value={moment(project?.startDate) || null}
+                            value={project?.startDate ? moment(project.startDate) : null}
                             onChange={(start: any) => setProject({ ...project, startDate: start })}
                             format='DD/MM/YYYY'
                             slotProps={{
@@ -177,7 +177,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = (props) => {
                             }}
                             label="Start Date" />
                         <DatePicker
-                            value={moment(project?.endDate) || null}
+                            value={project?.endDate ? moment(project.endDate) : null}
                             onChange={(end: any) => setProject({ ...project, endDate: end })}
                             format='DD/MM/YYYY'
                             minDate={moment(project?.startDate)}
