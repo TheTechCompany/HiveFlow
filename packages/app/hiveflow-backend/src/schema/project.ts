@@ -265,17 +265,34 @@ export default (prisma: PrismaClient) => {
 
             updateTaskTimelineOrder: async (root: any, args: any, context: any) => {
                 const taskRoot = await prisma.task.findFirst({
-                    where: { id: args.id, project: { organisation: context?.jwt?.organisation } }
+                    where: { id: args.id }
                 })
                 if(!taskRoot) throw new Error("No task found")
 
+                // Authorisation: task must belong to an org-scoped project or estimate
+                if (taskRoot.projectId) {
+                    const project = await prisma.project.findFirst({
+                        where: { id: taskRoot.projectId, organisation: context?.jwt?.organisation }
+                    });
+                    if (!project) throw new Error("Not authorised");
+                } else if (taskRoot.estimateId) {
+                    const estimate = await prisma.estimate.findFirst({
+                        where: { id: taskRoot.estimateId, organisation: context?.jwt?.organisation }
+                    });
+                    if (!estimate) throw new Error("Not authorised");
+                }
+
+                const scopeFilter = taskRoot.projectId
+                    ? { projectId: taskRoot.projectId }
+                    : { estimateId: taskRoot.estimateId };
+
                 let aboveTimelineRank, belowTimelineRank;
                 if(args.above){
-                    const aboveTask = await prisma.task.findFirst({ where: { id: args.above, projectId: taskRoot?.projectId } });
+                    const aboveTask = await prisma.task.findFirst({ where: { id: args.above, ...scopeFilter } });
                     aboveTimelineRank = aboveTask?.timelineRank;
                 }
                 if(args.below){
-                    const belowTask = await prisma.task.findFirst({ where: { id: args.below, projectId: taskRoot?.projectId } })
+                    const belowTask = await prisma.task.findFirst({ where: { id: args.below, ...scopeFilter } })
                     belowTimelineRank = belowTask?.timelineRank;
                 }
                 let aboveRank = LexoRank.parse(aboveTimelineRank || LexoRank.min().toString())
@@ -288,9 +305,22 @@ export default (prisma: PrismaClient) => {
 
             updateTask: async (root: any, args: any, context: any) => {
                 const rootTask = await prisma.task.findFirst({
-                    where: { id: args.id, project: { organisation: context?.jwt?.organisation } }
+                    where: { id: args.id }
                 })
                 if(!rootTask) throw new Error("No task found");
+
+                // Authorisation: task must belong to an org-scoped project or estimate
+                if (rootTask.projectId) {
+                    const project = await prisma.project.findFirst({
+                        where: { id: rootTask.projectId, organisation: context?.jwt?.organisation }
+                    });
+                    if (!project) throw new Error("Not authorised");
+                } else if (rootTask.estimateId) {
+                    const estimate = await prisma.estimate.findFirst({
+                        where: { id: rootTask.estimateId, organisation: context?.jwt?.organisation }
+                    });
+                    if (!estimate) throw new Error("Not authorised");
+                }
 
                 if (args.input?.status === 'Finished' && rootTask.status !== 'Finished' && rootTask.recurringEventId) {
                     const event = await prisma.recurringEvent.findUnique({ where: { id: rootTask.recurringEventId } });
@@ -387,9 +417,10 @@ export default (prisma: PrismaClient) => {
             },
 
             createTaskDependency: async (root: any, args: any, context: any) => {
-                return await prisma.project.update({
-                    where: { organisation_displayId: { organisation: context?.jwt?.organisation, displayId: args.project } },
-                    data: { tasks: { update: [{ where: { id: args.source }, data: { dependencyOf: { connect: { id: args.target } } } }] } }
+                // Connect dependency directly on the task — works for both project and estimate tasks
+                return await prisma.task.update({
+                    where: { id: args.source },
+                    data: { dependencyOf: { connect: { id: args.target } } }
                 })
             },
             createProjectTaskDependency: async (root: any, args: any, context: any) => {
@@ -400,9 +431,10 @@ export default (prisma: PrismaClient) => {
             },
 
             deleteTaskDependency: async (root: any, args: any, context: any) => {
-                return await prisma.project.update({
-                    where: { organisation_displayId: { organisation: context?.jwt?.organisation, displayId: args.project } },
-                    data: { tasks: { update: [{ where: { id: args.source }, data: { dependencyOf: { disconnect: { id: args.target } } } }] } }
+                // Disconnect dependency directly on the task — works for both project and estimate tasks
+                return await prisma.task.update({
+                    where: { id: args.source },
+                    data: { dependencyOf: { disconnect: { id: args.target } } }
                 })
             },
             deleteProjectTaskDependency: async (root: any, args: any, context: any) => {

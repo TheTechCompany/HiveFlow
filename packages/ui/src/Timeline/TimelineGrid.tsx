@@ -27,7 +27,7 @@ const GRID_CONTAINER_STYLE: React.CSSProperties = {
   right: 0,
   bottom: 0,
   pointerEvents: 'none',
-  overflow: 'hidden',
+  zIndex: -1,
 };
 
 const GRID_LINE_STYLE: React.CSSProperties = {

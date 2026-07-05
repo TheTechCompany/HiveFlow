@@ -4,7 +4,7 @@
 // "elevating" the task dialog beyond the baseline view/edit toggle.
 // Each is self-contained — no changes to the base TaskDialog component.
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { action } from '@storybook/addon-actions';
 import {
@@ -819,6 +819,102 @@ const ClickToEditExpandableDialog: React.FC<{
                       </Box>
                     </Box>
                   ))}
+                </Box>
+              )}
+
+              {sidebarTab === 2 && (
+                <Box sx={{ flex: 1, p: 2, overflow: 'auto' }}>
+                  {/* ── Add person ──────────────────────────── */}
+                  <Autocomplete
+                    size="small"
+                    options={mockPeople.filter((p) => !assigned.find((a) => a.id === p.id))}
+                    getOptionLabel={(p) => `${p.name} — ${p.role}`}
+                    value={null}
+                    onChange={(_, person) => {
+                      if (person) setAssigned((prev) => [...prev, person]);
+                    }}
+                    renderInput={(params) => (
+                      <TextField {...params} placeholder="Add person…" size="small" />
+                    )}
+                    sx={{ mb: 2 }}
+                  />
+
+                  {/* ── Currently assigned ──────────────────── */}
+                  <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                    Assigned
+                  </Typography>
+                  {assigned.length === 0 && (
+                    <Typography variant="body2" color="text.secondary">
+                      No one assigned yet.
+                    </Typography>
+                  )}
+                  {assigned.map((p) => (
+                    <Box
+                      key={p.id}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        py: 0.75,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Avatar sx={{ width: 28, height: 28, fontSize: 12 }}>{p.avatar}</Avatar>
+                        <Box>
+                          <Typography variant="body2" fontWeight={500}>{p.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">{p.role}</Typography>
+                        </Box>
+                      </Box>
+                      <IconButton
+                        size="small"
+                        onClick={() => setAssigned((prev) => prev.filter((a) => a.id !== p.id))}
+                        sx={{ color: 'text.secondary' }}
+                      >
+                        <Send sx={{ fontSize: 14, transform: 'rotate(180deg)' }} />
+                      </IconButton>
+                    </Box>
+                  ))}
+
+                  {/* ── Available people ────────────────────── */}
+                  {mockPeople.filter((p) => !assigned.find((a) => a.id === p.id)).length > 0 && (
+                    <>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 2, mb: 1, display: 'block' }}>
+                        Available
+                      </Typography>
+                      {mockPeople
+                        .filter((p) => !assigned.find((a) => a.id === p.id))
+                        .map((p) => (
+                          <Box
+                            key={p.id}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              py: 0.75,
+                              borderBottom: '1px solid',
+                              borderColor: 'divider',
+                            }}
+                          >
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                              <Avatar sx={{ width: 28, height: 28, fontSize: 12, bgcolor: 'grey.400' }}>{p.avatar}</Avatar>
+                              <Box>
+                                <Typography variant="body2">{p.name}</Typography>
+                                <Typography variant="caption" color="text.secondary">{p.role}</Typography>
+                              </Box>
+                            </Box>
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => setAssigned((prev) => [...prev, p])}
+                            >
+                              <Send sx={{ fontSize: 14, transform: 'rotate(-45deg)' }} />
+                            </IconButton>
+                          </Box>
+                        ))}
+                    </>
+                  )}
                 </Box>
               )}
             </Box>

@@ -125,10 +125,14 @@ export interface TimelineCallbacks {
   onSelect?: (selection: SelectionState) => void;
   /** Fired when a new link is created by the user. */
   onLinkCreate?: (link: Omit<TimelineLink, 'id'>) => void;
-  /** Fired when the user requests item creation at a position. */
+  /** Fired when the user requests item creation at a position (shift+drag). */
   onItemCreate?: (start: Date, end: Date, groupId?: string) => void;
+  /** Fired when the user presses Enter — quick-create at the centre of the viewport. */
+  onQuickCreate?: (date: Date) => void;
   /** Fired when the visible horizon changes (scroll/zoom). */
   onHorizonChange?: (start: Date, end: Date) => void;
+  /** Fired when the user zooms (Ctrl+wheel). Direction: 'in' = zoom in, 'out' = zoom out. */
+  onZoom?: (direction: 'in' | 'out') => void;
   /** Delete selected items (keyboard shortcut). */
   onDelete?: (itemIds: string[]) => void;
   /** Copy selected items. */

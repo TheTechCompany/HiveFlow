@@ -251,15 +251,9 @@ export const Schedule: React.FC<any> = (props) => {
   }, [horizon]);
 
   // ── Build timeline groups from rowOptions ───────────────────────
-  const timelineGroups = useMemo((): TimelineGroup[] => {
-    const groups: TimelineGroup[] = rowOptions.map((x) => ({
-      id: x.id,
-      label: `${x.displayId ? x.displayId + ' - ' : ''}${x.name}`,
-    }));
-    // Add On Leave group for leave items
-    groups.push({ id: 'on-leave', label: 'On Leave' });
-    return groups;
-  }, [rowOptions]);
+  // Moved after timelineItems so we can filter to only groups that
+  // have items visible in the current horizon window.
+  // const timelineGroups defined below (after timelineItems)
 
   // ── Build timeline items from events ────────────────────────────
   const timelineItems = useMemo((): TimelineItem[] => {
@@ -309,6 +303,27 @@ export const Schedule: React.FC<any> = (props) => {
 
     return [...drafts, ...items];
   }, [rowOptions, calendarData, horizon]);
+
+  // ── Build timeline groups (after timelineItems so we can filter) ─
+  const timelineGroups = useMemo((): TimelineGroup[] => {
+    // Only show groups that have at least one item in the current window
+    const activeGroupIds = new Set(
+      timelineItems.map((item) => item.groupId).filter(Boolean),
+    );
+
+    const groups: TimelineGroup[] = rowOptions
+      .filter((x) => activeGroupIds.has(x.id))
+      .map((x) => ({
+        id: x.id,
+        label: `${x.displayId ? x.displayId + ' - ' : ''}${x.name}`,
+      }));
+
+    // Only show On Leave group if there are leave items
+    if (activeGroupIds.has('on-leave')) {
+      groups.push({ id: 'on-leave', label: 'On Leave' });
+    }
+    return groups;
+  }, [rowOptions, timelineItems]);
 
   // ── Helper: find project by item ────────────────────────────────
   const getProjectForItem = (item: TimelineItem): any => {

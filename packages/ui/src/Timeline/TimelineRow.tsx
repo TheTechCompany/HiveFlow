@@ -62,6 +62,8 @@ const SIDEBAR_STYLE: React.CSSProperties = {
   textOverflow: 'ellipsis',
   boxSizing: 'border-box',
   flexShrink: 0,
+  position: 'relative',
+  zIndex: 1,
 };
 
 const BAR_AREA_STYLE: React.CSSProperties = {

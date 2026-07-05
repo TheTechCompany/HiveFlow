@@ -25,6 +25,7 @@ import type {
   TimelineItem,
   TimelineLink,
   TimelineGroup,
+  TimelineStep,
   HighlightedDay,
 } from '@hive-flow/ui';
 import { AvatarList } from '@hexhive/ui';
@@ -119,6 +120,40 @@ export const TicketsPane: React.FC = () => {
 
   const [viewMode, setViewMode] = useState<ViewMode>('gantt');
   const [range, setRange] = useState(() => computeInitialRange(tasks));
+  const [ganttStep, setGanttStep] = useState<TimelineStep>('day');
+
+  // ── New task row state ───────────────────────────────────────
+  const NEW_TASK_ID = '__new_task__';
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskStart, setNewTaskStart] = useState('');
+  const [newTaskEnd, setNewTaskEnd] = useState('');
+
+  const handleCreateNewTask = useCallback(() => {
+    const title = newTaskTitle.trim();
+    if (!title) return;
+    createTask?.({
+      status: 'Backlog',
+      title,
+      start: newTaskStart ? new Date(newTaskStart) : new Date(),
+      end: newTaskEnd ? new Date(newTaskEnd) : new Date(),
+    });
+    setNewTaskTitle('');
+    setNewTaskStart('');
+    setNewTaskEnd('');
+  }, [newTaskTitle, newTaskStart, newTaskEnd, createTask]);
+
+  // ── Enter-to-commit in sidebar: save field, then focus next ───
+  const focusNextSidebarField = useCallback((current: HTMLInputElement) => {
+    current.blur();
+    const allInputs = Array.from(
+      document.querySelectorAll<HTMLInputElement>('[data-sidebar-input]'),
+    );
+    const idx = allInputs.indexOf(current);
+    if (idx >= 0 && idx < allInputs.length - 1) {
+      const next = allInputs[idx + 1];
+      setTimeout(() => { next.focus(); next.select(); }, 0);
+    }
+  }, []);
 
   const [updateTaskDirect] = useApolloMutation(UPDATE_PROJECT_TASK);
 
@@ -261,6 +296,12 @@ export const TicketsPane: React.FC = () => {
         })),
       );
 
+    // Always include one "new task" input row at the bottom
+    groups.push({
+      id: NEW_TASK_ID,
+      label: '',
+    });
+
     return {
       ganttGroups: groups,
       timelineItems: items,
@@ -374,6 +415,116 @@ export const TicketsPane: React.FC = () => {
 
   const renderGroupHeader = useCallback(
     (group: TimelineGroup, _expanded: boolean) => {
+      // ── New task input row ──────────────────────────────────
+      if (group.id === NEW_TASK_ID) {
+        const cellSx = {
+          display: 'flex',
+          alignItems: 'stretch',
+          height: '100%',
+          borderRight: '1px solid',
+          borderColor: 'grey.200',
+          minWidth: 0,
+        } as const;
+
+        const inputSx = {
+          flex: 1,
+          minWidth: 0,
+          height: '100%',
+          '& .MuiInputBase-root': { py: 0, fontSize: '0.72rem', height: '100%' },
+          '& .MuiInputBase-input': { px: '4px', py: '2px', height: '100%' },
+        };
+
+        return (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'stretch',
+              height: '100%',
+              borderBottom: '1px solid',
+              borderColor: 'grey.200',
+              bgcolor: '#fafbfc',
+              boxSizing: 'border-box',
+            }}
+          >
+            <Box sx={{ width: VSCODE_TWISTY_WIDTH, flexShrink: 0, display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid', borderColor: 'grey.200' }}>
+              <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.disabled' }}>+</Typography>
+            </Box>
+            <Box sx={cellSx}>
+              <TextField
+                size="small"
+                variant="standard"
+                placeholder="New task (Enter to create)"
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (newTaskTitle.trim()) {
+                      handleCreateNewTask();
+                    } else {
+                      focusNextSidebarField(e.target as HTMLInputElement);
+                    }
+                  }
+                }}
+                InputProps={{ disableUnderline: false }}
+                inputProps={{ 'data-sidebar-input': '' } as any}
+                sx={inputSx}
+              />
+            </Box>
+            <Box sx={{ ...cellSx, width: COL_DATE, flexShrink: 0 }}>
+              <TextField
+                size="small"
+                variant="standard"
+                type="date"
+                value={newTaskStart}
+                onChange={(e) => setNewTaskStart(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') focusNextSidebarField(e.target as HTMLInputElement);
+                }}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ 'data-sidebar-input': '' } as any}
+                sx={{
+                  flex: 1,
+                  height: '100%',
+                  '& .MuiInputBase-root': { py: 0, height: '100%' },
+                  '& .MuiInputBase-input': {
+                    px: '4px',
+                    py: '2px',
+                    fontSize: '0.7rem',
+                    height: '100%',
+                  },
+                }}
+              />
+            </Box>
+            <Box sx={{ ...cellSx, width: COL_DATE, flexShrink: 0, borderRight: 'none' }}>
+              <TextField
+                size="small"
+                variant="standard"
+                type="date"
+                value={newTaskEnd}
+                onChange={(e) => setNewTaskEnd(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') focusNextSidebarField(e.target as HTMLInputElement);
+                }}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ 'data-sidebar-input': '' } as any}
+                sx={{
+                  flex: 1,
+                  height: '100%',
+                  '& .MuiInputBase-root': { py: 0, height: '100%' },
+                  '& .MuiInputBase-input': {
+                    px: '4px',
+                    py: '2px',
+                    fontSize: '0.7rem',
+                    height: '100%',
+                  },
+                }}
+              />
+            </Box>
+            <Box sx={{ width: 32, flexShrink: 0, height: '100%' }} />
+          </Box>
+        );
+      }
+
       const row = rowById.get(group.id);
       if (!row) return <Box sx={{ height: '100%' }}>{group.label}</Box>;
 
@@ -436,8 +587,9 @@ export const TicketsPane: React.FC = () => {
                 }
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                if (e.key === 'Enter') focusNextSidebarField(e.target as HTMLInputElement);
               }}
+              inputProps={{ 'data-sidebar-input': '' } as any}
               sx={inputSx}
             />
           </Box>
@@ -456,9 +608,10 @@ export const TicketsPane: React.FC = () => {
                 }
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                if (e.key === 'Enter') focusNextSidebarField(e.target as HTMLInputElement);
               }}
               InputLabelProps={{ shrink: true }}
+              inputProps={{ 'data-sidebar-input': '' } as any}
               sx={{
                 flex: 1,
                 height: '100%',
@@ -487,9 +640,10 @@ export const TicketsPane: React.FC = () => {
                 }
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                if (e.key === 'Enter') focusNextSidebarField(e.target as HTMLInputElement);
               }}
               InputLabelProps={{ shrink: true }}
+              inputProps={{ 'data-sidebar-input': '' } as any}
               sx={{
                 flex: 1,
                 height: '100%',
@@ -585,18 +739,18 @@ export const TicketsPane: React.FC = () => {
 
   const handleGanttItemCreate = useCallback(
     (start: Date, end: Date, groupId?: string) => {
-      // Shift+drag in an existing task lane → set dates on that task
-      if (groupId) {
-        updateTaskDirect({
-          variables: {
-            id: groupId,
-            input: { startDate: start, endDate: end, projectId },
-          },
-        }).then(() => refetch?.());
+      // New-task row or empty space → create new task via modal
+      if (!groupId || groupId === NEW_TASK_ID) {
+        createTask?.({ status: 'Backlog', start, end });
         return;
       }
-      // Shift+drag in empty space → create new task
-      createTask?.({ status: 'Backlog', start, end });
+      // Shift+drag in an existing task lane → set dates on that task
+      updateTaskDirect({
+        variables: {
+          id: groupId,
+          input: { startDate: start, endDate: end, projectId },
+        },
+      }).then(() => refetch?.());
     },
     [createTask, updateTaskDirect, projectId, refetch],
   );
@@ -611,6 +765,26 @@ export const TicketsPane: React.FC = () => {
   const handleGanttHorizonChange = useCallback(
     (start: Date, end: Date) => setRange({ start, end }),
     [],
+  );
+
+  const ZOOM_STEPS: TimelineStep[] = ['hour', 'day', 'week', 'month', 'year'];
+
+  const handleGanttZoom = useCallback(
+    (direction: 'in' | 'out') => {
+      setGanttStep((prev) => {
+        const idx = ZOOM_STEPS.indexOf(prev);
+        if (direction === 'in') return ZOOM_STEPS[Math.max(0, idx - 1)];
+        return ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, idx + 1)];
+      });
+    },
+    [],
+  );
+
+  const handleGanttQuickCreate = useCallback(
+    (date: Date) => {
+      createTask?.({ status: 'Backlog', start: date, end: date });
+    },
+    [createTask],
   );
 
   // ── Shared card renderer (kanban) ──────────────────────────────
@@ -718,7 +892,7 @@ export const TicketsPane: React.FC = () => {
             links={timelineLinks}
             start={range.start}
             end={range.end}
-            step="day"
+            step={ganttStep}
             sidebarWidth={SIDEBAR_W}
             itemHeight={ROW_H}
             groupHeaderHeight={ROW_H}
@@ -743,6 +917,8 @@ export const TicketsPane: React.FC = () => {
               onItemCreate: handleGanttItemCreate,
               onLinkCreate: handleGanttLinkCreate,
               onHorizonChange: handleGanttHorizonChange,
+              onZoom: handleGanttZoom,
+              onQuickCreate: handleGanttQuickCreate,
             }}
             renderers={{
               renderSidebarHeader: () => sidebarHeader,

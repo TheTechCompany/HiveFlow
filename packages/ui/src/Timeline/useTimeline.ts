@@ -60,6 +60,8 @@ interface DragState {
   dragStartMs: number;
   /** pxPerMs when drag began. */
   dragPxPerMs: number;
+  /** Origins of other selected items for bulk move/resize. */
+  peerOrigins?: Array<{ id: string; origStart: Date; origEnd: Date }>;
 }
 
 const IDLE_DRAG: DragState = {
@@ -202,9 +204,12 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
   const [dragState, setDragState] = useState<DragState>(IDLE_DRAG);
   const dragStateRef = useRef<DragState>(IDLE_DRAG);
 
+  // Filter items to the consumer's date window (start/end), not the wider
+  // geometry effectiveEnd — otherwise items well outside the intended
+  // horizon leak in when the viewport is wider than the date span.
   const visibleItems = useMemo(
-    () => filterVisibleItems(items, start, effectiveEnd),
-    [items, start, effectiveEnd],
+    () => filterVisibleItems(items, start, end),
+    [items, start, end],
   );
 
   // Always include the item being dragged, even if edge-scroll pushed
@@ -369,11 +374,31 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
   startLocalRef.current = start;
   const geometryLocalRef = useRef(geometry);
   geometryLocalRef.current = geometry;
+  const selectedIdsLocalRef = useRef(selectedItemIds);
+  selectedIdsLocalRef.current = selectedItemIds;
 
   const startDrag = useCallback(
     (itemId: string, mode: DragMode, clientX: number) => {
       const item = flatItems.find((i) => i.id === itemId);
       if (!item) return;
+
+      // Capture origins of other selected items for bulk move/resize
+      const selectedIds = selectedIdsLocalRef.current;
+      const peerOrigins: DragState['peerOrigins'] = [];
+      if (selectedIds.length > 1 && selectedIds.includes(itemId)) {
+        for (const id of selectedIds) {
+          if (id === itemId) continue;
+          const peer = flatItems.find((i) => i.id === id);
+          if (peer) {
+            peerOrigins.push({
+              id: peer.id,
+              origStart: new Date(peer.start),
+              origEnd: new Date(peer.end),
+            });
+          }
+        }
+      }
+
       const ds: DragState = {
         mode,
         itemId,
@@ -384,6 +409,7 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
         origGroupId: item.groupId,
         dragStartMs: startLocalRef.current.getTime(),
         dragPxPerMs: geometryLocalRef.current.pxPerMs,
+        peerOrigins: peerOrigins.length > 0 ? peerOrigins : undefined,
       };
       dragStateRef.current = ds; // synchronous — native onMove reads this before re-render
       setDragState(ds);
@@ -400,30 +426,44 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
         const pxPerMs = prev.dragPxPerMs || geometry.pxPerMs;
         const msDelta = deltaX / pxPerMs;
 
+        const notifyPeers = (getChange: (origStart: Date, origEnd: Date) => Partial<ItemChange>) => {
+          // Notify for the primary item
+          const primaryChange = getChange(prev.origStart, prev.origEnd);
+          if (primaryChange.start || primaryChange.end) {
+            callbacksRef.current?.onItemChanging?.({ id: prev.itemId, ...primaryChange });
+          }
+          // Notify for peer items
+          if (prev.peerOrigins) {
+            for (const peer of prev.peerOrigins) {
+              const peerChange = getChange(peer.origStart, peer.origEnd);
+              if (peerChange.start || peerChange.end) {
+                callbacksRef.current?.onItemChanging?.({ id: peer.id, ...peerChange });
+              }
+            }
+          }
+        };
+
         if (prev.mode === 'move') {
-          callbacksRef.current?.onItemChanging?.({
-            id: prev.itemId,
-            start: new Date(prev.origStart.getTime() + msDelta),
-            end: new Date(prev.origEnd.getTime() + msDelta),
-          });
+          notifyPeers((origStart, origEnd) => ({
+            start: new Date(origStart.getTime() + msDelta),
+            end: new Date(origEnd.getTime() + msDelta),
+          }));
         } else if (prev.mode === 'resize-left') {
           const minWidthMs = minBarWidth / pxPerMs;
-          callbacksRef.current?.onItemChanging?.({
-            id: prev.itemId,
+          notifyPeers((origStart, origEnd) => ({
             start: new Date(Math.min(
-              prev.origStart.getTime() + msDelta,
-              prev.origEnd.getTime() - minWidthMs,
+              origStart.getTime() + msDelta,
+              origEnd.getTime() - minWidthMs,
             )),
-          });
+          }));
         } else if (prev.mode === 'resize-right') {
           const minWidthMs = minBarWidth / pxPerMs;
-          callbacksRef.current?.onItemChanging?.({
-            id: prev.itemId,
+          notifyPeers((origStart, origEnd) => ({
             end: new Date(Math.max(
-              prev.origEnd.getTime() + msDelta,
-              prev.origStart.getTime() + minWidthMs,
+              origEnd.getTime() + msDelta,
+              origStart.getTime() + minWidthMs,
             )),
-          });
+          }));
         }
 
         const next = { ...prev, deltaX };
@@ -439,43 +479,56 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
     setDragState((prev) => {
       if (prev.mode === 'idle') return prev;
 
+      const emitForPeers = (getChange: (origStart: Date, origEnd: Date) => Partial<ItemChange>) => {
+        // Emit primary
+        const primaryChange = getChange(prev.origStart, prev.origEnd);
+        if (primaryChange.start || primaryChange.end) {
+          callbacksRef.current?.onItemChange?.({ id: prev.itemId, ...primaryChange });
+          if (!change) change = { id: prev.itemId, ...primaryChange };
+        }
+        // Emit peers
+        if (prev.peerOrigins) {
+          for (const peer of prev.peerOrigins) {
+            const peerChange = getChange(peer.origStart, peer.origEnd);
+            if (peerChange.start || peerChange.end) {
+              callbacksRef.current?.onItemChange?.({ id: peer.id, ...peerChange });
+            }
+          }
+        }
+      };
+
       if (prev.mode === 'move') {
-        // Convert visual position from frozen coords to a date in current coords.
         const frozenStart = new Date(prev.dragStartMs);
         const frozenPxPerMs = prev.dragPxPerMs || geometry.pxPerMs;
         const visualX = (prev.origStart.getTime() - frozenStart.getTime()) * frozenPxPerMs + prev.deltaX;
         const msDelta = visualX / geometry.pxPerMs;
 
-        change = {
-          id: prev.itemId,
+        emitForPeers((origStart, origEnd) => ({
           start: new Date(startLocalRef.current.getTime() + msDelta),
-          end: new Date(startLocalRef.current.getTime() + msDelta + (prev.origEnd.getTime() - prev.origStart.getTime())),
-        };
+          end: new Date(startLocalRef.current.getTime() + msDelta + (origEnd.getTime() - origStart.getTime())),
+        }));
       } else if (prev.mode === 'resize-left') {
         const pxPerMs = prev.dragPxPerMs || geometry.pxPerMs;
         const msDelta = prev.deltaX / pxPerMs;
         const minWidthMs = minBarWidth / pxPerMs;
-        change = {
-          id: prev.itemId,
+        emitForPeers((origStart, origEnd) => ({
           start: new Date(Math.min(
-            prev.origStart.getTime() + msDelta,
-            prev.origEnd.getTime() - minWidthMs,
+            origStart.getTime() + msDelta,
+            origEnd.getTime() - minWidthMs,
           )),
-        };
+        }));
       } else if (prev.mode === 'resize-right') {
         const pxPerMs = prev.dragPxPerMs || geometry.pxPerMs;
         const msDelta = prev.deltaX / pxPerMs;
         const minWidthMs = minBarWidth / pxPerMs;
-        change = {
-          id: prev.itemId,
+        emitForPeers((origStart, origEnd) => ({
           end: new Date(Math.max(
-            prev.origEnd.getTime() + msDelta,
-            prev.origStart.getTime() + minWidthMs,
+            origEnd.getTime() + msDelta,
+            origStart.getTime() + minWidthMs,
           )),
-        };
+        }));
       }
 
-      if (change) callbacksRef.current?.onItemChange?.(change);
       dragStateRef.current = IDLE_DRAG;
       return IDLE_DRAG;
     });
@@ -493,6 +546,22 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
   startRef.current = start;
   const endRef = useRef(end);
   endRef.current = end;
+
+  /** Move selection to the previous/next bar in the flat item list. */
+  const moveSelection = useCallback(
+    (direction: 'up' | 'down') => {
+      const items = flatItemsRef.current;
+      if (items.length === 0) return;
+      const current = selectedItemIdsRef.current[0];
+      const currentIdx = current ? items.findIndex((i) => i.id === current) : -1;
+      const nextIdx =
+        direction === 'down'
+          ? Math.min((currentIdx >= 0 ? currentIdx : -1) + 1, items.length - 1)
+          : Math.max(currentIdx >= 0 ? currentIdx - 1 : items.length - 1, 0);
+      setSelectedItemIds([items[nextIdx].id]);
+    },
+    [],
+  );
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -518,8 +587,24 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
         e.preventDefault();
         setSelectedItemIds(flatItemsRef.current.map((i) => i.id));
       }
+      if (e.key === 'Enter') {
+        const s = startRef.current;
+        const en = endRef.current;
+        callbacksRef.current?.onQuickCreate?.(new Date((s.getTime() + en.getTime()) / 2));
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        moveSelection('down');
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        moveSelection('up');
+        return;
+      }
     },
-    [clearSelection],
+    [clearSelection, moveSelection],
   );
 
   // ── Bar style (with drag offset) ───────────────────────────────

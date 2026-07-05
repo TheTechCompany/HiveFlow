@@ -151,18 +151,24 @@ export function computeGeometry(
   stepCount: number,
 ): TimelineGeometry {
   const stepDurationMs = STEP_DURATIONS[step];
-  // Fixed pixels-per-ms for this step granularity — together with
-  // timelineWidth this determines how many step units are visible.
-  const pxPerMs = PX_PER_STEP[step] / stepDurationMs;
 
-  // Content canvas is sized by step count × fixed px-per-step,
-  // so the timeline extends beyond the viewport and panning reveals hidden content.
-  const canvasWidth = stepCount * PX_PER_STEP[step];
-  const timelineWidth = Math.max(canvasWidth, viewportWidth - sidebarWidth);
-  const pxPerStep = pxPerMs * stepDurationMs; // === PX_PER_STEP[step]
+  const basePxPerStep = PX_PER_STEP[step];
+  const baseCanvasWidth = stepCount * basePxPerStep;
+  const availableWidth = Math.max(viewportWidth - sidebarWidth, 1);
 
-  // The right edge of the visible window, consistent with geometry.
-  const effectiveEndMs = start.getTime() + timelineWidth / pxPerMs;
+  // Scale so the same time window (stepCount steps) fills the viewport
+  // when the viewport is wider than the base canvas.  The scale cancels
+  // out in effectiveEndMs — the date range stays locked to stepCount
+  // regardless of viewport width.
+  const scale = Math.max(1, availableWidth / baseCanvasWidth);
+  const pxPerMs = (scale * basePxPerStep) / stepDurationMs;
+  const pxPerStep = pxPerMs * stepDurationMs; // === scale * basePxPerStep
+  const canvasWidth = scale * baseCanvasWidth;
+  const timelineWidth = canvasWidth;
+
+  // The right edge of the visible window — always stepCount steps from start
+  // because canvasWidth / pxPerMs = stepCount * stepDurationMs (scale cancels).
+  const effectiveEndMs = start.getTime() + stepCount * stepDurationMs;
 
   return {
     viewportWidth,

@@ -154,6 +154,7 @@ const SIDEBAR_LABEL_STYLE: React.CSSProperties = {
 };
 
 const ROWS_WRAPPER_STYLE: React.CSSProperties = {
+  position: 'relative',
   minHeight: '100%',
   display: 'flex',
   flexDirection: 'column',
@@ -420,9 +421,16 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
     }
   }, [edgeTick, stopEdgeLoop]);
 
-  // ── Wheel — shift the date horizon ───────────────────────────────
+  // ── Wheel — shift the date horizon, zoom with Ctrl ───────────────
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
+      // Ctrl+wheel → zoom
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const direction = e.deltaY < 0 ? 'in' as const : 'out' as const;
+        timelineRef.current.callbacks?.onZoom?.(direction);
+        return;
+      }
       if (e.deltaX !== 0 || e.shiftKey) {
         e.preventDefault();
         const delta = -(e.deltaX || e.deltaY);
@@ -687,47 +695,59 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
         flex: fullHeight ? 'none' : BODY_STYLE.flex,
         ...(fullHeight ? { overflowY: 'visible' as const, overflowX: 'visible' as const } : {}),
       }}>
-        <TimelineGrid
-          geometry={geometry} start={activeStart} end={effectiveEnd} step={step}
-          totalHeight={gridHeight} showToday={showToday} sidebarWidth={sidebarW}
-          highlightedDays={highlightedDays}
-        />
-
-        {showLinks && links.length > 0 && (
-          <TimelineLinks
-            links={links} barLayouts={barLayouts}
-            areaWidth={geometry.timelineWidth} areaHeight={gridHeight}
-            sidebarWidth={sidebarW}
-            selectedLinkIds={selection.linkIds} onSelectLink={selectLink}
-          />
-        )}
-
-        {/* Ghost bar for create-drag */}
-        <div data-ghost-wrapper style={{ position: 'absolute', top: 0, left: `${sidebarW}px`, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 20 }}>
-          {ghostBar}
-        </div>
-
         <div style={ROWS_WRAPPER_STYLE}>
-        {rowEntries.map((entry) => (
-          <TimelineRow
-            key={entry.groupId}
-            groupId={entry.groupId} group={entry.group}
-            items={entry.items} laneCount={entry.laneCount}
-            itemHeight={itemHeight}
-            resizable={canInteract && resizable}
-            movable={canInteract && movable}
-            rowHeight={Math.max(1, entry.laneCount) * laneH}
-            isExpanded={true}
-            renderItem={renderers?.renderItem}
-            timeline={timeline}
-            sidebarWidth={sidebarW}
-            renderGroupHeader={renderers?.renderGroupHeader}
-            showSidebar={hasGroups}
-            onDoubleClickItem={handleItemDoubleClick}
-            sidebarPadding={sidebarPadding}
+          {/* Grid, links, and ghost are absolutely positioned inside
+              the rows wrapper so they scroll with the row content
+              instead of being clipped to the body viewport. */}
+          <TimelineGrid
+            geometry={geometry} start={activeStart} end={effectiveEnd} step={step}
+            totalHeight={gridHeight} showToday={showToday} sidebarWidth={sidebarW}
+            highlightedDays={highlightedDays}
           />
-        ))}
-      </div>
+
+          {showLinks && links.length > 0 && (
+            <TimelineLinks
+              links={links} barLayouts={barLayouts}
+              areaWidth={geometry.timelineWidth} areaHeight={gridHeight}
+              sidebarWidth={sidebarW}
+              selectedLinkIds={selection.linkIds} onSelectLink={selectLink}
+            />
+          )}
+
+          {/* Ghost bar for create-drag */}
+          <div data-ghost-wrapper style={{ position: 'absolute', top: 0, left: `${sidebarW}px`, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 20 }}>
+            {ghostBar}
+          </div>
+
+          {rowEntries.map((entry) => (
+            <TimelineRow
+              key={entry.groupId}
+              groupId={entry.groupId} group={entry.group}
+              items={entry.items} laneCount={entry.laneCount}
+              itemHeight={itemHeight}
+              resizable={canInteract && resizable}
+              movable={canInteract && movable}
+              rowHeight={Math.max(1, entry.laneCount) * laneH}
+              isExpanded={true}
+              renderItem={renderers?.renderItem}
+              timeline={timeline}
+              sidebarWidth={sidebarW}
+              renderGroupHeader={renderers?.renderGroupHeader}
+              showSidebar={hasGroups}
+              onDoubleClickItem={handleItemDoubleClick}
+              sidebarPadding={sidebarPadding}
+            />
+          ))}
+          {/* Spacer fills remaining vertical space with sidebar gutter —
+              a real DOM element instead of a body background-image so it
+              sits in the correct stacking context above the grid. */}
+          {sidebarW > 0 && (
+            <div style={{
+              flex: 1,
+              background: `linear-gradient(to right, #f5f5f5 ${sidebarW - 1}px, #d0d0d0 ${sidebarW - 1}px, #d0d0d0 ${sidebarW}px, transparent ${sidebarW}px)`,
+            }} />
+          )}
+        </div>
       </div>
     </div>
   );

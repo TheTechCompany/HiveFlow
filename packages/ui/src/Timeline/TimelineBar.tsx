@@ -114,11 +114,19 @@ export const TimelineBar: React.FC<TimelineBarProps> = React.memo(function Timel
 
   // Memoise the overlay style so TimelineBar's own memo isn't defeated
   // by a new style merge object on every parent render.
+  // When a custom renderItem is provided the bar becomes transparent —
+  // the renderItem output is the visual element, not the bar chrome.
   const overlayStyle = useMemo(() => ({
     ...style,
+    ...(renderItem ? {
+      backgroundColor: 'transparent',
+      border: isSelected ? style.border : 'none',
+      borderRadius: 0,
+      boxShadow: 'none',
+    } : {}),
     opacity: isDragging ? 0.6 : 1,
     transition: isDragging ? 'none' : 'opacity 0.15s ease',
-  }), [style, isDragging]);
+  }), [style, isDragging, renderItem, isSelected]);
 
   return (
     <div
@@ -140,7 +148,10 @@ export const TimelineBar: React.FC<TimelineBarProps> = React.memo(function Timel
       )}
 
       {/* Bar content */}
-      <div style={BAR_CONTENT_STYLE}>
+      <div style={{
+        ...BAR_CONTENT_STYLE,
+        ...(renderItem ? { padding: 0, alignItems: 'stretch' as const } : {}),
+      }}>
         {renderItem ? renderItem(item) : (
           <span style={ELLIPSIS_SPAN_STYLE}>
             {item.label ?? item.id}
