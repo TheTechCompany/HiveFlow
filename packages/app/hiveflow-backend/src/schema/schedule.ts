@@ -250,9 +250,11 @@ export default (prisma: PrismaClient) => {
             frequency: String
             startDate: String
             endDate: String
+            durationDays: Int
             assignedTo: String
             rowOrder: String
             exceptionDates: JSON
+            taskTemplate: JSON
         }
 
         input RecurringScheduleInput {
@@ -271,10 +273,12 @@ export default (prisma: PrismaClient) => {
             frequency: String
             startDate: String
             endDate: String
+            durationDays: Int
             assignedTo: String
             rowOrder: String
             parentId: ID
             exceptionDates: JSON
+            taskTemplate: JSON
         }
 
         input RecurringEventUpdateInput {
@@ -283,10 +287,12 @@ export default (prisma: PrismaClient) => {
             frequency: String
             startDate: String
             endDate: String
+            durationDays: Int
             assignedTo: String
             rowOrder: String
             parentId: ID
             exceptionDates: JSON
+            taskTemplate: JSON
         }
     `
 
@@ -865,16 +871,18 @@ export default (prisma: PrismaClient) => {
                         frequency: args.input.frequency || 'monthly',
                         startDate: args.input.startDate || new Date().toISOString().slice(0, 10),
                         endDate: args.input.endDate || undefined,
+                        durationDays: args.input.durationDays ?? undefined,
                         assignedTo: args.input.assignedTo,
                         parentId: args.input.parentId || undefined,
                         rowOrder: args.input.rowOrder || undefined,
                         exceptionDates: args.input.exceptionDates || undefined,
+                        taskTemplate: args.input.taskTemplate || undefined,
                         organisation: context?.jwt?.organisation,
                     },
                 });
 
-                // Seed upcoming tasks for the new event
-                if (event.assignedTo) {
+                // Seed upcoming tasks for the new event (always, even if unassigned)
+                {
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     const horizonEnd = new Date(today);
@@ -894,15 +902,17 @@ export default (prisma: PrismaClient) => {
                         frequency: args.input.frequency ?? undefined,
                         startDate: args.input.startDate ?? undefined,
                         endDate: args.input.endDate ?? undefined,
+                        durationDays: 'durationDays' in (args.input || {}) ? args.input.durationDays : undefined,
                         assignedTo: args.input.assignedTo ?? undefined,
                         parentId: 'parentId' in (args.input || {}) ? args.input.parentId : undefined,
+                        taskTemplate: args.input.taskTemplate ?? undefined,
                         rowOrder: args.input.rowOrder ?? undefined,
                         exceptionDates: 'exceptionDates' in (args.input || {}) ? args.input.exceptionDates : undefined,
                     },
                 });
 
-                // Reseed tasks after changes (e.g. assignedTo changed, startDate moved)
-                if (updated.assignedTo) {
+                // Reseed tasks after changes (always, even if unassigned)
+                {
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     const horizonEnd = new Date(today);

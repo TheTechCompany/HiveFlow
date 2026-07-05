@@ -34,7 +34,7 @@ export default (prisma: PrismaClient) => {
         type PlanBatchItem {
             id: ID!
             batch: PlanBatch!
-            task: ProjectTask!
+            task: Task!
             parent: PlanBatchItem
             parentItemId: ID
             children: [PlanBatchItem!]!
@@ -171,7 +171,7 @@ export default (prisma: PrismaClient) => {
                 return prisma.planBatch.findUnique({ where: { id: root.batchId } });
             },
             task: async (root: any) => {
-                return prisma.projectTask.findUnique({ where: { id: root.taskId } });
+                return prisma.task.findUnique({ where: { id: root.taskId } });
             },
             parent: async (root: any) => {
                 if (!root.parentItemId) return null;

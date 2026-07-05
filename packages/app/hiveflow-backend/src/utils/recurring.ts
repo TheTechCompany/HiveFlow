@@ -35,8 +35,6 @@ export function generateOccurrences(
   const start = parseYMD(event.startDate);
   if (!start) return []; // invalid start, bail
 
-  const endBound = event.endDate ? parseYMD(event.endDate) : null;
-
   const horizonStartMs = horizonStart.getTime();
   const horizonEndMs = horizonEnd.getTime();
 
@@ -48,9 +46,6 @@ export function generateOccurrences(
 
     // Past the horizon window → stop
     if (cursorMs >= horizonEndMs) break;
-
-    // Past the event's own end date → stop
-    if (endBound && cursorMs > endBound.getTime()) break;
 
     // Within the horizon, and not an exception → include
     if (cursorMs >= horizonStartMs) {
@@ -73,35 +68,6 @@ export function generateOccurrences(
 /**
  * Find or create the auto-managed "Recurring Tasks" project for an organisation.
  */
-export async function getOrCreateRecurringProject(
-  prisma: PrismaClient,
-  org: string,
-): Promise<string> {
-  let project = await prisma.project.findFirst({
-    where: { organisation: org, name: 'Recurring Tasks' },
-    select: { id: true },
-  });
-  if (!project) {
-    project = await prisma.project.create({
-      data: {
-        id: nanoid(),
-        name: 'Recurring Tasks',
-        organisation: org,
-        status: 'active',
-      },
-      select: { id: true },
-    });
-  }
-  return project.id;
-}
-
-/**
- * Ensure ProjectTask rows exist for upcoming occurrences of a recurring event
- * within [horizonStart, horizonEnd].  Idempotent — skips dates that already
- * have a task.
- *
- * @returns count of newly created tasks
- */
 export async function ensureGeneratedTasks(
   prisma: PrismaClient,
   event: {
@@ -113,7 +79,9 @@ export async function ensureGeneratedTasks(
     frequency: string;
     exceptionDates?: Array<{ originalDate: string }> | null;
     assignedTo?: string | null;
+    durationDays?: number | null;
     scheduleId?: string;
+    taskTemplate?: { title?: string; projectId?: string } | null;
     organisation: string;
   },
   horizonStart: Date,
@@ -122,42 +90,58 @@ export async function ensureGeneratedTasks(
   const dates = generateOccurrences(event, horizonStart, horizonEnd);
   if (dates.length === 0) return 0;
 
-  const projectId = await getOrCreateRecurringProject(prisma, event.organisation);
+  const template = (event as any).taskTemplate || {};
+  const projectId = template.projectId || undefined;
+  const title = template.title || event.name;
 
-  // Find which dates already materialized
-  const existing = await prisma.projectTask.findMany({
-    where: {
-      recurringEventId: event.id,
-      startDate: { in: dates.map((d) => new Date(d)) },
-    },
-    select: { startDate: true },
+  // ── Transaction: check-then-create to prevent intra-request races ──
+  const created = await prisma.$transaction(async (tx) => {
+    const existing = await tx.task.findMany({
+      where: {
+        recurringEventId: event.id,
+        startDate: { in: dates.map((d) => new Date(d)) },
+      },
+      select: { startDate: true },
+    });
+    const existingDates = new Set(
+      existing.map((t) => t.startDate!.toISOString().slice(0, 10)),
+    );
+
+    const toCreate = dates.filter((d) => !existingDates.has(d));
+    if (toCreate.length === 0) return 0;
+
+    let count = 0;
+    for (const dateStr of toCreate) {
+      const taskStart = new Date(dateStr);
+      const taskEnd = event.durationDays
+        ? new Date(taskStart.getTime() + event.durationDays * 86400000)
+        : null;
+      try {
+        await tx.task.create({
+          data: {
+            id: nanoid(),
+            title,
+            description: event.description ?? null,
+            status: 'Backlog',
+            projectId: projectId || null,
+            startDate: taskStart,
+            endDate: taskEnd,
+            members: event.assignedTo ? [event.assignedTo] : [],
+            recurringEventId: event.id,
+            lastUpdated: new Date(),
+          },
+        });
+        count++;
+      } catch (err: any) {
+        // Skip duplicates from concurrent requests (unique constraint violations)
+        if (err.code === 'P2002') continue;
+        throw err;
+      }
+    }
+    return count;
   });
-  const existingDates = new Set(
-    existing.map((t) => t.startDate!.toISOString().slice(0, 10)),
-  );
 
-  const toCreate = dates.filter((d) => !existingDates.has(d));
-  if (toCreate.length === 0) return 0;
-
-  await Promise.all(
-    toCreate.map((dateStr) =>
-      prisma.projectTask.create({
-        data: {
-          id: nanoid(),
-          title: event.name,
-          description: event.description ?? null,
-          status: 'Backlog',
-          projectId,
-          startDate: new Date(dateStr),
-          members: event.assignedTo ? [event.assignedTo] : [],
-          recurringEventId: event.id,
-          lastUpdated: new Date(),
-        },
-      }),
-    ),
-  );
-
-  return toCreate.length;
+  return created;
 }
 
 // ── Internal helpers ────────────────────────────────────────────

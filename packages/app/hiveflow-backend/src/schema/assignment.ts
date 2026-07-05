@@ -1,20 +1,18 @@
 import { PrismaClient } from "@prisma/client"
 import { nanoid } from "nanoid";
-import { generateOccurrences, ensureGeneratedTasks } from "../utils/recurring";
 
 export default (prisma: PrismaClient) => {
 
     const resolvers = {
         AssignedTask: {
-            __resolveType: (root) => {
-                if(root.projectId) return 'ProjectTask';
-                if(root.estimateId) return 'EstimateTask';
-                if(root.scheduleId) return 'RecurringEvent';
+            __resolveType: (root: any) => {
+                // All tasks are now the unified Task type
+                return 'Task';
             }
         },
         HiveUser:{ 
             leave: (root: any, args: any) => {
-                return root.leave?.filter((item) => {
+                return root.leave?.filter((item: any) => {
                     if(!args.where) return true;
                     return item.start < args.where.start_LTE && item.end > args.where.end_GTE
                 })
@@ -35,9 +33,7 @@ export default (prisma: PrismaClient) => {
             },
             updateLeave: async (root: any, args: any, context: any) => {
                 return await prisma.leaveAssignment.update({
-                    where: {
-                        id: args.leave,
-                    },
+                    where: { id: args.leave },
                     data: {
                         user: args.id,
                         start: args.start,
@@ -47,9 +43,7 @@ export default (prisma: PrismaClient) => {
             },
             removeLeave: async (root: any, args: any, context: any) => {
                 return await prisma.leaveAssignment.delete({
-                    where: {
-                        id: args.leave
-                    }
+                    where: { id: args.leave }
                 })
             },
             updateSkillAssignment: async (root: any, args: any, context: any) => {
@@ -59,7 +53,6 @@ export default (prisma: PrismaClient) => {
                             user: args.user,
                             skill: args.skill
                         }
-
                     },
                     create: {
                         id: nanoid(),
@@ -72,15 +65,12 @@ export default (prisma: PrismaClient) => {
                         skill: args.skill,
                         skillData: args.skillData,
                         organisation: context?.jwt?.organisation
-
                     }
                 })
             },
             deleteSkillAssignment: async (root: any, args: any) => {
                 await prisma.skillAssignment.delete({
-                    where: {
-                        id: args.id
-                    }
+                    where: { id: args.id }
                 })
             }
         },
@@ -95,20 +85,13 @@ export default (prisma: PrismaClient) => {
                 }
 
                 const leaveRows = await prisma.leaveAssignment.findMany({
-                    where: {
-                        ...query
-                    }
+                    where: { ...query }
                 })
 
-
-                const rows = [...new Set(leaveRows.map((x) => x.user).concat(args.ids || []))]
-
-                const result = (args.ids || rows).map((r) => {
-                    let leave = leaveRows.filter((a) => a.user == r)
-                    return {
-                        id: r,
-                        leave
-                    }
+                const rows = [...new Set(leaveRows.map((x: any) => x.user).concat(args.ids || []))]
+                const result = (args.ids || rows).map((r: any) => {
+                    let leave = leaveRows.filter((a: any) => a.user == r)
+                    return { id: r, leave }
                 })
                 return result;
             },
@@ -118,16 +101,14 @@ export default (prisma: PrismaClient) => {
                     where.user = args.user;
                 }
                 const skills = await prisma.skillAssignment.findMany({
-                    where: {
-                        ...where
-                    }
+                    where: { ...where }
                 })
 
                 if(args.user){
                     return skills;
                 }else{
-                    const unique = [...new Set(skills.map((x) => x.skill))]
-                    return unique.map((x) => ({skill: x}))
+                    const unique = [...new Set(skills.map((x: any) => x.skill))]
+                    return unique.map((x: any) => ({skill: x}))
                 }
             },
         
@@ -152,127 +133,47 @@ export default (prisma: PrismaClient) => {
                     where['displayId'] = args.where.displayId
                 }
 
-                // ── Horizon-based recurring task generation ────────
-                const horizonDays: number | undefined = args.horizonDays;
-
-                if (horizonDays && horizonDays > 0) {
-                    // Fetch recurring events assigned to this user
-                    const events = await prisma.recurringEvent.findMany({
-                        where: {
-                            assignedTo: context?.jwt?.id,
-                            organisation: context?.jwt?.organisation,
-                            OR: [
-                                { endDate: null },
-                                { endDate: { gte: new Date().toISOString().slice(0, 10) } },
-                            ],
-                        },
-                    });
-
-                    // Materialize any missing occurrences within the horizon
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const horizonEnd = new Date(today);
-                    horizonEnd.setDate(horizonEnd.getDate() + horizonDays);
-
-                    await Promise.all(
-                        events.map((event: any) =>
-                            ensureGeneratedTasks(prisma, event, today, horizonEnd),
-                        ),
-                    );
-
-                    // Now fetch all ProjectTask + EstimateTask (generated tasks included)
-                    const [projectTasks, estimateTasks] = await Promise.all([
-                        prisma.projectTask.findMany({
-                            where: {
-                                ...where,
-                                project: {
-                                    organisation: context?.jwt?.organisation,
-                                },
+                // ── Fetch unified tasks ────────────────────────────
+                const tasks = await prisma.task.findMany({
+                    where: {
+                        ...where,
+                        OR: [
+                            {
+                                project: { organisation: context?.jwt?.organisation },
                                 members: { has: context?.jwt?.id },
                             },
-                            include: {
-                                project: true,
-                                recurringEvent: {
-                                    include: { schedule: true },
-                                },
-                            },
-                        }),
-                        prisma.estimateTask.findMany({
-                            where: {
-                                ...where,
-                                estimate: {
-                                    organisation: context?.jwt?.organisation,
-                                },
+                            {
+                                estimate: { organisation: context?.jwt?.organisation },
                                 members: { has: context?.jwt?.id },
                             },
-                            include: {
-                                estimate: true,
+                            {
+                                recurringEventId: { not: null },
+                                members: { has: context?.jwt?.id },
                             },
-                        }),
-                    ]);
-
-                    const taskArray: any[] = projectTasks.concat(estimateTasks as any[]);
-
-                    return taskArray.map((x) => ({
-                        ...x,
-                        createdBy: x.createdBy ? { id: x.createdBy } : undefined,
-                        members: x.members?.map((member: string) => ({ id: member })),
-                        organisation: { id: x.organisation },
-                    }));
-                }
-
-                // ── Legacy path (no horizon) ────────────────────────
-
-                const [ projectTasks, estimateTasks, recurringEvents ] = await Promise.all([
-                    prisma.projectTask.findMany({
-                        where: {
-                            ...where,
-                            project: {
-                                organisation: context?.jwt?.organisation
+                            {
+                                // Unassigned recurring tasks — visible to everyone in the org
+                                recurringEventId: { not: null },
+                                members: { isEmpty: true },
                             },
-                            members: {has: context?.jwt?.id}
+                        ],
+                    },
+                    include: {
+                        project: true,
+                        estimate: true,
+                        parent: true,
+                        children: true,
+                        recurringEvent: {
+                            include: { schedule: true },
                         },
-                        include: {
-                            project: true
-                        }
-                    }),
-                    prisma.estimateTask.findMany({
-                        where: {
-                            ...where,
-                            estimate: {
-                                organisation: context?.jwt?.organisation
-                            },
-                            members: {has: context?.jwt?.id}
-                        },
-                        include: {
-                            estimate: true
-                        }
-                    }),
-                    prisma.recurringEvent.findMany({
-                        where: {
-                            assignedTo: context?.jwt?.id,
-                            organisation: context?.jwt?.organisation,
-                            OR: [
-                                { endDate: null },
-                                { endDate: { gte: new Date().toISOString().slice(0, 10) } },
-                            ],
-                        },
-                        include: {
-                            schedule: true,
-                        },
-                    }),
-                ])
+                    },
+                });
 
-                const taskArray : any[] = projectTasks.concat(estimateTasks as any[], recurringEvents as any[])
-
-				return taskArray.map((x) => ({
-					...x,
-                  
-                    createdBy: x.createdBy ? {id: x.createdBy} : undefined,
-                    members: x.members?.map((member) => ({id: member})),
-
-					organisation: {id: x.organisation}
-				}));            
+                return tasks.map((x: any) => ({
+                    ...x,
+                    createdBy: x.createdBy ? { id: x.createdBy } : undefined,
+                    members: x.members?.map((member: string) => ({ id: member })),
+                    organisation: { id: x.organisation || context?.jwt?.organisation },
+                }));
             }
         },
         
@@ -280,7 +181,7 @@ export default (prisma: PrismaClient) => {
 
     const typeDefs = `
 
-    union AssignedTask = ProjectTask | EstimateTask | RecurringEvent
+    union AssignedTask = Task
 
     type Query {
         userLeave(ids: [ID]): [HiveUser] @merge(keyField: "id", keyArg: "ids")
@@ -288,7 +189,10 @@ export default (prisma: PrismaClient) => {
         assignments(ids: [ID], where: AssignedWhere, horizonDays: Int): [AssignedTask!]!
     }
 
+    # ── Generated task creation ────────────────────────────────
+
     type Mutation {
+        generateRecurringTasks(horizonDays: Int!): [Task!]!
         updateSkillAssignment(skill: String, skillData: JSON, user: String): SkillAssignment
         deleteSkillAssignment(id: ID): SkillAssignment
 
@@ -309,17 +213,13 @@ export default (prisma: PrismaClient) => {
 
     type LeaveAssignment {
         id: ID
-        
         start: DateTime
         end: DateTime
-
         user: HiveUser
-
         createdAt: DateTime
         createdBy: HiveUser
     }
         
-
     type SkillAssignment {
         id: ID
         user: HiveUser
@@ -329,7 +229,6 @@ export default (prisma: PrismaClient) => {
 
     input AssignedWhere {
         archived: Boolean
-    
         status: [String]
         start: DateTime
         end: DateTime

@@ -25,7 +25,7 @@ const prisma = new PrismaClient();
         actions: ['create', 'read', 'update', 'delete']
       },
       {
-        name: "ProjectTask",
+        name: "Task",
         actions: ['create', 'read', 'update', 'delete']
       },
       {

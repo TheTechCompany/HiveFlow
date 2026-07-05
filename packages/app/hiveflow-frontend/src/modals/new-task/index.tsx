@@ -17,6 +17,7 @@ import {
   DialogTitle,
   Divider,
   IconButton,
+  Stack,
   TextField,
   Typography,
 } from '@mui/material';
@@ -32,10 +33,16 @@ interface TaskModalProps {
   open: boolean;
   selected?: any;
   users?: Array<{ id: string; name: string }>;
+  /** When provided, shows a project autocomplete (for templates / unanchored tasks) */
+  projects?: Array<{ id: string; displayId: string; name: string }>;
   skills?: Array<{ id: string; skill: string }>;
+  /** Pre-fill parentId when creating a new subtask */
+  initialParentId?: string;
   onClose: () => void;
   onSubmit?: (task: any) => Promise<void>;
   onDelete?: () => Promise<void>;
+  /** Called to quickly create a subtask with just a title */
+  onAddSubtask?: (parentId: string, title: string) => Promise<void>;
   /** Called when description changes from a checklist toggle — auto-saves immediately */
   onAutoSaveDescription?: (html: string) => void;
 }
@@ -44,6 +51,8 @@ interface TaskState {
   title?: string;
   description?: string;
   status?: string;
+  projectId?: string;
+  parentId?: string;
   members?: string[];
   requiredSkills?: Array<{ skill?: string; hours?: string }>;
   startDate?: Date;
@@ -51,6 +60,53 @@ interface TaskState {
   dependencyOn?: Array<{ title: string; status: string; endDate: Date }>;
   dependencyOf?: Array<{ title: string; status: string; endDate: Date }>;
 }
+
+// ── Inline subtask adder ─────────────────────────────────────────
+
+const SubtasksInput: React.FC<{
+  parentId: string;
+  onAdd?: (parentId: string, title: string) => Promise<void>;
+}> = ({ parentId, onAdd }) => {
+  const [title, setTitle] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  const handleAdd = async () => {
+    const trimmed = title.trim();
+    if (!trimmed || !onAdd) return;
+    setAdding(true);
+    try {
+      await onAdd(parentId, trimmed);
+      setTitle('');
+    } catch {
+      // keep input on failure
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  return (
+    <Box sx={{ display: 'flex', gap: 0.5 }}>
+      <TextField
+        size="small"
+        fullWidth
+        placeholder="Add subtask…"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
+        disabled={adding}
+        inputProps={{ sx: { fontSize: '0.8rem', py: 0.5 } }}
+      />
+      <IconButton
+        size="small"
+        onClick={handleAdd}
+        disabled={adding || !title.trim()}
+        color="primary"
+      >
+        {adding ? <CircularProgress size={16} /> : <Add fontSize="small" />}
+      </IconButton>
+    </Box>
+  );
+};
 
 // ── Component ───────────────────────────────────────────────────────
 
@@ -72,12 +128,13 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
       status: 'Backlog',
       startDate: new Date(),
       endDate: new Date(),
+      parentId: props.initialParentId ?? undefined,
       ...props.selected,
-      members: props.selected?.members?.map((x: any) => x.id),
+      projectId: props.selected?.projectId ?? undefined,      members: props.selected?.members?.map((x: any) => x.id),
       dependencyOn: props.selected?.dependencyOn ?? [],
       dependencyOf: props.selected?.dependencyOf ?? [],
     });
-  }, [props.selected]);
+  }, [props.selected, props.initialParentId]);
 
   const onDelete = async () => {
     setDeleteLoading(true);
@@ -149,6 +206,28 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
 
       {/* ── Body ────────────────────────────────────────────────── */}
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2, pb: 1 }}>
+        {/* Project selector — shown when projects list provided */}
+        {props.projects && props.projects.length > 0 && (
+          <Box>
+            {editing ? (
+              <Autocomplete
+                size="small"
+                options={props.projects}
+                getOptionLabel={(opt) => `${opt.displayId} - ${opt.name}`}
+                value={props.projects.find((p: any) => p.displayId === task.projectId) || null}
+                onChange={(_, val: any) => setTask({ ...task, projectId: val?.displayId || '' })}
+                isOptionEqualToValue={(opt: any, val: any) => opt.displayId === val.displayId}
+                renderInput={(params) => <TextField {...params} label="Project" size="small" fullWidth />}
+              />
+            ) : task.projectId ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="caption" color="text.secondary">Project</Typography>
+                <Chip label={props.projects.find((p: any) => p.displayId === task.projectId)?.name ?? task.projectId} size="small" variant="outlined" />
+              </Box>
+            ) : null}
+          </Box>
+        )}
+
         {/* Title — with edit icon in view mode */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {editing ? (
@@ -213,6 +292,51 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
             placeholder="Add a description…"
             minHeight={200}
           />
+        </Box>
+
+        {/* Parent */}
+        {props.selected?.parent && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="caption" color="text.secondary">Parent:</Typography>
+            <Chip
+              label={props.selected.parent.title}
+              size="small"
+              variant="outlined"
+            />
+          </Box>
+        )}
+
+        {/* Children / subtasks */}
+        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: (props.selected?.children?.length ?? 0) > 0 ? 1 : 0 }}>
+            <Typography variant="subtitle2">Subtasks</Typography>
+          </Box>
+          {(props.selected?.children?.length ?? 0) > 0 ? (
+            <Stack spacing={0.5}>
+              {props.selected.children.map((child: any) => (
+                <Box key={child.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">{child.title}</Typography>
+                  <Chip
+                    label={child.status || 'Backlog'}
+                    size="small"
+                    sx={{
+                      fontSize: '0.65rem',
+                      height: 20,
+                      bgcolor:
+                        child.status === 'Finished' ? '#4caf50' :
+                        child.status === 'In Progress' ? '#2196f3' :
+                        child.status === 'Reviewing' ? '#ff9800' :
+                        '#9e9e9e',
+                      color: 'white',
+                    }}
+                  />
+                </Box>
+              ))}
+            </Stack>
+          ) : (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>No subtasks yet</Typography>
+          )}
+          {props.selected?.id && <SubtasksInput parentId={props.selected.id} onAdd={props.onAddSubtask} />}
         </Box>
 
         {/* Status */}

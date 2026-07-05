@@ -4,9 +4,9 @@ import type { DropResult } from 'react-beautiful-dnd';
 export const KANBAN_STATUSES = ['Backlog', 'In Progress', 'Reviewing', 'Finished'] as const;
 export type KanbanStatus = typeof KANBAN_STATUSES[number];
 
-/** A card on the kanban board — common fields from all task types */
+/** A card on the kanban board — unified Task model */
 export interface KanbanTask {
-  __typename?: 'ProjectTask' | 'EstimateTask' | 'RecurringEvent';
+  __typename?: 'Task' | 'RecurringEvent';
   id: string;
   title: string;
   description?: string | null;
@@ -17,6 +17,7 @@ export interface KanbanTask {
   columnRank?: string | null;
   handoverNote?: string | null;
   members?: Array<{ id: string; name: string }> | null;
+  /** Task source */
   project?: { id: string; displayId: string; name: string } | null;
   estimate?: { id: string; displayId: string; name: string } | null;
   /** Set when a task was generated from a RecurringEvent */
@@ -25,12 +26,17 @@ export interface KanbanTask {
     frequency?: string | null;
     schedule?: { id: string; name: string } | null;
   } | null;
-  /** RecurringEvent-specific fields (legacy, for raw templates without horizon) */
+  /** Subtasks */
+  children?: Array<{ id: string; title: string; status: string }> | null;
+  /** Parent task */
+  parent?: { id: string; title: string } | null;
+  /** Legacy: raw RecurringEvent template fields (server not yet restarted) */
   scheduleId?: string | null;
   frequency?: string | null;
-  assignedTo?: string | { id: string; name: string } | null;
-  exceptionDates?: unknown | null;
   schedule?: { id: string; name: string } | null;
+  name?: string;
+  start?: string;
+  end?: string;
 }
 
 /** Row shape the KanbanBoard expects per card */

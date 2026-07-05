@@ -12,9 +12,11 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Divider,
   TextField,
   MenuItem,
   Stack,
+  Chip,
 } from '@mui/material';
 import {
   Repeat as RepeatIcon,
@@ -23,6 +25,7 @@ import {
   Close,
 } from '@mui/icons-material';
 import { GanttView, type TimelineItem, type TimelineStep, TreeBranchVSCode, VSCODE_TWISTY_WIDTH, DEPTH_BORDER_WIDTH } from '@hive-flow/ui';
+import { TaskModal } from '../../../modals/new-task';
 import { gql, useQuery, useMutation, useApolloClient } from '@apollo/client';
 import moment from 'moment';
 import { LexoRank } from 'lexorank';
@@ -38,9 +41,11 @@ interface RecurringEvent {
   frequency: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
   startDate: string;
   endDate?: string;
+  durationDays?: number;
   assignedTo?: string;
   rowOrder?: string;
   exceptionDates?: { originalDate: string; newStartDate: string; newEndDate?: string }[];
+  taskTemplate?: { title?: string; description?: string; members?: string[]; projectId?: string } | null;
   children?: RecurringEvent[];
 }
 
@@ -78,9 +83,11 @@ const GET_SCHEDULE = gql`
         frequency
         startDate
         endDate
+        durationDays
         assignedTo
         rowOrder
         exceptionDates
+        taskTemplate
         children {
           id
           scheduleId
@@ -89,9 +96,11 @@ const GET_SCHEDULE = gql`
           frequency
           startDate
           endDate
+          durationDays
           assignedTo
           rowOrder
           exceptionDates
+        taskTemplate
         }
       }
     }
@@ -107,6 +116,7 @@ const CREATE_EVENT = gql`
       frequency
       startDate
       endDate
+      durationDays
       rowOrder
     }
   }
@@ -121,9 +131,11 @@ const UPDATE_EVENT = gql`
       frequency
       startDate
       endDate
+      durationDays
       assignedTo
       rowOrder
       exceptionDates
+        taskTemplate
     }
   }
 `;
@@ -137,6 +149,7 @@ const SPLIT_EVENT = gql`
       frequency
       startDate
       endDate
+      durationDays
       assignedTo
       rowOrder
     }
@@ -155,6 +168,17 @@ const GET_USERS = gql`
   query GetUsers {
     users(active: true) {
       id
+      name
+    }
+  }
+`;
+
+
+const GET_PROJECTS = gql`
+  query GetProjects {
+    projects(where: { archived: false }) {
+      id
+      displayId
       name
     }
   }
@@ -245,7 +269,9 @@ export const ScheduleSingle: React.FC = () => {
   const client = useApolloClient();
 
   const { data: usersData } = useQuery(GET_USERS);
+    const { data: projectsData } = useQuery(GET_PROJECTS, { fetchPolicy: 'cache-and-network' });
   const users: { id: string; name: string }[] = usersData?.users || [];
+  const projects: { id: string; displayId: string; name: string }[] = projectsData?.projects || [];
 
   const schedule: Schedule | undefined = data?.recurringSchedule;
 
@@ -381,6 +407,7 @@ export const ScheduleSingle: React.FC = () => {
         frequency: 'monthly',
         startDate: '',
         endDate: '',
+        durationDays: undefined,
         assignedTo: '',
       }]);
     }
@@ -449,7 +476,7 @@ export const ScheduleSingle: React.FC = () => {
     updateEvent({ variables: { id: eventId, input: { parentId: newParentId } } }).then(() => refetch());
   }, [updateEvent, refetch]);
 
-  const updateDraftField = useCallback((draftId: string, field: keyof RecurringEvent, value: string) => {
+  const updateDraftField = useCallback((draftId: string, field: keyof RecurringEvent, value: string | number) => {
     setDrafts((prev) => prev.map((d) => (d.id === draftId ? { ...d, [field]: value } : d)));
   }, []);
 
@@ -519,6 +546,7 @@ export const ScheduleSingle: React.FC = () => {
                 frequency: draft!.frequency,
                 startDate: draft!.startDate,
                 endDate: draft!.endDate || undefined,
+                durationDays: draft!.durationDays ?? undefined,
                 assignedTo: draft!.assignedTo || undefined,
                 parentId: draft!.parentId || undefined,
                 rowOrder: rowRank ? rowRank.toString() : undefined,
@@ -554,6 +582,8 @@ export const ScheduleSingle: React.FC = () => {
   const [eventFormStartDate, setEventFormStartDate] = useState('');
   const [eventFormEndDate, setEventFormEndDate] = useState('');
   const [eventFormAssigned, setEventFormAssigned] = useState('');
+  const [eventFormTemplateProjectId, setEventFormTemplateProjectId] = useState('');
+  const [eventFormTemplateTitle, setEventFormTemplateTitle] = useState('');
 
   const openEditEvent = (event: RecurringEvent) => {
     setEditingEvent(event);
@@ -563,6 +593,9 @@ export const ScheduleSingle: React.FC = () => {
     setEventFormStartDate(event.startDate);
     setEventFormEndDate(event.endDate || '');
     setEventFormAssigned(event.assignedTo || '');
+    const tmpl = (event as any).taskTemplate || {};
+    setEventFormTemplateProjectId(tmpl.projectId || '');
+    setEventFormTemplateTitle(tmpl.title || '');
     setEventModalOpen(true);
   };
 
@@ -577,7 +610,13 @@ export const ScheduleSingle: React.FC = () => {
             frequency: eventFormFrequency,
             startDate: eventFormStartDate,
             endDate: eventFormEndDate || undefined,
+            durationDays: undefined,
             assignedTo: eventFormAssigned || undefined,
+            taskTemplate: {
+              title: eventFormTemplateTitle || undefined,
+              projectId: eventFormTemplateProjectId || undefined,
+              description: eventFormDesc || undefined,
+            },
           },
         },
       });
@@ -753,15 +792,13 @@ export const ScheduleSingle: React.FC = () => {
 
     schedule.events.forEach((event) => {
       const startDate = new Date(event.startDate);
-      const endDate = event.endDate
-        ? new Date(event.endDate)
-        : moment(event.startDate).add(1, 'year').toDate();
+      const rangeEnd = moment(event.startDate).add(1, 'year').toDate();
       const colorIx = resolveColorIx(event.id);
       const color = EVENT_COLORS[Math.abs(colorIx) % EVENT_COLORS.length];
 
-      // Each occurrence spans the same duration as the template
-      const templateDuration = event.endDate
-        ? moment(event.endDate).diff(moment(event.startDate), 'milliseconds')
+      // Each occurrence spans durationDays (or 1 day default)
+      const templateDuration = event.durationDays
+        ? event.durationDays * 86400000
         : 86400000; // default 1 day
 
       // Stop generating occurrences before a split child's start date
@@ -807,7 +844,7 @@ export const ScheduleSingle: React.FC = () => {
       items.push({
         id: event.id,
         start: startDate,
-        end: endDate,
+        end: rangeEnd,
         groupId: event.id,
         color,
         selectable: false,
@@ -831,7 +868,7 @@ export const ScheduleSingle: React.FC = () => {
   }, [COL_TREE]);
   const [colFreq, setColFreq] = useState(80);
   const [colStart, setColStart] = useState(100);
-  const [colEnd, setColEnd] = useState(95);
+  const [colDuration, setColDuration] = useState(60);
   const [colAssigned, setColAssigned] = useState(130);
 
   const resizeRef = useRef<{ left: string; right: string; leftW: number; rightW: number; startX: number } | null>(null);
@@ -840,7 +877,7 @@ export const ScheduleSingle: React.FC = () => {
       case 'tree': setColTree(w); break;
       case 'freq': setColFreq(w); break;
       case 'start': setColStart(w); break;
-      case 'end': setColEnd(w); break;
+      case 'duration': setColDuration(w); break;
       case 'assigned': setColAssigned(w); break;
     }
   }, []);
@@ -922,8 +959,8 @@ export const ScheduleSingle: React.FC = () => {
 
   // ── Shared grid column template ─────────────────────────
   const gridColumns = useMemo(
-    () => `${colTree}px 1fr ${colFreq}px ${colStart}px ${colEnd}px ${colAssigned}px`,
-    [colTree, colFreq, colStart, colEnd, colAssigned],
+    () => `${colTree}px 1fr ${colFreq}px ${colStart}px ${colDuration}px ${colAssigned}px`,
+    [colTree, colFreq, colStart, colDuration, colAssigned],
   );
 
   const resizeHandleSx = {
@@ -946,8 +983,8 @@ export const ScheduleSingle: React.FC = () => {
         <Box sx={{ ...hdrCell, justifyContent: 'center', borderRight: 'none', position: 'relative' }}>#<Box data-testid="resize-tree" onMouseDown={onResizeStart('tree', colTree, '', 0)} sx={resizeHandleSx} /></Box>
         <Box sx={{ ...hdrCell, px: 0.5 }}>Event</Box>
         <Box sx={{ ...hdrCell, justifyContent: 'center', position: 'relative' }}>Freq<Box data-testid="resize-freq" onMouseDown={onResizeStart('freq', colFreq, 'start', colStart)} sx={resizeHandleSx} /></Box>
-        <Box sx={{ ...hdrCell, justifyContent: 'center', position: 'relative' }}>Start<Box data-testid="resize-start" onMouseDown={onResizeStart('start', colStart, 'end', colEnd)} sx={resizeHandleSx} /></Box>
-        <Box sx={{ ...hdrCell, justifyContent: 'center', position: 'relative' }}>End<Box data-testid="resize-end" onMouseDown={onResizeStart('end', colEnd, 'assigned', colAssigned)} sx={resizeHandleSx} /></Box>
+        <Box sx={{ ...hdrCell, justifyContent: 'center', position: 'relative' }}>Start<Box data-testid="resize-start" onMouseDown={onResizeStart('start', colStart, 'duration', colDuration)} sx={resizeHandleSx} /></Box>
+        <Box sx={{ ...hdrCell, justifyContent: 'center', position: 'relative' }}>Dur<Box data-testid="resize-duration" onMouseDown={onResizeStart('duration', colDuration, 'assigned', colAssigned)} sx={resizeHandleSx} /></Box>
         <Box sx={{ ...hdrCell, justifyContent: 'center', position: 'relative', borderRight: 'none' }}>Assigned<Box data-testid="resize-assigned" onMouseDown={onResizeStart('assigned', colAssigned, '', 0)} sx={resizeHandleSx} /></Box>
       </Box>
       {/* Sidebar ↔ timeline resize handle — absolute so it doesn't shift column alignment */}
@@ -962,7 +999,7 @@ export const ScheduleSingle: React.FC = () => {
         }}
       />
     </Box>
-  ), [gridColumns, onResizeStart, colTree, colFreq, colStart, colEnd, colAssigned, onSidebarResizeStart]);
+  ), [gridColumns, onResizeStart, colTree, colFreq, colStart, colDuration, colAssigned, onSidebarResizeStart]);
 
   const renderGroupHeader = useCallback(
     (group: any, _expanded: boolean) => {
@@ -1063,16 +1100,18 @@ export const ScheduleSingle: React.FC = () => {
               />
             </Box>
             <Box sx={cellSx}>
-              <TextField size="small" variant="standard" type="date" value={draft.endDate || ''}
-                onChange={(e) => updateDraftField(draft.id, 'endDate', e.target.value)}
-                InputLabelProps={{ shrink: true }}
+              <TextField size="small" variant="standard" type="number" value={draft.durationDays ?? ''}
+                placeholder="days"
+                onChange={(e) => updateDraftField(draft.id, 'durationDays', e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                onKeyDown={(e) => { if (e.key === 'Enter') commitDraft(draft.id); }}
                 sx={{ flex: 1, height: '100%', '& .MuiInputBase-root': { py: 0, height: '100%' }, '& .MuiInputBase-input': { px: '8px', py: '2px', fontSize: '0.7rem', height: '100%' } }}
               />
             </Box>
             <Box sx={{ ...cellSx, borderRight: 'none' }}>
-              <Autocomplete freeSolo options={users.map((u) => u.name)} value={draft.assignedTo || ''}
-                onChange={(_, val) => updateDraftField(draft.id, 'assignedTo', val || '')}
-                onInputChange={(_, val) => updateDraftField(draft.id, 'assignedTo', val)}
+              <Autocomplete options={users} getOptionLabel={(u) => typeof u === 'string' ? u : u.name}
+                isOptionEqualToValue={(opt, val) => opt.id === val.id}
+                value={users.find(u => u.id === draft.assignedTo) || null}
+                onChange={(_, val) => updateDraftField(draft.id, 'assignedTo', val && typeof val !== 'string' ? val.id : '')}
                 onKeyDown={(e) => { if (e.key === 'Enter') commitDraft(draft.id); if (e.key === 'Escape') updateDraftField(draft.id, 'assignedTo', ''); }}
                 renderInput={(params) => <TextField {...params} variant="standard" placeholder="—"
                   sx={{ '& .MuiInputBase-root': { py: 0, fontSize: '0.7rem', height: '100%' }, '& .MuiInputBase-input': { px: '8px', py: '2px', height: '100%' } }} />}
@@ -1108,6 +1147,7 @@ export const ScheduleSingle: React.FC = () => {
           onDragOver={(e) => handleDragOver(e, event.id)}
           onDrop={(e) => handleDrop(e, event.id)}
           onDragLeave={() => setDropTargetId(null)}
+          onDoubleClick={() => openEditEvent(event)}
           onKeyDown={(e) => {
             if (e.key === 'Tab') { e.preventDefault(); if (e.shiftKey) outdentEvent(event.id); else indentEvent(event.id); }
           }}
@@ -1138,15 +1178,17 @@ export const ScheduleSingle: React.FC = () => {
             />
           </Box>
           <Box sx={cellSx}>
-            <TextField key={`end-${event.id}-${event.endDate || ''}`} size="small" variant="standard" type="date" defaultValue={event.endDate || ''}
-              onChange={(e) => { debouncedUpdate(event.id, { endDate: e.target.value || ('' as any) }); }}
-              InputLabelProps={{ shrink: true }}
+            <TextField key={`dur-${event.id}-${event.durationDays ?? ''}`} size="small" variant="standard" type="number" defaultValue={event.durationDays ?? ''}
+              placeholder="days"
+              onChange={(e) => { debouncedUpdate(event.id, { durationDays: e.target.value ? parseInt(e.target.value, 10) : null }); }}
               sx={{ flex: 1, height: '100%', '& .MuiInputBase-root': { py: 0, height: '100%' }, '& .MuiInputBase-input': { px: '8px', py: '2px', fontSize: '0.7rem', height: '100%' } }}
             />
           </Box>
           <Box sx={{ ...cellSx, borderRight: 'none' }}>
-            <Autocomplete freeSolo options={users.map((u) => u.name)} defaultValue={event.assignedTo || ''}
-              onInputChange={(_, val) => debouncedUpdate(event.id, { assignedTo: val || ('' as any) })}
+            <Autocomplete options={users} getOptionLabel={(u) => typeof u === 'string' ? u : u.name}
+              isOptionEqualToValue={(opt, val) => opt.id === val.id}
+              value={users.find(u => u.id === event.assignedTo) || null}
+              onChange={(_, val) => debouncedUpdate(event.id, { assignedTo: val && typeof val !== 'string' ? val.id : '' })}
               onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
               renderInput={(params) => <TextField {...params} variant="standard" placeholder="—"
                 sx={{ '& .MuiInputBase-root': { py: 0, fontSize: '0.7rem', height: '100%' }, '& .MuiInputBase-input': { px: '8px', py: '2px', height: '100%' } }} />}
@@ -1160,7 +1202,9 @@ export const ScheduleSingle: React.FC = () => {
         </Box>
       );
     },
-    [treeInfo, rankedRows, collapsed, toggleCollapse, indentEvent, outdentEvent, indentDraft, outdentDraft, users, debouncedUpdate, updateDraftField, commitDraft, handleEnterInRow, handleDeleteRow, removeDraft, handleDragStart, handleDragOver, handleDrop, dropTargetId, draftInputRef, colTree, colFreq, colStart, colEnd, colAssigned, gridColumns, schedule],
+    [treeInfo, rankedRows, collapsed, toggleCollapse,
+  Stack,
+  collapsed, indentEvent, outdentEvent, indentDraft, outdentDraft, users, debouncedUpdate, updateDraftField, commitDraft, handleEnterInRow, handleDeleteRow, removeDraft, handleDragStart, handleDragOver, handleDrop, dropTargetId, draftInputRef, colTree, colFreq, colStart, colDuration, colAssigned, gridColumns, schedule],
   );
 
   const handleItemCreate = useCallback((start: Date, end: Date, groupId?: string) => {
@@ -1172,14 +1216,13 @@ export const ScheduleSingle: React.FC = () => {
     const draft = draftsRef.current.find((d) => d.id === groupId);
     if (draft) {
       updateDraftField(groupId, 'startDate', startStr);
-      updateDraftField(groupId, 'endDate', endStr);
       return;
     }
 
     const event = scheduleRef.current?.events.find((e) => e.id === groupId);
     if (event) {
       updateEvent({
-        variables: { id: groupId, input: { startDate: startStr, endDate: endStr } },
+        variables: { id: groupId, input: { startDate: startStr } },
       }).then(() => refetch());
     }
   }, [updateDraftField, updateEvent, refetch]);
@@ -1289,24 +1332,13 @@ export const ScheduleSingle: React.FC = () => {
     if (!change.start && !change.end) return;
 
     const input: Record<string, any> = {};
-    const bothEdges = change.start && change.end;
 
-    if (bothEdges) {
-      input.startDate = moment(change.start).format('YYYY-MM-DD');
-      if (event.endDate) {
-        const shiftMs = moment(change.start).valueOf() - moment(event.startDate).valueOf();
-        input.endDate = moment(moment(event.endDate).valueOf() + shiftMs).format('YYYY-MM-DD');
-      }
-    } else {
-      if (change.start) input.startDate = moment(change.start).format('YYYY-MM-DD');
-      if (change.end) input.endDate = moment(change.end).format('YYYY-MM-DD');
-    }
+    if (change.start) input.startDate = moment(change.start).format('YYYY-MM-DD');
 
     client.cache.modify({
       id: client.cache.identify({ __typename: 'RecurringEvent', id: eventId }),
       fields: {
         startDate: (existing) => input.startDate ?? existing,
-        endDate: (existing) => input.endDate !== undefined ? input.endDate : existing,
       },
     });
 
@@ -1472,98 +1504,63 @@ export const ScheduleSingle: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* ── Event create / edit dialog ────────────────────────── */}
-      <Dialog
+      {/* ── Event edit dialog ────────────────────────────── */}
+      <TaskModal
         open={eventModalOpen}
-        onClose={() => {
+        selected={editingEvent ? {
+          id: editingEvent.id,
+          title: eventFormName,
+          description: eventFormDesc,
+          startDate: eventFormStartDate,
+          endDate: eventFormEndDate || undefined,
+          members: eventFormAssigned ? [{ id: eventFormAssigned, name: users.find(u => u.id === eventFormAssigned)?.name || eventFormAssigned }] : [],
+          projectId: eventFormTemplateProjectId || undefined,
+          parent: editingEvent?.parentId
+            ? (() => {
+                const p = ((schedule as any)?.events || []).find((e: any) => e.id === editingEvent.parentId);
+                return p ? { id: p.id, title: p.name } : null;
+              })()
+            : null,
+          children: editingEvent
+            ? ((schedule as any)?.events || [])
+                .filter((e: any) => e.parentId === editingEvent.id)
+                .map((c: any) => ({ id: c.id, title: c.name, status: 'Backlog' }))
+            : [],
+        } : null}
+        users={users}
+        projects={projects}
+        onClose={() => { setEventModalOpen(false); setEditingEvent(null); }}
+        onDelete={async () => {
+          if (editingEvent) handleDeleteRow(editingEvent.id);
           setEventModalOpen(false);
           setEditingEvent(null);
         }}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Edit Event</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              label="Name"
-              value={eventFormName}
-              onChange={(e) => setEventFormName(e.target.value)}
-              required
-              fullWidth
-              size="small"
-            />
-            <TextField
-              label="Description"
-              value={eventFormDesc}
-              onChange={(e) => setEventFormDesc(e.target.value)}
-              multiline
-              rows={2}
-              fullWidth
-              size="small"
-            />
-            <TextField
-              select
-              label="Frequency"
-              value={eventFormFrequency}
-              onChange={(e) => setEventFormFrequency(e.target.value as FrequencyOption)}
-              size="small"
-              fullWidth
-            >
-              {FREQUENCIES.map((freq) => (
-                <MenuItem key={freq.value} value={freq.value}>
-                  {freq.label}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              label="Start date"
-              type="date"
-              value={eventFormStartDate}
-              onChange={(e) => setEventFormStartDate(e.target.value)}
-              size="small"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              helperText="First occurrence. Future occurrences repeat from this date."
-            />
-            <TextField
-              label="End date"
-              type="date"
-              value={eventFormEndDate}
-              onChange={(e) => setEventFormEndDate(e.target.value)}
-              size="small"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              helperText="Optional. The date this recurring event ends."
-            />
-            <TextField
-              label="Assigned To"
-              value={eventFormAssigned}
-              onChange={(e) => setEventFormAssigned(e.target.value)}
-              fullWidth
-              size="small"
-              placeholder="e.g. Security Team, CISO"
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setEventModalOpen(false);
-              setEditingEvent(null);
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={saveEvent}
-            disabled={!eventFormName.trim() || !eventFormStartDate}
-          >
-            {editingEvent ? 'Save Changes' : 'Create Event'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onSubmit={async (task: any) => {
+          if (!editingEvent) return;
+          await updateEvent({
+            variables: {
+              id: editingEvent.id,
+              input: {
+                name: task.title || eventFormName,
+                description: task.description,
+                frequency: eventFormFrequency,
+                startDate: eventFormStartDate,
+                endDate: eventFormEndDate || undefined,
+                assignedTo: task.members?.[0] || eventFormAssigned || undefined,
+                taskTemplate: {
+                  title: task.title || eventFormName,
+                  description: task.description,
+                  projectId: task.projectId || undefined,
+                  members: task.members,
+                },
+              },
+            },
+          });
+          setEventModalOpen(false);
+          setEditingEvent(null);
+          refetch();
+        }}
+      />
     </Box>
   );
 };

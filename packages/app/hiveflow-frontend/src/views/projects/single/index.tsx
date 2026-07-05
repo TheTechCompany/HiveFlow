@@ -374,6 +374,14 @@ console.log({pathname})
           openTaskModal(false)
           setSelectedTask(null)
         }}
+        onAddSubtask={async (parentId, title) => {
+          await createTask({
+            args: {
+              input: { title, parentId, status: 'Backlog', projectId: job_id }
+            }
+          });
+          refetch();
+        }}
         onDelete={async () => {
           if(!selectedTask) return;
 

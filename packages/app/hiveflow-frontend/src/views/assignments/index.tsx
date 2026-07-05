@@ -156,18 +156,19 @@ const TaskCard: React.FC<{ row: KanbanRow }> = ({ row }) => {
         boxShadow: 1,
       }}
     >
-      {isRecurring && badge ? (
-        <Box sx={{ bgcolor: 'primary.main', padding: '6px', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Loop sx={{ fontSize: 14, color: 'white' }} />
+      {src || (isRecurring && badge) ? (
+        <Box sx={{ bgcolor: 'secondary.main', padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="caption" sx={{ color: 'white' }}>
-            {freqLabel(badge.freq)}{badge.scheduleName ? ` — ${badge.scheduleName}` : ''}
+            {src ? `${src.displayId} - ${src.name}` : ''}
           </Typography>
-        </Box>
-      ) : src ? (
-        <Box sx={{ bgcolor: 'secondary.main', padding: '6px' }}>
-          <Typography variant="caption" sx={{ color: 'white' }}>
-            {src.displayId} - {src.name}
-          </Typography>
+          {isRecurring && badge && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Loop sx={{ fontSize: 12, color: 'white' }} />
+              <Typography variant="caption" sx={{ color: 'white', fontSize: '0.65rem' }}>
+                {freqLabel(badge.freq)}
+              </Typography>
+            </Box>
+          )}
         </Box>
       ) : null}
       <Box sx={{ padding: '6px' }}>
@@ -242,8 +243,7 @@ export const Assignments: React.FC = () => {
     onDrag,
     updateTask,
     createTask,
-    deleteProjectTask,
-    deleteEstimateTask,
+    deleteTask,
     refetch,
     pendingHandover,
     submitHandover,
@@ -274,18 +274,12 @@ export const Assignments: React.FC = () => {
 
   // ── Handlers ───────────────────────────────────────────────────
 
-  const taskType = selectedTask?.project
-    ? 'project'
-    : selectedTask?.estimate
-      ? 'estimate'
-      : undefined;
-
   const handleAutoSaveDescription = useCallback(
     (html: string) => {
-      if (!selectedTask || !taskType) return;
-      updateTask(selectedTask.id, { description: html }, taskType);
+      if (!selectedTask) return;
+      updateTask(selectedTask.id, { description: html });
     },
-    [selectedTask, taskType, updateTask],
+    [selectedTask, updateTask],
   );
 
   const handleSelectCard = useCallback((row: KanbanRow) => {
@@ -298,26 +292,33 @@ export const Assignments: React.FC = () => {
     setSelectedTask(null);
   }, []);
 
+  const handleAddSubtask = useCallback(async (parentId: string, title: string) => {
+    const parent = selectedTask;
+    await createTask({
+      title,
+      parentId,
+      status: 'Backlog',
+      projectId: parent?.project?.displayId || undefined,
+      estimateId: parent?.estimate?.displayId || undefined,
+    });
+    refetch();
+  }, [createTask, refetch, selectedTask]);
+
   const handleDeleteTask = useCallback(async () => {
     if (!selectedTask) return;
     try {
-      if (selectedTask.project) {
-        await deleteProjectTask(selectedTask.id);
-      } else if (selectedTask.estimate) {
-        await deleteEstimateTask(selectedTask.id);
-      }
+      await deleteTask(selectedTask.id);
     } catch (err) {
       console.error('Failed to delete task:', err);
       return;
     }
     refetch();
     handleCloseModal();
-  }, [selectedTask, deleteProjectTask, deleteEstimateTask, refetch, handleCloseModal]);
+  }, [selectedTask, deleteTask, refetch, handleCloseModal]);
 
   const handleSubmitTask = useCallback(
     async (task: Record<string, unknown>) => {
       if (!selectedTask) {
-        // ── Create mode (no existing task selected) ──────────
         if (!task.title) return;
         await createTask({
           title: task.title,
@@ -327,27 +328,23 @@ export const Assignments: React.FC = () => {
           status: task.status ?? 'Backlog',
           taskType: task.taskType,
           category: task.category,
+          parentId: task.parentId || undefined,
         });
-      } else if (taskType) {
-        // ── Edit mode ────────────────────────────────────────
-        await updateTask(
-          selectedTask.id,
-          {
-            title: task.title,
-            description: task.description,
-            startDate: task.startDate,
-            endDate: task.endDate,
-            status: task.status,
-            taskType: task.taskType,
-            category: task.category,
-          },
-          taskType,
-        );
+      } else {
+        await updateTask(selectedTask.id, {
+          title: task.title,
+          description: task.description,
+          startDate: task.startDate,
+          endDate: task.endDate,
+          status: task.status,
+          taskType: task.taskType,
+          category: task.category,
+        });
       }
       refetch();
       handleCloseModal();
     },
-    [selectedTask, taskType, updateTask, createTask, refetch, handleCloseModal],
+    [selectedTask, updateTask, createTask, refetch, handleCloseModal],
   );
 
   // ── Render states ──────────────────────────────────────────────
@@ -396,6 +393,7 @@ export const Assignments: React.FC = () => {
         onClose={handleCloseModal}
         onDelete={handleDeleteTask}
         onSubmit={handleSubmitTask}
+        onAddSubtask={handleAddSubtask}
         onAutoSaveDescription={handleAutoSaveDescription}
       />
 
@@ -589,7 +587,7 @@ export const Assignments: React.FC = () => {
 
       {/* ── Task list area ────────────────────────────────────── */}
       <Box sx={{ bgcolor: 'background.default', display: 'flex', flex: 1, overflow: 'hidden', flexDirection: 'column' }}>
-        <Box sx={{ flex: 1, overflow: 'hidden' }}>
+        <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {columns.length === 0 ? (
           <Box
             sx={{

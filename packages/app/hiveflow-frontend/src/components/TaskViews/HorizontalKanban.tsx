@@ -65,7 +65,7 @@ const KanbanColumnView: React.FC<{
       sx={{
         width: 280,
         minWidth: 280,
-        maxHeight: '100%',
+        flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
         mx: 0.5,
@@ -137,7 +137,8 @@ const KanbanColumnView: React.FC<{
       </Box>
 
       {/* Column body */}
-      <Collapse in={!collapsed} sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      {!collapsed && (
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
         <Droppable droppableId={`${index}`} type="LIST">
           {(dropProvided, dropSnapshot) => (
             <Box
@@ -146,6 +147,7 @@ const KanbanColumnView: React.FC<{
               sx={{
                 flex: 1,
                 overflow: 'auto',
+                minHeight: 0,
                 p: 1,
                 bgcolor: dropSnapshot.isDraggingOver
                   ? 'rgba(144,202,249,0.1)'
@@ -199,7 +201,8 @@ const KanbanColumnView: React.FC<{
             </Box>
           )}
         </Droppable>
-      </Collapse>
+        </Box>
+      )}
 
       {/* Add task button at bottom — only when handler provided */}
       {onCreateCard && (

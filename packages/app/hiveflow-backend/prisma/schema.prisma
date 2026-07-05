@@ -13,34 +13,30 @@ datasource db {
 
 model Project {
   id String @id
-
   displayId String?
-
   colour String?
-
   name        String?
   description String?
-
   schedule ScheduleItem[]
   timeline TimelineItem[] @relation(name: "projectTimeline")
-
-  tasks       ProjectTask[] @relation(name: "projectTasks")
+  tasks       Task[] @relation(name: "projectTasks")
   planBatches PlanBatch[]
-
   organisation String
-
   startDate DateTime?
   endDate   DateTime?
   status    String
-
   managers String[]
-
   archived Boolean @default(false)
-
   @@unique([organisation, displayId])
 }
 
-model ProjectTask {
+// ── Unified Task model ───────────────────────────────────────
+//
+// A Task can be sourced from exactly one of: Project, Estimate, or
+// RecurringEvent.  The source is determined by which nullable FK is set.
+// At the GraphQL layer this is exposed as a `TaskSource` union.
+
+model Task {
   id String @id
 
   title       String
@@ -48,17 +44,25 @@ model ProjectTask {
 
   status String?
 
-  project   Project @relation(name: "projectTasks", fields: [projectId], references: [id], onDelete: Cascade)
-  projectId String
+  // ── Source (exactly one should be non-null) ────────────────
+  project          Project?         @relation(name: "projectTasks", fields: [projectId], references: [id], onDelete: Cascade)
+  projectId        String?
 
+  estimate          Estimate?        @relation(name: "estimateTasks", fields: [estimateId], references: [id], onDelete: Cascade)
+  estimateId        String?
+
+  recurringEvent    RecurringEvent?  @relation(name: "generatedFrom", fields: [recurringEventId], references: [id], onDelete: Cascade)
+  recurringEventId  String?
+
+  // ── Scheduling ─────────────────────────────────────────────
   startDate DateTime?
   endDate   DateTime?
 
   timelineRank String?
   columnRank   String?
 
-  members String[]
-
+  // ── Metadata ───────────────────────────────────────────────
+  members        String[]
   requiredSkills Json?
 
   taskType String? @default("task")
@@ -66,91 +70,54 @@ model ProjectTask {
 
   createdBy String?
 
-  dependencyOf ProjectTask[] @relation(name: "dependencyOf")
-  dependencyOn ProjectTask[] @relation(name: "dependencyOf")
+  handoverNote String?
 
-  recurringEvent   RecurringEvent? @relation(name: "generatedFrom", fields: [recurringEventId], references: [id], onDelete: Cascade)
-  recurringEventId String?
+  // ── Dependencies ───────────────────────────────────────────
+  dependencyOf Task[] @relation(name: "dependencyOf")
+  dependencyOn Task[] @relation(name: "dependencyOf")
 
-  lastUpdated   DateTime?
+  // ── Nesting (subtasks) ─────────────────────────────────────
+  parent   Task?   @relation("TaskChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  parentId String?
+  children Task[]  @relation("TaskChildren")
+
+  lastUpdated DateTime?
+
+  // ── Plan batch linkage ─────────────────────────────────────
   PlanBatchItem PlanBatchItem[]
 
-  @@unique([projectId, id])
+  @@unique([recurringEventId, startDate])
+  @@map("ProjectTask")
 }
 
 model Estimate {
   id        String  @id
   displayId String?
-
   name   String?
   status String?
-
   date   DateTime?
   expiry DateTime?
-
   lineItems EstimateLineItem[] @relation(name: "hasLineItems")
-
   companyName String?
-
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
-
   terms String?
-
   price Float?
-
   organisation String
-
-  tasks EstimateTask[] @relation(name: "estimateTasks")
-
+  tasks Task[] @relation(name: "estimateTasks")
   timeline TimelineItem[] @relation(name: "estimateTimeline")
-
   managers String[]
-
   archived Boolean @default(false)
-
   @@unique([displayId, organisation])
-}
-
-model EstimateTask {
-  id String @id
-
-  title       String
-  description String?
-
-  status String?
-
-  estimate   Estimate @relation(name: "estimateTasks", fields: [estimateId], references: [id], onDelete: Cascade)
-  estimateId String
-
-  startDate DateTime?
-  endDate   DateTime?
-
-  timelineRank String?
-  columnRank   String?
-
-  members String[]
-
-  createdBy String?
-
-  dependencyOf EstimateTask[] @relation(name: "dependencyOfEstimateTask")
-  dependencyOn EstimateTask[] @relation(name: "dependencyOfEstimateTask")
-
-  lastUpdated DateTime?
-
-  @@unique([estimateId, id])
 }
 
 model EstimateLineItem {
   id String @id
-
   order Int?
-
   item        String?
   description String?
   quantity    Float?
   price       Float?
-
   estimate   Estimate @relation(name: "hasLineItems", fields: [estimateId], references: [id])
   estimateId String
 }
@@ -160,139 +127,69 @@ model Equipment {
   displayId    String?
   name         String?
   registration String?
-
   schedule ScheduleItem[] @relation(name: "scheduleEquipment")
-
   organisation String
-
   @@unique([displayId, organisation])
 }
 
 model ScheduleItem {
   id String @id
-
   date      DateTime
   project   Project  @relation(fields: [projectId], references: [id])
   projectId String
-
   people    String[]
   equipment Equipment[] @relation(name: "scheduleEquipment")
-
   notes String[]
-
   permissions ScheduleItemPermission[] @relation(name: "permissionsFor")
-
   owner String?
-
   createdAt DateTime @default(now())
-
   organisation String
 }
 
 model ScheduleItemPermission {
   id String @id
-
   owner String
-
   createdAt DateTime @default(now())
-
   scheduleItem   ScheduleItem @relation(name: "permissionsFor", fields: [scheduleItemId], references: [id], onDelete: Cascade)
   scheduleItemId String
-
   @@unique([owner, scheduleItemId], name: "schedulePermitted")
 }
 
-// model Timeline {
-// 	id String @id
-// 	name String 
-
-//     resources String[]
-
-// 	items TimelineItem[] @relation("onTimeline")
-
-// 	organisation String
-// }
-
 model TimelineItem {
   id String @id
-
   requires TimelineItem[] @relation(name: "blocksTimeline")
   blocks   TimelineItem[] @relation(name: "blocksTimeline")
-
   rank String?
-
   estimate   Estimate? @relation(name: "estimateTimeline", fields: [estimateId], references: [id])
   estimateId String?
-
   project   Project? @relation(name: "projectTimeline", fields: [projectId], references: [id])
   projectId String?
-
   data Json?
-
   notes String?
-
   startDate DateTime
   endDate   DateTime
-
   timeline String
-
   organisation String?
-  // timeline Timeline @relation(name: "onTimeline", fields: [timelineId], references: [id], onDelete: Cascade)
-  // timelineId String
 }
-
-// model TimelineItem {
-// 	id String @id
-
-//   timeline String
-// 	startDate DateTime
-// 	endDate DateTime
-// 	notes String
-// 	items TimelineItemItems[]
-//   projectId String
-// 	organisation String
-// }
-
-// model TimelineItemItems {
-//   id String @id
-//   name String
-//   startDate DateTime
-//   endDate DateTime
-//   notes String
-//   timelineItem TimelineItem @relation(fields: [timelineItemId], references: [id])
-//   timelineItemId String
-//   organisation String
-// }
 
 model CalendarItem {
   id String @id
-
   start DateTime
   end   DateTime
-
   groupBy Json?
-
   data Json?
-
   comments CalendarItemComment[] @relation(name: "hasComment")
-
   permissions CalendarItemPermissions[] @relation(name: "hasPermissions")
-
   createdBy String?
-
   organisation String
 }
 
 model CalendarItemPermissions {
   id String @id
-
   user String
-
   permissions String[]
-
   item   CalendarItem @relation(name: "hasPermissions", references: [id], fields: [itemId], onDelete: Cascade)
   itemId String
-
   createdAt DateTime @default(now())
 }
 
@@ -301,65 +198,44 @@ model CalendarItemComment {
   message   String
   user      String
   createdAt DateTime @default(now())
-
   item   CalendarItem @relation(name: "hasComment", references: [id], fields: [itemId], onDelete: Cascade)
   itemId String
 }
 
-// model CalendarAnnotation {
-//     id String @id
-// }
-
 model LeaveAssignment {
   id String @id
-
   user String
-
   start DateTime
   end   DateTime
-
   createdAt DateTime @default(now())
   createdBy String
-
   organisation String?
 }
 
 model SkillAssignment {
   id String @id
-
   user  String
   skill String
-
   skillData Json?
-
   organisation String?
-
   @@unique([user, skill])
 }
 
 model PlanBatch {
   id        String  @id
   displayId String?
-
   title       String
   description String?
-
-  status String @default("draft") // draft, in_review, approved, released
-
+  status String @default("draft")
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String
-
   items    PlanBatchItem[]
   comments BatchComment[]
-
   reviewer String?
-
   createdBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
-
   organisation String
-
   @@unique([organisation, displayId])
 }
 
@@ -368,10 +244,8 @@ model BatchComment {
   message   String
   user      String
   createdAt DateTime @default(now())
-
   batch   PlanBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
   batchId String
-
   parent   BatchComment? @relation("BatchCommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
   parentId String?
   replies  BatchComment[] @relation("BatchCommentReplies")
@@ -379,25 +253,18 @@ model BatchComment {
 
 model PlanBatchItem {
   id String @id
-
   batch   PlanBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
   batchId String
-
-  task   ProjectTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
   taskId String
-
   parent   PlanBatchItem? @relation("PlanBatchItemChildren", fields: [parentItemId], references: [id], onDelete: SetNull)
   parentItemId String?
   children  PlanBatchItem[] @relation("PlanBatchItemChildren")
-
   scheduledStart DateTime?
   scheduledEnd   DateTime?
   estimatedHours Float?
-
   rank String?
-
   notes String?
-
   organisation String
 }
 
@@ -406,42 +273,38 @@ model PlanBatchItem {
 model RecurringSchedule {
   id        String  @id
   displayId String?
-
   name        String
   description String?
-
   events RecurringEvent[]
-
   createdBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   organisation String
-
   @@unique([organisation, displayId])
 }
 
 model RecurringEvent {
   id String @id
-
   schedule   RecurringSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   scheduleId String
-
   parent   RecurringEvent? @relation("RecurringEventChildren", fields: [parentId], references: [id], onDelete: SetNull)
   parentId String?
   children RecurringEvent[] @relation("RecurringEventChildren")
-
   name        String
   description String?
-  frequency   String @default("monthly") // daily, weekly, monthly, quarterly, yearly
+  frequency   String @default("monthly")
   startDate   String
   endDate     String?
+  durationDays Int?
   assignedTo  String?
   rowOrder    String?
   exceptionDates Json?
 
-  generatedTasks ProjectTask[] @relation(name: "generatedFrom")
+  // ── Template for generated tasks ──────────────────────────
+  // Shape: { title?: string, description?: string, members?: string[], projectId?: string }
+  taskTemplate  Json?
 
+  generatedTasks Task[] @relation(name: "generatedFrom")
   organisation String
 }
 
@@ -449,75 +312,58 @@ model RecurringEvent {
 
 model Regulation {
   id String @id
-
   title       String
   description String?
-  type        String   // act | regulation | code | standard
+  type        String
   source      String
   category    String?
   isoClause   String?
-
-  status     String @default("draft") // active | under-review | superseded | draft
-  linkStatus String @default("unchecked") // verified | stale | broken | unchecked
-
+  status     String @default("draft")
+  linkStatus String @default("unchecked")
   storedHash      String?
   storedPdf       String?
   storedMarkdown  String?
-
   lastVerifiedAt DateTime?
-
   currentVersion Int @default(1)
-
   versions  RegulationVersion[]
   breakouts BreakoutPoint[]
   proofs    ProofEntry[]
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   organisation String
 }
 
 model RegulationVersion {
   id String @id
-
   regulation   Regulation @relation(fields: [regulationId], references: [id], onDelete: Cascade)
   regulationId String
-
   version  Int
   changes  String?
   file     String?
-
   createdAt DateTime @default(now())
 }
 
 model BreakoutPoint {
   id String @id
-
   regulation   Regulation @relation(fields: [regulationId], references: [id], onDelete: Cascade)
   regulationId String
-
   sectionRef String
   title      String
   summary    String?
   pageRef    Int?
   markdownSnippet String?
-
-  understanding String @default("pending") // acknowledged | pending | needs-review
+  understanding String @default("pending")
   reviewedBy    String?
   reviewedAt    DateTime?
-
   createdAt DateTime @default(now())
 }
 
 model ProofEntry {
   id String @id
-
   regulation   Regulation @relation(fields: [regulationId], references: [id], onDelete: Cascade)
   regulationId String
-
   userName  String
-  action    String // viewed | acknowledged | reviewed
+  action    String
   timestamp DateTime @default(now())
 }
 
@@ -526,29 +372,21 @@ model ProofEntry {
 model ContinuousImprovement {
   id        String  @id
   displayId String?
-
   title       String
   description String?
-
-  category String? // Safety | Quality | Process | Equipment | 5S | Training | Environmental | Other
-  source   String? // staff-suggestion | internal-audit | customer-feedback | management-review | incident-report | other
-
-  status   String  @default("identified") // identified | in_progress | implemented | verified | closed
-  priority String? // low | medium | high | critical
-
+  category String?
+  source   String?
+  status   String  @default("identified")
+  priority String?
   impact          String?
   rootCause       String?
   actionTaken     String?
   outcomeMeasured String?
-
   createdBy  String?
   assignedTo String?
-
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   completedAt DateTime?
-
   organisation String
-
   @@unique([organisation, displayId])
 }

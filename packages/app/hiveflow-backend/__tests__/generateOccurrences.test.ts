@@ -78,14 +78,18 @@ describe('generateOccurrences', () => {
 
   // ── event endDate clamping ───────────────────────────────────
 
-  it('stops at the event endDate', () => {
+  it('ignores endDate (always repeats to horizon)', () => {
     const dates = generateOccurrences(
       { startDate: '2025-01-01', endDate: '2025-03-01', frequency: 'monthly' },
       d('2025-01-01'),
       d('2025-12-31'),
     );
-    // EndDate 2025-03-01 means occurrences on 2025-01-01, 2025-02-01, 2025-03-01
-    expect(dates).toEqual(['2025-01-01', '2025-02-01', '2025-03-01']);
+    // endDate is no longer used — generates through the full horizon
+    expect(dates).toEqual([
+      '2025-01-01', '2025-02-01', '2025-03-01', '2025-04-01',
+      '2025-05-01', '2025-06-01', '2025-07-01', '2025-08-01',
+      '2025-09-01', '2025-10-01', '2025-11-01', '2025-12-01',
+    ]);
   });
 
   it('allows null endDate to mean forever', () => {
@@ -152,13 +156,18 @@ describe('generateOccurrences', () => {
     expect(dates).toEqual([]);
   });
 
-  it('returns empty when event ended before horizon', () => {
+  it('ignores past endDate (always repeats to horizon)', () => {
     const dates = generateOccurrences(
       { startDate: '2024-01-01', endDate: '2024-12-31', frequency: 'monthly' },
       d('2025-01-01'),
       d('2025-12-31'),
     );
-    expect(dates).toEqual([]);
+    // endDate is no longer used — generates occurrences within the horizon window
+    expect(dates).toEqual([
+      '2025-01-01', '2025-02-01', '2025-03-01', '2025-04-01',
+      '2025-05-01', '2025-06-01', '2025-07-01', '2025-08-01',
+      '2025-09-01', '2025-10-01', '2025-11-01', '2025-12-01',
+    ]);
   });
 
   it('returns empty when horizonStart > horizonEnd', () => {

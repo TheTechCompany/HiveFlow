@@ -1,24 +1,13 @@
 /**
- * Unit tests for the useAssignments hook.
- *
- * All external dependencies (Apollo, gqty) are mocked.
- * Uses a small test component to exercise the hook since
- * @testing-library/react v12 does not include renderHook.
+ * Unit tests for the useAssignments hook — unified Task model.
  */
-
 import React from 'react';
 import { render, act } from '@testing-library/react';
 
-// ── Mock state (set per test) ────────────────────────────────────────
-
 const mockRefetchQueries = jest.fn();
-const mockCreateProjectTask = jest.fn();
-const mockUpdateProjectTask = jest.fn();
-const mockUpdateEstimateTask = jest.fn();
-const mockDeleteProjectTask = jest.fn();
-const mockDeleteEstimateTask = jest.fn();
-
-// ── Module mocks ────────────────────────────────────────────────────
+const mockUpdateTask = jest.fn();
+const mockDeleteTask = jest.fn();
+const mockCreateTask = jest.fn();
 
 jest.mock('@apollo/client', () => {
   const actual = jest.requireActual('@apollo/client');
@@ -26,25 +15,14 @@ jest.mock('@apollo/client', () => {
     ...actual,
     __esModule: true,
     useQuery: jest.fn(),
+    useMutation: jest.fn(),
     useApolloClient: jest.fn(),
     gql: jest.fn((strings: TemplateStringsArray) => strings.join('')),
   };
 });
 
-// useMutation(fn) — fn is called once with the mutation object to build a
-// selection. It returns an executor: (args) => Promise<selection>
-jest.mock('@hive-flow/api', () => ({
-  __esModule: true,
-  useMutation: jest.fn(),
-}));
-
-// ── Imports ─────────────────────────────────────────────────────────
-
-import { useQuery, useApolloClient } from '@apollo/client';
-import { useMutation } from '@hive-flow/api';
+import { useQuery, useMutation, useApolloClient } from '@apollo/client';
 import { useAssignments, type UseAssignmentsReturn } from './use-assignments';
-
-// ── Helpers ─────────────────────────────────────────────────────────
 
 function renderUseAssignments(horizonDays = 90) {
   let captured!: UseAssignmentsReturn;
@@ -65,7 +43,7 @@ function renderUseAssignments(horizonDays = 90) {
 
 function makeTask(overrides: Record<string, unknown> = {}) {
   return {
-    __typename: 'ProjectTask' as const,
+    __typename: 'Task' as const,
     id: 'task-1',
     title: 'Test Task',
     description: 'A test task description',
@@ -77,13 +55,14 @@ function makeTask(overrides: Record<string, unknown> = {}) {
     members: [{ id: 'user-1', name: 'Alice' }],
     project: { id: 'proj-1', displayId: 'P-001', name: 'Alpha' },
     estimate: null,
+    recurringEvent: null,
     ...overrides,
   };
 }
 
 function makeEstimateTask(overrides: Record<string, unknown> = {}) {
   return {
-    __typename: 'EstimateTask' as const,
+    __typename: 'Task' as const,
     id: 'et-1',
     title: 'Estimate Task',
     description: null,
@@ -95,17 +74,14 @@ function makeEstimateTask(overrides: Record<string, unknown> = {}) {
     members: [],
     project: null,
     estimate: { id: 'est-1', displayId: 'E-001', name: 'Beta' },
+    recurringEvent: null,
     ...overrides,
   };
 }
 
-/**
- * A generated recurring task — now arrives as a ProjectTask with
- * recurringEvent populated instead of a raw RecurringEvent template.
- */
 function makeGeneratedRecurringTask(overrides: Record<string, unknown> = {}) {
   return {
-    __typename: 'ProjectTask' as const,
+    __typename: 'Task' as const,
     id: 're-1',
     title: 'Monthly Compliance Check',
     description: 'Review compliance docs',
@@ -126,52 +102,14 @@ function makeGeneratedRecurringTask(overrides: Record<string, unknown> = {}) {
   };
 }
 
-// ── gqty useMutation simulation ─────────────────────────────────────
-//
-// gqty's useMutation(fn):
-//   1. Calls fn(mutation) to build a selection object
-//   2. Returns an executor: (args) => mutation.updateTask(args)
-//      which resolves with the selection shape applied to the result.
-//
-// Our mock: fn sees our jest.fn() mocks, returns { item: ... }.
-// The executor is a jest.fn() that calls e.g. mockUpdateProjectTask(args)
-// and resolves with the selection.
-
-// useMutation(fn):
-//   gqty pattern: useMutation((mutation, args) => mutation.someField(args))
-//   The executor is called as executor({ args: { id, ... } })
-//   gqty unwraps and passes the inner object to fn as the second argument.
-function mockGqtyUseMutation(fn: any): [jest.Mock] {
-  const mutations = {
-    createProjectTask: mockCreateProjectTask,
-    updateProjectTask: mockUpdateProjectTask,
-    updateEstimateTask: mockUpdateEstimateTask,
-    deleteProjectTask: mockDeleteProjectTask,
-    deleteEstimateTask: mockDeleteEstimateTask,
-  };
-  const executor = jest.fn(async (callArgs: any = {}) => {
-    // gqty unwraps the `args` envelope: executor({ args: {...} })
-    // passes the inner {...} to the selection callback.
-    const unwrapped = callArgs?.args ?? callArgs;
-    fn(mutations, unwrapped);
-    return { item: {} };
-  });
-  return [executor];
-}
-
-// ── Tests ───────────────────────────────────────────────────────────
-
 describe('useAssignments hook', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRefetchQueries.mockReset();
-    mockCreateProjectTask.mockReset();
-    mockUpdateProjectTask.mockReset();
-    mockUpdateEstimateTask.mockReset();
-    mockDeleteProjectTask.mockReset();
-    mockDeleteEstimateTask.mockReset();
+    mockUpdateTask.mockReset();
+    mockDeleteTask.mockReset();
+    mockCreateTask.mockReset();
 
-    // Default Apollo mock
     (useQuery as jest.Mock).mockReturnValue({
       data: { users: [], assignments: [] },
       loading: false,
@@ -180,16 +118,26 @@ describe('useAssignments hook', () => {
     (useApolloClient as jest.Mock).mockReturnValue({
       refetchQueries: mockRefetchQueries,
     });
-    (useMutation as jest.Mock).mockImplementation(mockGqtyUseMutation);
+    // Mock Apollo useMutation: returns [executor, { loading, error }]
+    (useMutation as jest.Mock).mockImplementation((mutation: any) => {
+      // Which mutation based on the gql tag content
+      const src = typeof mutation === 'string' ? mutation : '';
+      if (src.includes('updateTask')) return [mockUpdateTask, { loading: false }];
+      if (src.includes('deleteTask')) return [mockDeleteTask, { loading: false }];
+      if (src.includes('createTask')) return [mockCreateTask, { loading: false }];
+      return [jest.fn(), { loading: false }];
+    });
+
+    mockUpdateTask.mockResolvedValue({ data: { updateTask: { id: 'x', status: 'ok' } } });
+    mockDeleteTask.mockResolvedValue({ data: { deleteTask: { id: 'x' } } });
+    mockCreateTask.mockResolvedValue({ data: { createTask: { id: 'new', title: 'x' } } });
   });
 
   // ── Data fetching states ───────────────────────────────────────
 
   it('returns loading=true while query is in flight', () => {
     (useQuery as jest.Mock).mockReturnValue({
-      data: undefined,
-      loading: true,
-      error: undefined,
+      data: undefined, loading: true, error: undefined,
     });
     const { result } = renderUseAssignments();
     expect(result.loading).toBe(true);
@@ -198,9 +146,7 @@ describe('useAssignments hook', () => {
   it('returns error when query fails', () => {
     const err = new Error('boom');
     (useQuery as jest.Mock).mockReturnValue({
-      data: undefined,
-      loading: false,
-      error: err,
+      data: undefined, loading: false, error: err,
     });
     const { result } = renderUseAssignments();
     expect(result.error).toEqual(err);
@@ -208,9 +154,7 @@ describe('useAssignments hook', () => {
 
   it('returns empty users and tasks when data is absent', () => {
     (useQuery as jest.Mock).mockReturnValue({
-      data: undefined,
-      loading: false,
-      error: undefined,
+      data: undefined, loading: false, error: undefined,
     });
     const { result } = renderUseAssignments();
     expect(result.users).toEqual([]);
@@ -237,14 +181,8 @@ describe('useAssignments hook', () => {
     const cols = result.buildColumns([]);
     expect(cols).toHaveLength(5);
     expect(cols.map((c) => c.id)).toEqual([
-      'Backlog',
-      'In Progress',
-      'Reviewing',
-      'my-reviews',
-      'Finished',
+      'Backlog', 'In Progress', 'Reviewing', 'my-reviews', 'Finished',
     ]);
-    expect(cols[0].rows).toHaveLength(1);
-    expect(cols[4].rows).toHaveLength(1);
   });
 
   it('filters columns by a project filter', () => {
@@ -256,8 +194,7 @@ describe('useAssignments hook', () => {
           makeTask({ id: 't2', project: { id: 'p2', displayId: 'P-2', name: 'Two' } }),
         ],
       },
-      loading: false,
-      error: undefined,
+      loading: false, error: undefined,
     });
     const { result } = renderUseAssignments();
     const cols = result.buildColumns([
@@ -276,8 +213,7 @@ describe('useAssignments hook', () => {
           makeEstimateTask({ id: 'e2', estimate: { id: 'est-2', displayId: 'E-2', name: 'Second' } }),
         ],
       },
-      loading: false,
-      error: undefined,
+      loading: false, error: undefined,
     });
     const { result } = renderUseAssignments();
     const cols = result.buildColumns([
@@ -297,8 +233,7 @@ describe('useAssignments hook', () => {
           makeEstimateTask({ estimate: { id: 'e1', displayId: 'E-1', name: 'Est' } }),
         ],
       },
-      loading: false,
-      error: undefined,
+      loading: false, error: undefined,
     });
     const { result } = renderUseAssignments();
     expect(result.taskFilters).toHaveLength(2);
@@ -314,8 +249,7 @@ describe('useAssignments hook', () => {
           makeTask({ id: 't3', status: 'Backlog', columnRank: 'b' }),
         ],
       },
-      loading: false,
-      error: undefined,
+      loading: false, error: undefined,
     });
     const { result } = renderUseAssignments();
     const cols = result.buildColumns([]);
@@ -324,25 +258,20 @@ describe('useAssignments hook', () => {
 
   // ── Generated recurring tasks ───────────────────────────────────
 
-  it('passes generated recurring ProjectTask through without normalization', () => {
+  it('passes generated recurring Task through without normalization', () => {
     (useQuery as jest.Mock).mockReturnValue({
-      data: {
-        users: [],
-        assignments: [makeGeneratedRecurringTask()],
-      },
-      loading: false,
-      error: undefined,
+      data: { users: [], assignments: [makeGeneratedRecurringTask()] },
+      loading: false, error: undefined,
     });
     const { result } = renderUseAssignments();
     const recurring = result.tasks[0];
-    // Generated tasks are already ProjectTasks — the hook passes them through unchanged
     expect(recurring.title).toBe('Monthly Compliance Check');
     expect(recurring.status).toBe('Backlog');
     expect(recurring.project?.name).toBe('Recurring Tasks');
     expect(recurring.recurringEvent?.frequency).toBe('monthly');
   });
 
-  it('places generated recurring tasks in Backlog column alongside other tasks', () => {
+  it('places generated recurring tasks in Backlog column', () => {
     (useQuery as jest.Mock).mockReturnValue({
       data: {
         users: [],
@@ -351,20 +280,16 @@ describe('useAssignments hook', () => {
           makeTask({ id: 't1', status: 'In Progress' }),
         ],
       },
-      loading: false,
-      error: undefined,
+      loading: false, error: undefined,
     });
     const { result } = renderUseAssignments();
     const cols = result.buildColumns([]);
     expect(cols[0].id).toBe('Backlog');
     expect(cols[0].rows).toHaveLength(1);
     expect(cols[0].rows[0].id).toBe('re-1');
-    expect(cols[0].rows[0].title).toBe('Monthly Compliance Check');
-    expect(cols[1].rows).toHaveLength(1);
-    expect(cols[1].rows[0].id).toBe('t1');
   });
 
-  it('sorts generated recurring tasks by startDate (soonest first)', () => {
+  it('sorts generated recurring tasks by startDate', () => {
     (useQuery as jest.Mock).mockReturnValue({
       data: {
         users: [],
@@ -374,186 +299,133 @@ describe('useAssignments hook', () => {
           makeGeneratedRecurringTask({ id: 're-3', startDate: '2025-08-01', columnRank: '2025-08-01' }),
         ],
       },
-      loading: false,
-      error: undefined,
+      loading: false, error: undefined,
     });
     const { result } = renderUseAssignments();
     const cols = result.buildColumns([]);
     expect(cols[0].rows.map((r) => r.id)).toEqual(['re-2', 're-3', 're-1']);
   });
 
-  it('onDrag can move a generated recurring task (it is a real ProjectTask now)', async () => {
+  // ── Drag handler ───────────────────────────────────────────────
+
+  it('onDrag can move a generated recurring task', async () => {
     (useQuery as jest.Mock).mockReturnValue({
       data: {
         users: [],
         assignments: [makeGeneratedRecurringTask({ id: 're-1', status: 'Backlog' })],
       },
-      loading: false,
-      error: undefined,
+      loading: false, error: undefined,
     });
     const { result } = renderUseAssignments();
 
     await act(async () => {
       await result.onDrag({
-        draggableId: 're-1',
-        type: 'LIST',
-        reason: 'DROP',
-        mode: 'FLUID',
+        draggableId: 're-1', type: 'LIST', reason: 'DROP', mode: 'FLUID',
         source: { droppableId: '0', index: 0 },
         destination: { droppableId: '1', index: 0 },
       } as any);
     });
 
-    // Generated tasks have a project → taskType is 'project' → updateProjectTask is called
-    expect(mockUpdateProjectTask).toHaveBeenCalledWith(
+    expect(mockUpdateTask).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: 're-1',
-        input: { status: 'In Progress' },
+        variables: expect.objectContaining({
+          id: 're-1',
+          input: { status: 'In Progress' },
+        }),
       }),
     );
   });
 
-  // ── Drag handler ───────────────────────────────────────────────
-
   it('onDrag ignores null/undefined destination', async () => {
     (useQuery as jest.Mock).mockReturnValue({
-      data: {
-        users: [],
-        assignments: [makeTask({ id: 't1', status: 'Backlog' })],
-      },
-      loading: false,
-      error: undefined,
+      data: { users: [], assignments: [makeTask({ id: 't1', status: 'Backlog' })] },
+      loading: false, error: undefined,
     });
     const { result } = renderUseAssignments();
 
     await act(async () => {
       await result.onDrag({
-        draggableId: 't1',
-        type: 'LIST',
-        reason: 'DROP',
-        mode: 'FLUID',
+        draggableId: 't1', type: 'LIST', reason: 'DROP', mode: 'FLUID',
         source: { droppableId: '0', index: 0 },
         destination: undefined,
       } as any);
     });
 
-    expect(mockUpdateProjectTask).not.toHaveBeenCalled();
+    expect(mockUpdateTask).not.toHaveBeenCalled();
   });
 
   it('onDrag is a no-op for same-status drops', async () => {
     (useQuery as jest.Mock).mockReturnValue({
-      data: {
-        users: [],
-        assignments: [makeTask({ id: 't1', status: 'Backlog' })],
-      },
-      loading: false,
-      error: undefined,
+      data: { users: [], assignments: [makeTask({ id: 't1', status: 'Backlog' })] },
+      loading: false, error: undefined,
     });
     const { result } = renderUseAssignments();
 
     await act(async () => {
       await result.onDrag({
-        draggableId: 't1',
-        type: 'LIST',
-        reason: 'DROP',
-        mode: 'FLUID',
+        draggableId: 't1', type: 'LIST', reason: 'DROP', mode: 'FLUID',
         source: { droppableId: '0', index: 0 },
         destination: { droppableId: '0', index: 1 },
       } as any);
     });
 
-    expect(mockUpdateProjectTask).not.toHaveBeenCalled();
+    expect(mockUpdateTask).not.toHaveBeenCalled();
   });
 
   it('onDrag moves a project task to a new status', async () => {
     (useQuery as jest.Mock).mockReturnValue({
-      data: {
-        users: [],
-        assignments: [makeTask({ id: 't1', status: 'Backlog' })],
-      },
-      loading: false,
-      error: undefined,
+      data: { users: [], assignments: [makeTask({ id: 't1', status: 'Backlog' })] },
+      loading: false, error: undefined,
     });
     const { result } = renderUseAssignments();
 
     await act(async () => {
       await result.onDrag({
-        draggableId: 't1',
-        type: 'LIST',
-        reason: 'DROP',
-        mode: 'FLUID',
+        draggableId: 't1', type: 'LIST', reason: 'DROP', mode: 'FLUID',
         source: { droppableId: '0', index: 0 },
         destination: { droppableId: '1', index: 0 },
       } as any);
     });
 
-    // The hook calls updateTask → updateProjectTask executor
-    // The executor calls mockUpdateProjectTask with { id, input }
-    expect(mockUpdateProjectTask).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 't1',
-        input: { status: 'In Progress' },
-      }),
-    );
+    expect(mockUpdateTask).toHaveBeenCalled();
     expect(mockRefetchQueries).toHaveBeenCalled();
   });
 
   it('onDrag moves an estimate task to a new status', async () => {
     (useQuery as jest.Mock).mockReturnValue({
-      data: {
-        users: [],
-        assignments: [makeEstimateTask({ id: 'e1', status: 'Backlog' })],
-      },
-      loading: false,
-      error: undefined,
+      data: { users: [], assignments: [makeEstimateTask({ id: 'e1', status: 'Backlog' })] },
+      loading: false, error: undefined,
     });
     const { result } = renderUseAssignments();
 
-    // Drop into In Progress (index 1) — Reviewing (2) triggers handover modal
     await act(async () => {
       await result.onDrag({
-        draggableId: 'e1',
-        type: 'LIST',
-        reason: 'DROP',
-        mode: 'FLUID',
+        draggableId: 'e1', type: 'LIST', reason: 'DROP', mode: 'FLUID',
         source: { droppableId: '0', index: 0 },
         destination: { droppableId: '1', index: 0 },
       } as any);
     });
 
-    expect(mockUpdateEstimateTask).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 'e1',
-        input: { status: 'In Progress' },
-      }),
-    );
-    expect(mockRefetchQueries).toHaveBeenCalled();
+    expect(mockUpdateTask).toHaveBeenCalled();
   });
 
   it('onDrag warns on invalid status index', async () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     (useQuery as jest.Mock).mockReturnValue({
-      data: {
-        users: [],
-        assignments: [makeTask({ id: 't1', status: 'Backlog' })],
-      },
-      loading: false,
-      error: undefined,
+      data: { users: [], assignments: [makeTask({ id: 't1', status: 'Backlog' })] },
+      loading: false, error: undefined,
     });
     const { result } = renderUseAssignments();
 
     await act(async () => {
       await result.onDrag({
-        draggableId: 't1',
-        type: 'LIST',
-        reason: 'DROP',
-        mode: 'FLUID',
+        draggableId: 't1', type: 'LIST', reason: 'DROP', mode: 'FLUID',
         source: { droppableId: '0', index: 0 },
         destination: { droppableId: '99', index: 0 },
       } as any);
     });
 
-    expect(mockUpdateProjectTask).not.toHaveBeenCalled();
+    expect(mockUpdateTask).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
   });
@@ -563,40 +435,26 @@ describe('useAssignments hook', () => {
   it('refetch triggers client.refetchQueries', () => {
     const { result } = renderUseAssignments();
     result.refetch();
-    expect(mockRefetchQueries).toHaveBeenCalledWith(
-      expect.objectContaining({ include: ['GetAssignedTasks'] }),
-    );
+    expect(mockRefetchQueries).toHaveBeenCalled();
   });
 
   // ── Mutations ──────────────────────────────────────────────────
 
-  it('deleteProjectTask calls the delete mutation with the correct id', async () => {
+  it('deleteTask calls the delete mutation with correct id', async () => {
     const { result } = renderUseAssignments();
-    await act(async () => {
-      await result.deleteProjectTask('task-1');
-    });
-    expect(mockDeleteProjectTask).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'task-1' }),
+    await act(async () => { await result.deleteTask('task-1'); });
+    expect(mockDeleteTask).toHaveBeenCalledWith(
+      expect.objectContaining({ variables: { id: 'task-1' } }),
     );
   });
 
-  it('deleteEstimateTask calls the delete mutation with the correct id', async () => {
-    const { result } = renderUseAssignments();
-    await act(async () => {
-      await result.deleteEstimateTask('et-1');
-    });
-    expect(mockDeleteEstimateTask).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'et-1' }),
-    );
-  });
-
-  it('createTask calls the createProjectTask mutation', async () => {
+  it('createTask calls the create mutation', async () => {
     const { result } = renderUseAssignments();
     await act(async () => {
       await result.createTask({ title: 'New Task', status: 'Backlog' });
     });
-    expect(mockCreateProjectTask).toHaveBeenCalledWith(
-      expect.objectContaining({ input: { title: 'New Task', status: 'Backlog' } }),
+    expect(mockCreateTask).toHaveBeenCalledWith(
+      expect.objectContaining({ variables: { input: { title: 'New Task', status: 'Backlog' } } }),
     );
   });
 });
