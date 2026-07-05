@@ -58,7 +58,7 @@ const config: StorybookConfig = {
               '@babel/preset-typescript',
             ],
             plugins: [
-              ['@babel/plugin-transform-runtime', { useESModules: true, regenerator: false }],
+              ['@babel/plugin-transform-runtime', { useESModules: true, regenerator: true }],
             ],
           },
         },

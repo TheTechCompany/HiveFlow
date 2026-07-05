@@ -1,163 +1,150 @@
-import { Timeline } from "@hexhive/ui";
+import { Timeline } from "@hive-flow/ui";
+import type { TimelineItem, TimelineLink, TimelineStep, ItemChange } from "@hive-flow/ui";
 import { stringToColor } from "@hexhive/utils";
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { ProjectSingleContext } from "../context";
 import { Box } from '@mui/material'
-import { arrayMove } from '@dnd-kit/sortable'
 import { useMutation as useApolloMutation } from '@apollo/client'
 import { UPDATE_PROJECT_TASK, UPDATE_PROJECT_TASK_TIMELINE_ORDER } from '@hive-flow/api';
+
 export const TimelinePane = () => {
-    // const [ links, setLinks ] = useState([]);
+  const { projectId, tasks, createTask, createDependency, finishTtl, deleteDependency, refetch, updateTask, deleteTask } = useContext(ProjectSingleContext);
 
-  const {  projectId, tasks, createTask, createDependency, finishTtl, deleteDependency, refetch, updateTask, deleteTask } = useContext(ProjectSingleContext);
-
-  const links = tasks.filter((a) => a.status !== "Finished")?.map((task) => task.dependencyOf.map((dep) => ({id: `${task.id}-${dep.id}`, source: task.id, target: dep.id}))).reduce((prev, curr) => [...prev, ...curr], [])
-
-  const [ timelineTasks, setTasks ] = useState<any[]>(tasks || []);
-
-  const [selectedItem, setSelectedItem] = useState<any>();
+  const [timelineTasks, setTasks] = useState<any[]>(tasks || []);
 
   useEffect(() => {
     setTasks(tasks);
   }, [JSON.stringify(tasks)])
 
-  const [ updateTaskDirect ] = useApolloMutation(UPDATE_PROJECT_TASK)
+  const [updateTaskDirect] = useApolloMutation(UPDATE_PROJECT_TASK)
 
-  const [ updateTimelineItemOrder ] = useApolloMutation(UPDATE_PROJECT_TASK_TIMELINE_ORDER, {
+  const [updateTimelineItemOrder] = useApolloMutation(UPDATE_PROJECT_TASK_TIMELINE_ORDER, {
     refetchQueries: ['GetProject']
   })
-  
-  const keyHandler = useCallback((e: any) => {
-    if(e.key == "Delete" || e.key == "Backspace") {
-      console.log({selectedItem})
-      deleteDependency(selectedItem.source, selectedItem.target)
-    }
 
-    if(e.key == "Escape"){
-      setSelectedItem(undefined)
-    }
-  }, [selectedItem])
+  // ── Horizon ──────────────────────────────────────────────────────
+  const [horizon, setHorizon] = useState<{ start: Date; end: Date }>({
+    start: new Date(Date.now() - 7 * 86400000),
+    end: new Date(Date.now() + 7 * 86400000),
+  })
 
-  console.log({selectedItem})
+  // ── Derived step ─────────────────────────────────────────────────
+  const step: TimelineStep = useMemo(() => {
+    const ms = horizon.end.getTime() - horizon.start.getTime();
+    const days = ms / 86400000;
+    if (days < 2) return 'hour';
+    if (days < 14) return 'day';
+    if (days < 180) return 'month';
+    return 'year';
+  }, [horizon])
 
-  const filterTasks = (task: {
-    status: string,
-    lastUpdated?: Date,
-    end: Date,
-    start: Date
-  }) => {
-    let inHorizon = task.end > horizon.start && task.start < horizon.end
+  // ── Links ────────────────────────────────────────────────────────
+  const links: TimelineLink[] = useMemo(() =>
+    tasks
+      .filter((a: any) => a.status !== "Finished")
+      .map((task: any) =>
+        (task.dependencyOf || []).map((dep: any) => ({
+          id: `${task.id}-${dep.id}`,
+          source: task.id,
+          target: dep.id,
+        }))
+      )
+      .flat(),
+    [tasks]
+  )
 
-    if(inHorizon){
-      // console.log(Date.now() - new Date(task.lastUpdated).getTime(), finishTtl)
-      
-      if(task.status == "Finished"){ // && task.lastUpdated && (Date.now() - new Date(task.lastUpdated).getTime() > finishTtl)){
-        return false;
-      }else{
+  // ── Items ────────────────────────────────────────────────────────
+  const items: TimelineItem[] = useMemo(() =>
+    timelineTasks
+      .map((task: any) => ({
+        id: task.id,
+        start: new Date(task.startDate),
+        end: new Date(task.endDate),
+        label: task.title,
+        color: stringToColor(task.title),
+        showLabel: true,
+        data: task,
+      }))
+      .filter((task: TimelineItem) => {
+        const t = task.data as any;
+        if (!(task.end > horizon.start && task.start < horizon.end)) return false;
+        if (t.status === "Finished") return false;
         return true;
+      })
+      .sort((a: any, b: any) => (a.data?.timelineRank ?? '').localeCompare(b.data?.timelineRank ?? ''))
+    ,
+    [timelineTasks, horizon]
+  )
+
+  // ── Link selection for delete ────────────────────────────────────
+  const [selectedLink, setSelectedLink] = useState<{ source: string; target: string } | null>(null);
+
+  const handleSelect = useCallback((sel: { itemIds: string[]; linkIds: string[] }) => {
+    if (sel.linkIds.length > 0) {
+      const link = links.find((l) => l.id === sel.linkIds[0]);
+      if (link) {
+        setSelectedLink({ source: link.source, target: link.target });
+        return;
       }
     }
-    return inHorizon;
+    setSelectedLink(null);
+  }, [links])
 
-  }
+  const keyHandler = useCallback((e: React.KeyboardEvent) => {
+    if ((e.key === "Delete" || e.key === "Backspace") && selectedLink) {
+      deleteDependency(selectedLink.source, selectedLink.target);
+      setSelectedLink(null);
+    }
+    if (e.key === "Escape") {
+      setSelectedLink(null);
+    }
+  }, [selectedLink, deleteDependency])
 
-  // useEffect(() => {
-  //   window.addEventListener('keydown', keyHandler)
-
-  //   return () => {
-  //     window.removeEventListener('keydown', keyHandler)
-  //   }
-  // }, [selectedItem])
-
-  const [ horizon, setHorizon ] = useState<{start?: Date, end?: Date}>({})
-    return (
-        <Box sx={{flex: 1, display: 'flex', '& .color-dot': {margin: '8px'}}} tabIndex={1} onKeyDown={keyHandler}>
-          <Timeline
-            onHorizonChange={(start, end) => {
-              setHorizon({start, end})
-            }}
-            dayStatus={() => 'rgb(163, 182, 150)'}
-              data={
-                timelineTasks.map((task) => ({
-                  id: task.id,
-                  timelineRank: task.timelineRank,
-                  status: task.status,
-                  lastUpdated: task.lastUpdated,
-                  start: new Date(task.startDate),
-                  end: new Date(task.endDate),
-                  name: task.title,
-                  color: stringToColor(task.title),
-                  showLabel: true
-              })).filter(filterTasks).sort((a, b) => a.timelineRank?.localeCompare(b.timelineRank) )
-            }
-              onCreateTask={async (task) => {
-                // console.log({task})
-                // setTemp([task])
-                createTask(task)
-              }}
-              links={links}
-              selectedItem={selectedItem}
-              onSelectItem={(task) => {
-
-                if((task as any).source && (task as any).target){
-                  console.log({task})
-                  setSelectedItem(task)
-                }else{
-                  let origTask = timelineTasks.find((x) => x.id == task.id)
-                  updateTask({...origTask, start: new Date(origTask.startDate), end: new Date(origTask.endDate)})
-                }
-              }}
-              onUpdateTaskOrder={(task, newIx, finished) => {
-                  
-                let newTasks = timelineTasks?.slice()?.sort((a,b) => a.timelineRank?.localeCompare(b.timelineRank));
-                let ix = newTasks.findIndex((a) => a.id == task.id);
-
-                newTasks = arrayMove(newTasks, ix, newIx);
-
-                let prevTask = newTasks?.[newIx - 1];
-                let nextTask = newTasks?.[newIx + 1];
-
-                // setTimelineItems((tasks) => {                              
-                //     let ix = tasks.findIndex((a) => a.id == task.id);
-
-                //     return  arrayMove(tasks, ix, newIx);
-                // })
-
-                if(finished){
-                    updateTimelineItemOrder({
-                        variables: {
-                            id: task.id,
-                            above: prevTask?.id,
-                            below: nextTask?.id 
-                        }
-                    }).then(() => {
-                        // refetchTimeline()
-                    })
-                }
-              }}
-              onUpdateTask={(task, position) => {
-                
-                setTasks((tasks) => {
-                  let newTasks = tasks.slice()
-                  let ix = newTasks.map((x) => x.id).indexOf(task.id)
-                  newTasks[ix] = {
-                    ...newTasks[ix],
-                    startDate: position.start,
-                    endDate: position.end
-                  }
-                  return newTasks
-                })
-
-                updateTaskDirect({ variables: { id: task.id, input: { startDate: position.start, endDate: position.end, projectId } } }).then(() => {
-                  refetch()
-                })
-              }}
-              onCreateLink={(link) => {
-                createDependency(link.source, link.target);
-                // setLinks([...links, link])
-              }}
-              
-            />
-          </Box>
-    )
+  return (
+    <Box sx={{ flex: 1, display: 'flex', '& .color-dot': { margin: '8px' } }} tabIndex={0} onKeyDown={keyHandler}>
+      <Timeline
+        items={items}
+        links={links}
+        start={horizon.start}
+        end={horizon.end}
+        step={step}
+        callbacks={{
+          onHorizonChange: (start: Date, end: Date) => {
+            setHorizon({ start, end });
+          },
+          onItemCreate: (start: Date, end: Date) => {
+            createTask({ start, end });
+          },
+          onItemChange: (change: ItemChange) => {
+            setTasks((prev) => {
+              const next = prev.slice();
+              const ix = next.findIndex((x: any) => x.id === change.id);
+              if (ix >= 0) {
+                next[ix] = {
+                  ...next[ix],
+                  startDate: change.start ?? next[ix].startDate,
+                  endDate: change.end ?? next[ix].endDate,
+                };
+              }
+              return next;
+            });
+            updateTaskDirect({
+              variables: {
+                id: change.id,
+                input: {
+                  startDate: change.start,
+                  endDate: change.end,
+                  projectId,
+                },
+              },
+            }).then(() => refetch?.());
+          },
+          onLinkCreate: (link: Omit<TimelineLink, 'id'>) => {
+            createDependency(link.source, link.target);
+          },
+          onSelect: handleSelect,
+        }}
+      />
+    </Box>
+  )
 }

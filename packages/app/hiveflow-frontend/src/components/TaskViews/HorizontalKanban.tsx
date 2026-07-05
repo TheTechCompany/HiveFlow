@@ -142,7 +142,7 @@ const KanbanColumnView: React.FC<{
         mx: 0.5,
         opacity: isSubtle ? 0.65 : 1,
         transition: 'opacity 0.2s',
-        bgcolor: '#424242',
+        bgcolor: 'grey.200',
         borderRadius: 2,
         overflow: 'hidden',
       }}
@@ -156,7 +156,7 @@ const KanbanColumnView: React.FC<{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          bgcolor: isSubtle ? 'rgba(66,66,66,0.5)' : '#616161',
+          bgcolor: isSubtle ? 'rgba(0,0,0,0.04)' : 'secondary.main',
           color: 'white',
           px: 1.5,
           py: 1,
@@ -187,7 +187,7 @@ const KanbanColumnView: React.FC<{
           <Typography
             variant="caption"
             sx={{
-              bgcolor: 'rgba(255,255,255,0.2)',
+              bgcolor: 'rgba(0,0,0,0.1)',
               px: 1,
               py: 0.25,
               borderRadius: '10px',
@@ -255,7 +255,7 @@ const KanbanColumnView: React.FC<{
                           onClick={
                             expandedGroups.size === 0 ? expandAll : collapseAll
                           }
-                          sx={{ color: 'rgba(255,255,255,0.4)', p: 0.25 }}
+                          sx={{ color: 'text.secondary', p: 0.25 }}
                         >
                           <UnfoldMore sx={{ fontSize: 14 }} />
                         </IconButton>
@@ -341,9 +341,10 @@ const KanbanColumnView: React.FC<{
               color: 'text.secondary',
               py: 0.75,
               fontSize: '0.75rem',
-              borderTop: '1px solid rgba(255,255,255,0.08)',
+              borderTop: '1px solid',
+              borderColor: 'divider',
               borderRadius: 0,
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
+              '&:hover': { bgcolor: 'action.hover' },
             }}
           >
             Add task
@@ -387,7 +388,7 @@ export const HorizontalKanban: React.FC<HorizontalKanbanProps> = ({
               py: 1.5,
               '&::-webkit-scrollbar': { height: 6 },
               '&::-webkit-scrollbar-thumb': {
-                bgcolor: 'rgba(255,255,255,0.15)',
+                bgcolor: 'rgba(0,0,0,0.15)',
                 borderRadius: 3,
               },
             }}

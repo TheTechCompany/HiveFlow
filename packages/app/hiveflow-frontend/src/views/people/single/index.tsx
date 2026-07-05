@@ -1,18 +1,13 @@
 import React, { Component, useEffect } from 'react';
-//import Schedule from '../../schedule';
 
-
-// import StaffContactCard from '../../../components/primatives/staff-contact-card';
-// import UploadableImage from '../../../components/primatives/uploadable-image';
-// import EmployeeSchedule from '../../../components/employee-schedule';
-// import utils from '../../../utils';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { stringToColor } from '@hexhive/utils';
 import { Box, Divider, IconButton, List, ListItem, Paper, TextField, Typography } from '@mui/material';
 import { gql, useMutation, useQuery } from '@apollo/client';
 import { useParams } from 'react-router';
 import { Add, ChevronLeft, ChevronRight, Close } from '@mui/icons-material'
-import { Schedule } from '../../../components/Schedule';
+import { Timeline } from '@hive-flow/ui';
+import type { TimelineItem, TimelineGroup, TimelineStep, ItemChange } from '@hive-flow/ui';
 import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete';
 import moment from 'moment';
 
@@ -29,8 +24,6 @@ export const PeopleSingle = (props: any) => {
     start: new Date(moment(new Date()).startOf('isoWeek').valueOf()),
     end: new Date(moment(new Date()).endOf('isoWeek').valueOf())
   })
-
-
 
   const { data } = useQuery(gql`
         query GetPeople ($id: ID, $start: DateTime, $end: DateTime){
@@ -93,7 +86,6 @@ export const PeopleSingle = (props: any) => {
     }
   })
 
-
   const [createSkill] = useMutation(gql`
     mutation CreateSkill ($user: String, $skill: String, $skillData: JSON){
       updateSkillAssignment(user: $user, skill: $skill, skillData: $skillData){
@@ -135,8 +127,6 @@ export const PeopleSingle = (props: any) => {
     refetchQueries: ['GetPeople']
   })
 
-
-
   const [removeLeave] = useMutation(gql`
     mutation RemoveLeave ($id: ID, $leave: ID) {
       removeLeave(id: $id, leave: $leave){
@@ -149,11 +139,11 @@ export const PeopleSingle = (props: any) => {
 
   const person = data?.users?.[0];
 
-  const allLeave = person?.leave?.length > 0 ? person.leave?.filter((item) => {
+  const allLeave = person?.leave?.length > 0 ? person.leave?.filter((item: any) => {
     return new Date(item.start) < horizon.end && new Date(item.end) > horizon.start
   }) : []
 
-  const leave = allLeave?.length > 0 ? allLeave.map((x) => ({ ...x, groupBy: { id: 'on-leave' } })) : [{ groupBy: { id: 'on-leave' } }];
+  const leave = allLeave?.length > 0 ? allLeave.map((x: any) => ({ ...x, groupBy: { id: 'on-leave' } })) : [{ groupBy: { id: 'on-leave' } }];
 
   const [skills, setSkills] = useState<any[]>([])
 
@@ -161,30 +151,72 @@ export const PeopleSingle = (props: any) => {
     setSkills(data?.skills || [])
   }, [data?.skills])
 
-
-
   const addDraftSkill = () => {
     setSkills((s) => s.concat([{}]))
   }
 
   const [skillValue, setSkillValue] = useState<any>(null)
 
-  const [step, setStep] = useState('day');
-  const [stepCount, setStepCount] = useState(7)
+  const stepCount = 7
 
   const changeDir = (dir: number) => {
-
     return () => {
-      let newStart = moment(horizon.start).add(stepCount * dir, step as any).toDate()
-      let newEnd = moment(horizon.start).add((stepCount * dir) + stepCount, step as any).toDate()
+      let newStart = moment(horizon.start).add(stepCount * dir, 'day' as any).toDate()
+      let newEnd = moment(horizon.start).add((stepCount * dir) + stepCount, 'day' as any).toDate()
 
       setHorizon?.({ start: newStart, end: newEnd })
     }
   }
 
-  const rowOptions = data?.projects?.map((x) => ({ ...x, project: true })).concat(data?.estimates?.map((x) => ({ ...x, project: false })))
+  const rowOptions = data?.projects?.map((x: any) => ({ ...x, project: true })).concat(data?.estimates?.map((x: any) => ({ ...x, project: false })))
 
-  console.log({ leave })
+  // ── Derive step from horizon range (same logic as custom Schedule) ──
+  const step: TimelineStep = useMemo(() => {
+    const s = moment(horizon.start)
+    const e = moment(horizon.end)
+    if (e.diff(s, 'days') < 2) return 'hour';
+    if (e.diff(s, 'week') < 2) return 'day';
+    if (e.diff(s, 'months') < 6) return 'month';
+    return 'year';
+  }, [horizon])
+
+  // ── Group helper (replaces getRowGroup) ─────────────────────────
+  const getGroupId = (event: any): string => {
+    if (event?.groupBy?.id == 'on-leave') return 'Leave';
+    if (event?.groupBy) {
+      const row = rowOptions?.find((a: any) => a.id == event?.groupBy?.id);
+      if (row) return row.displayId + ' - ' + row?.name;
+    }
+    return String(event?.groupBy?.id ?? 'unknown');
+  }
+
+  // ── Timeline data ───────────────────────────────────────────────
+  const calendarForPerson = (data?.calendarItems || []).filter((item: any) =>
+    item?.data?.people?.indexOf(id) > -1
+  )
+
+  const timelineItems: TimelineItem[] = useMemo(() => {
+    const events = leave.concat(calendarForPerson)
+    return events.map((event: any) => ({
+      id: event.id || `empty-${Math.random()}`,
+      start: new Date(event.start || horizon.start),
+      end: new Date(event.end || horizon.end),
+      groupId: getGroupId(event),
+      data: event,
+    }))
+  }, [leave, calendarForPerson, horizon, rowOptions])
+
+  const timelineGroups: TimelineGroup[] = useMemo(() => {
+    const ids = [...new Set(timelineItems.map((item) => item.groupId))]
+    // Sort: Leave always first, then alphabetically
+    return ids
+      .sort((a, b) => {
+        if (a === 'Leave') return -1;
+        if (b === 'Leave') return 1;
+        return (a ?? '').localeCompare(b ?? '');
+      })
+      .map((gid) => ({ id: gid, label: gid }))
+  }, [timelineItems])
 
   return (
     <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column' }} className="employee-view">
@@ -207,19 +239,12 @@ export const PeopleSingle = (props: any) => {
             alignItems: 'center',
             justifyContent: 'space-between'
           }}>
-            {/* <Typography>Skills</Typography> */}
-            {/* <IconButton onClick={() => {
-            addDraftSkill();
-          }}>
-            <Add />
-          </IconButton> */}
           </Box>
 
           <Autocomplete
             value={skillValue}
             onChange={(event, newValue) => {
               if (typeof newValue === 'string') {
-                // timeout to avoid instant validation of the dialog's form.
                 setTimeout(() => {
                   createSkill({
                     variables: {
@@ -230,11 +255,11 @@ export const PeopleSingle = (props: any) => {
                 });
                 setSkillValue('')
 
-              } else if (newValue && newValue.inputValue) {
+              } else if (newValue && (newValue as any).inputValue) {
                 createSkill({
                   variables: {
                     user: id,
-                    skill: newValue.inputValue
+                    skill: (newValue as any).inputValue
                   }
                 })
                 setSkillValue('')
@@ -257,12 +282,11 @@ export const PeopleSingle = (props: any) => {
             }}
             options={data?.allSkills || []}
             getOptionLabel={(option) => {
-              // for example value selected with enter, right from the input
               if (typeof option === 'string') {
                 return option;
               }
-              if (option.inputValue) {
-                return option.inputValue;
+              if ((option as any).inputValue) {
+                return (option as any).inputValue;
               }
 
               return option.skill;
@@ -274,11 +298,10 @@ export const PeopleSingle = (props: any) => {
               const { key, ...optionProps } = props as any;
               return (
                 <li key={key} {...optionProps}>
-                  {option.title || option.skill}
+                  {(option as any).title || option.skill}
                 </li>
               );
             }}
-            // sx={{ width: 300 }}
             freeSolo
             renderInput={(params) => <TextField {...params} label="Skill" size="small" />}
           />
@@ -289,7 +312,6 @@ export const PeopleSingle = (props: any) => {
                 <IconButton onClick={() => deleteSkill?.({ variables: { id: skill.id } })}>
                   <Close />
                 </IconButton>
-                {/* <TextField onChange={(e) => createSkill({variables: {user: id, skill: e.target.value }})} size="small" /> */}
               </ListItem>
             ))}
           </List>
@@ -311,117 +333,92 @@ export const PeopleSingle = (props: any) => {
               <ChevronRight />
             </IconButton>
           </Paper>
-          <Schedule
-            horizon={horizon}
-            expanded={[...new Set(data?.calendarItems?.map((x) => x.groupBy?.id))] as any[]}
-            renderItem={(item) => {
-              if (item?.groupBy?.id == 'on-leave') {
-                return <Paper elevation={2} sx={{ border: item.selected ? '1px solid blue' : undefined, background: 'red', flex: 1, height: '30px', marginTop: '4px', marginBottom: '4px' }}></Paper>
-
-              }
-              if (item?.groupBy) {
-                let row = rowOptions?.find((a) => a.id == item?.groupBy?.id);
-                const people = data?.people?.filter((a) => item?.data?.people?.indexOf(a.id) > -1)
-                return (
-                  <Box sx={{
-                    width: '100%',
-                    height: '100%',
-                  }}>
-                    <Paper sx={{
-                    marginTop: '4px',
-                    marginBottom: '4px',
+          <Timeline
+            items={timelineItems}
+            groups={timelineGroups}
+            start={horizon.start}
+            end={horizon.end}
+            step={step}
+            stepCount={stepCount}
+            sidebarWidth={220}
+            itemHeight={40}
+            callbacks={{
+              onItemCreate: (start: Date, end: Date, groupId?: string) => {
+                if (groupId === 'Leave') {
+                  assignLeave({
+                    variables: {
+                      id,
+                      start,
+                      end
+                    }
+                  })
+                }
+              },
+              onItemChange: (change: ItemChange) => {
+                const leaveIds = leave.map((x: any) => x.id)
+                if (change.id && leaveIds.indexOf(change.id) > -1) {
+                  updateLeave({
+                    variables: {
+                      id,
+                      leave: change.id,
+                      start: change.start,
+                      end: change.end
+                    }
+                  })
+                }
+              },
+              onDelete: (itemIds: string[]) => {
+                itemIds.forEach((itemId) => {
+                  removeLeave({
+                    variables: {
+                      id,
+                      leave: itemId
+                    }
+                  })
+                })
+              },
+            }}
+            renderers={{
+              renderItem: (item: TimelineItem) => {
+                const event = item.data as any;
+                if (event?.groupBy?.id == 'on-leave') {
+                  return <Paper elevation={2} sx={{ border: 'none', background: 'red', flex: 1, height: '30px', marginTop: '4px', marginBottom: '4px' }}></Paper>
+                }
+                if (event?.groupBy) {
+                  const row = rowOptions?.find((a: any) => a.id == event?.groupBy?.id);
+                  const people = data?.people?.filter((a: any) => event?.data?.people?.indexOf(a.id) > -1)
+                  return (
+                    <Box sx={{
+                      width: '100%',
+                      height: '100%',
                     }}>
-                      <Box sx={{
-                        textAlign: 'center',
-                        background: row?.colour ? row?.colour : stringToColor(`${row?.id} - ${row?.name}`) || 'green',
-                        color: 'white'
+                      <Paper sx={{
+                        marginTop: '4px',
+                        marginBottom: '4px',
                       }}>
-                        <Typography fontSize={'small'}>{row?.displayId}</Typography>
-                      </Box>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Typography fontSize={'small'} fontWeight={"bold"}>{row?.name}</Typography>
-                        {people?.map((person) => (
-                          <Typography fontSize={'small'}>{person?.name}</Typography>
-                        ))}
-                      </Box>
-                    </Paper>
-                  </Box>
-
-                )
-              }
+                        <Box sx={{
+                          textAlign: 'center',
+                          background: row?.colour ? row?.colour : stringToColor(`${row?.id} - ${row?.name}`) || 'green',
+                          color: 'white'
+                        }}>
+                          <Typography fontSize={'small'}>{row?.displayId}</Typography>
+                        </Box>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography fontSize={'small'} fontWeight={"bold"}>{row?.name}</Typography>
+                          {people?.map((person: any) => (
+                            <Typography fontSize={'small'}>{person?.name}</Typography>
+                          ))}
+                        </Box>
+                      </Paper>
+                    </Box>
+                  )
+                }
+                return null;
+              },
             }}
-            sortRow={(a, b) => {
-              if (a?.name == 'Leave') return -1;
-              if (b?.name == 'Leave') return -1;
-              return a.name?.localeCompare(b?.name);
-            }}
-            getRowGroup={(event) => {
-              if (event?.groupBy?.id == 'on-leave') return 'Leave';
-              if (event?.groupBy) {
-                let row = rowOptions?.find((a) => a.id == event?.groupBy?.id);
-
-                return row.displayId + ' - ' + row?.name
-              }
-            }}
-            createEvent={(event) => {
-              if(event.groupBy?.id == 'on-leave'){
-                assignLeave({
-                  variables: {
-                    id: id,
-                    start: event.start,
-                    end: event.end
-                  }
-                })
-              }
-              
-            }}
-            updateEvent={(event) => {
-              if(leave.map((x) => x.id).indexOf(event.id) > -1){
-                updateLeave({
-                  variables: {
-                    id,
-                    leave: event.id,
-                    start: event.start,
-                    end: event.end
-                  }
-                })
-              }
-            }}
-            onDelete={(items) => {
-
-              items.map((item_id) => {
-
-                removeLeave({
-                  variables: {
-                    id,
-                    leave: item_id
-                  }
-                })
-
-              })
-            }}
-            events={leave.concat((data?.calendarItems || []).filter((item) => item?.data?.people?.indexOf(id) > -1))}
           />
         </Paper>
       </Box>
-      {/* <div className="employee-top">
-
-
-
-      </div>
-      <Box className="employee-schedule">
-        <div className="employee-schedule-view">
-
-        </div>
-      </Box> */}
     </Paper>
   );
 }
-
-/*
- <StaffContactCard
-            name={employee.Name}
-            id={this.props.match.params.employeeId} />
-*/
-
-//            <EmployeeSchedule employee={this.props.match.params.employeeId} />

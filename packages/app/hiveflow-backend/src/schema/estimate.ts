@@ -12,9 +12,11 @@ export default (prisma: PrismaClient) => {
     const resolvers = {
         Query: {
             estimates: async (root: any, args: any, context: any) => {
-                return prisma.estimate.findMany({
-                    where: { organisation: context?.jwt?.organisation },
-                });
+                const where: any = { organisation: context?.jwt?.organisation };
+                if (args.where?.displayId) {
+                    where.displayId = args.where.displayId;
+                }
+                return prisma.estimate.findMany({ where });
             },
         },
         Estimate: {
@@ -30,11 +32,20 @@ export default (prisma: PrismaClient) => {
                 });
             },
         },
+        EstimateLineItem: {
+            amount: (root: any) => {
+                return (root.quantity ?? 0) * (root.price ?? 0);
+            },
+        },
     }
 
     const typeDefs = `
+        input EstimateWhere {
+            displayId: String
+        }
+
         extend type Query {
-            estimates: [Estimate]
+            estimates(where: EstimateWhere): [Estimate]
         }
 
         type Estimate {
@@ -59,6 +70,7 @@ export default (prisma: PrismaClient) => {
             description: String
             quantity: Float
             price: Float
+            amount: Float
         }
 
         # EstimateTask is now an alias for Task (backward compat)

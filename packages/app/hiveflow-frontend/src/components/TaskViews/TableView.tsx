@@ -66,7 +66,7 @@ function flattenRows(columns: KanbanColumn[]): FlatRow[] {
         task: t,
         source: src?.displayId ?? '',
         sourceName: src?.name ?? '',
-        title: t.title,
+        title: row.title,
         status: col.id,
         subtaskDone,
         subtaskCount: subtaskTotal,
@@ -156,74 +156,76 @@ export const TableView: React.FC<TableViewProps> = ({
       component={Paper}
       sx={{
         flex: 1,
-        bgcolor: 'transparent',
-        '& .MuiTableCell-root': { borderColor: 'rgba(255,255,255,0.06)' },
+        bgcolor: 'background.paper',
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
+        '& .MuiTableCell-root': { borderColor: 'divider' },
       }}
     >
       <Table size="small" stickyHeader>
         <TableHead>
           <TableRow>
-            <TableCell sx={{ bgcolor: '#424242', color: 'white', width: 120 }}>
+            <TableCell sx={{ bgcolor: 'secondary.main', color: 'white', width: 120 }}>
               <TableSortLabel
                 active={sortKey === 'source'}
                 direction={sortKey === 'source' ? sortDir : 'asc'}
                 onClick={() => handleSort('source')}
-                sx={{ color: 'white!important', '&.Mui-active': { color: 'white!important' } }}
+                sx={{ color: 'inherit', '&.Mui-active': { color: 'inherit' }, '& .MuiTableSortLabel-icon': { color: 'inherit' } }}
               >
                 Source
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ bgcolor: '#424242', color: 'white' }}>
+            <TableCell sx={{ bgcolor: 'secondary.main', color: 'white' }}>
               <TableSortLabel
                 active={sortKey === 'title'}
                 direction={sortKey === 'title' ? sortDir : 'asc'}
                 onClick={() => handleSort('title')}
-                sx={{ color: 'white!important', '&.Mui-active': { color: 'white!important' } }}
+                sx={{ color: 'inherit', '&.Mui-active': { color: 'inherit' }, '& .MuiTableSortLabel-icon': { color: 'inherit' } }}
               >
                 Title
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ bgcolor: '#424242', color: 'white', width: 130 }}>
+            <TableCell sx={{ bgcolor: 'secondary.main', color: 'white', width: 130 }}>
               <TableSortLabel
                 active={sortKey === 'status'}
                 direction={sortKey === 'status' ? sortDir : 'asc'}
                 onClick={() => handleSort('status')}
-                sx={{ color: 'white!important', '&.Mui-active': { color: 'white!important' } }}
+                sx={{ color: 'inherit', '&.Mui-active': { color: 'inherit' }, '& .MuiTableSortLabel-icon': { color: 'inherit' } }}
               >
                 Status
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ bgcolor: '#424242', color: 'white', width: 100 }}>
+            <TableCell sx={{ bgcolor: 'secondary.main', color: 'white', width: 100 }}>
               <TableSortLabel
                 active={sortKey === 'progress'}
                 direction={sortKey === 'progress' ? sortDir : 'asc'}
                 onClick={() => handleSort('progress')}
-                sx={{ color: 'white!important', '&.Mui-active': { color: 'white!important' } }}
+                sx={{ color: 'inherit', '&.Mui-active': { color: 'inherit' }, '& .MuiTableSortLabel-icon': { color: 'inherit' } }}
               >
                 Progress
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ bgcolor: '#424242', color: 'white', width: 100 }}>
+            <TableCell sx={{ bgcolor: 'secondary.main', color: 'white', width: 100 }}>
               <TableSortLabel
                 active={sortKey === 'startDate'}
                 direction={sortKey === 'startDate' ? sortDir : 'asc'}
                 onClick={() => handleSort('startDate')}
-                sx={{ color: 'white!important', '&.Mui-active': { color: 'white!important' } }}
+                sx={{ color: 'inherit', '&.Mui-active': { color: 'inherit' }, '& .MuiTableSortLabel-icon': { color: 'inherit' } }}
               >
                 Start
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ bgcolor: '#424242', color: 'white', width: 100 }}>
+            <TableCell sx={{ bgcolor: 'secondary.main', color: 'white', width: 100 }}>
               <TableSortLabel
                 active={sortKey === 'endDate'}
                 direction={sortKey === 'endDate' ? sortDir : 'asc'}
                 onClick={() => handleSort('endDate')}
-                sx={{ color: 'white!important', '&.Mui-active': { color: 'white!important' } }}
+                sx={{ color: 'inherit', '&.Mui-active': { color: 'inherit' }, '& .MuiTableSortLabel-icon': { color: 'inherit' } }}
               >
                 Due
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ bgcolor: '#424242', color: 'white', width: 100 }}>
+            <TableCell sx={{ bgcolor: 'secondary.main', color: 'white', width: 100 }}>
               Members
             </TableCell>
           </TableRow>
@@ -236,12 +238,12 @@ export const TableView: React.FC<TableViewProps> = ({
               onClick={() => onSelectCard?.(row._row)}
               sx={{
                 cursor: 'pointer',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.04)!important' },
-                '&:nth-of-type(odd)': { bgcolor: 'rgba(255,255,255,0.02)' },
+                '&:hover': { bgcolor: 'action.hover' },
+                '&:nth-of-type(odd)': { bgcolor: 'rgba(0,0,0,0.02)' },
               }}
             >
               {/* Source */}
-              <TableCell sx={{ color: 'text.secondary' }}>
+              <TableCell>
                 {row.source ? (
                   <Tooltip title={row.sourceName}>
                     <Chip
@@ -249,8 +251,6 @@ export const TableView: React.FC<TableViewProps> = ({
                       size="small"
                       variant="outlined"
                       sx={{
-                        color: 'white',
-                        borderColor: 'rgba(255,255,255,0.3)',
                         fontSize: '0.7rem',
                         height: 20,
                       }}
@@ -264,7 +264,7 @@ export const TableView: React.FC<TableViewProps> = ({
               {/* Title */}
               <TableCell>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  <Typography variant="body2" sx={{ color: 'white', fontWeight: 500 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
                     {row.title}
                   </Typography>
                   {row.hasDescription && (
@@ -299,7 +299,7 @@ export const TableView: React.FC<TableViewProps> = ({
                         flex: 1,
                         height: 6,
                         borderRadius: 3,
-                        bgcolor: 'rgba(255,255,255,0.1)',
+                        bgcolor: 'rgba(0,0,0,0.08)',
                         '& .MuiLinearProgress-bar': {
                           bgcolor:
                             row.subtaskDone === row.subtaskCount

@@ -135,7 +135,7 @@ const KanbanColumnView: React.FC<KanbanColumnViewProps> = ({
         minWidth: '280px',
         display: 'flex',
         flexShrink: 0,
-        bgcolor: '#424242',
+        bgcolor: 'grey.200',
         borderRadius: 2,
         overflow: 'hidden',
       }}
@@ -144,7 +144,7 @@ const KanbanColumnView: React.FC<KanbanColumnViewProps> = ({
       <Box
         sx={{
           color: 'white',
-          bgcolor: '#616161',
+          bgcolor: 'secondary.main',
           padding: '3px 6px',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -168,7 +168,7 @@ const KanbanColumnView: React.FC<KanbanColumnViewProps> = ({
           <Typography
             variant="caption"
             sx={{
-              bgcolor: 'rgba(255,255,255,0.2)',
+              bgcolor: 'rgba(0,0,0,0.1)',
               px: 1,
               py: 0.25,
               borderRadius: '10px',
@@ -213,9 +213,10 @@ const KanbanColumnView: React.FC<KanbanColumnViewProps> = ({
             color: 'text.secondary',
             py: 0.75,
             fontSize: '0.75rem',
-            borderTop: '1px solid rgba(255,255,255,0.08)',
+            borderTop: '1px solid',
+            borderColor: 'divider',
             borderRadius: 0,
-            '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
+            '&:hover': { bgcolor: 'action.hover' },
           }}
         >
           Add task

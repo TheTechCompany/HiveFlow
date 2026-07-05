@@ -232,6 +232,15 @@ export default (prisma: PrismaClient) => {
 
                 // ── Create under an estimate ────────────────────
                 if (args.input.estimateId) {
+                    const estimate = await prisma.estimate.findFirst({
+                        where: {
+                            organisation: context?.jwt?.organisation,
+                            displayId: args.input.estimateId,
+                        },
+                    });
+                    if (!estimate) {
+                        throw new Error(`Estimate not found: ${args.input.estimateId}`);
+                    }
                     return await prisma.task.create({
                         data: {
                             id: nanoid(),
@@ -247,7 +256,7 @@ export default (prisma: PrismaClient) => {
                             category: args.input.category,
                             recurringEventId: args.input.recurringEventId,
                             parentId: args.input.parentId || undefined,
-                            estimateId: args.input.estimateId,
+                            estimateId: estimate.id,
                             lastUpdated: new Date(),
                         },
                     });

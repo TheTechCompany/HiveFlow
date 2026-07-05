@@ -69,7 +69,7 @@ const TaskSection: React.FC<TaskSectionProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        bgcolor: isSubtle ? 'rgba(66, 66, 66, 0.4)' : 'secondary.main',
+        bgcolor: isSubtle ? 'rgba(0,0,0,0.04)' : 'secondary.main',
         color: 'white',
         px: 1.5,
         py: 0.75,

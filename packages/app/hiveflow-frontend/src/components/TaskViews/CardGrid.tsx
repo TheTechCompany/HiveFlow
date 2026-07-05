@@ -80,7 +80,7 @@ function buildCards(columns: KanbanColumn[]): GridCard[] {
         task: t,
         sourceLabel: src?.displayId ?? '',
         sourceName: src?.name ?? '',
-        title: t.title,
+        title: row.title,
         status: col.id,
         statusColor: meta.color,
         statusLabel: meta.label,
@@ -147,7 +147,7 @@ export const CardGrid: React.FC<CardGridProps> = ({ columns, onSelectCard }) => 
           onClick={() => onSelectCard?.(card._row)}
           sx={{
             cursor: 'pointer',
-            bgcolor: '#3a3a3a',
+            bgcolor: 'background.paper',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -169,7 +169,7 @@ export const CardGrid: React.FC<CardGridProps> = ({ columns, onSelectCard }) => 
                   label={`${card.sourceLabel} — ${card.sourceName}`}
                   size="small"
                   sx={{
-                    bgcolor: 'rgba(255,255,255,0.08)',
+                    bgcolor: 'rgba(0,0,0,0.06)',
                     color: 'text.secondary',
                     fontSize: '0.65rem',
                     height: 20,
@@ -196,7 +196,7 @@ export const CardGrid: React.FC<CardGridProps> = ({ columns, onSelectCard }) => 
             {/* Title */}
             <Typography
               variant="subtitle2"
-              sx={{ color: 'white', fontWeight: 600, mb: 0.75, lineHeight: 1.3 }}
+              sx={{ color: 'text.primary', fontWeight: 600, mb: 0.75, lineHeight: 1.3 }}
             >
               {card.title}
             </Typography>
@@ -216,7 +216,7 @@ export const CardGrid: React.FC<CardGridProps> = ({ columns, onSelectCard }) => 
               </Typography>
             )}
 
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)', my: 1 }} />
+            <Divider sx={{ borderColor: 'divider', my: 1 }} />
 
             {/* Dates row */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
@@ -267,7 +267,7 @@ export const CardGrid: React.FC<CardGridProps> = ({ columns, onSelectCard }) => 
                         maxWidth: 100,
                         height: 6,
                         borderRadius: 3,
-                        bgcolor: 'rgba(255,255,255,0.08)',
+                        bgcolor: 'rgba(0,0,0,0.08)',
                         '& .MuiLinearProgress-bar': {
                           bgcolor: card.progressPct >= 100 ? '#4caf50' : card.statusColor,
                           borderRadius: 3,

@@ -1,10 +1,85 @@
 # Timeline
 
-Gantt-style project timeline with dependency links, drag-to-reschedule, capacity alerts, and multiple built-in views.
+> ⚠️ **Single source of truth**: `packages/ui/src/Timeline/` (`@hive-flow/ui`) is the canonical timeline component for the entire HiveFlow app. Every gantt, schedule, and timeline view MUST use this component or its `GanttView` wrapper. Do NOT create custom timeline implementations — fixes and features added here benefit all consumers automatically.
 
 ---
 
-## Data model
+## Shared library (`packages/ui/src/Timeline/`)
+
+Located at `packages/ui/src/Timeline/`, exported as `@hive-flow/ui`.
+
+### Components
+
+| Component | Purpose |
+|-----------|---------|
+| `Timeline` | Main container — header, grid, rows, links |
+| `TimelineBar` | Individual bar with resize handles + progress fill |
+| `TimelineGrid` | Vertical grid lines, today marker, weekend shading, highlighted days |
+| `TimelineHeader` | Multi-tier date labels |
+| `TimelineLink` | SVG dependency arrows between bars |
+| `TimelineRow` | Group row — packs bars into lanes, renders sidebar |
+
+### Hook
+
+| Hook | Purpose |
+|------|---------|
+| `useTimeline` | Core hook — geometry, selection, drag state machine, keyboard |
+
+### Key types
+
+`TimelineItem`, `TimelineGroup`, `TimelineLink`, `TimelineStep`, `TimelineProps`, `TimelineCallbacks`, `TimelineRenderers`, `SelectionState`, `ItemChange`
+
+### Features
+
+- Time granularities: `hour`, `day`, `week`, `month`, `year`
+- Groups (rows) with sidebar labels
+- Bars with start/end, color, label, progress (0-100%)
+- SVG dependency links between items
+- Drag to move, drag to resize (left/right handles)
+- Lane packing (greedy non-overlapping algorithm)
+- Single & multi-select (Ctrl/Cmd+Click), Ctrl+A
+- Shift+drag to create new items
+- Horizon panning (drag empty space or horizontal wheel)
+- Edge-scroll during drag
+- Keyboard: Escape, Delete/Backspace, Ctrl+C/V, Ctrl+A
+- Today marker, weekend shading, highlighted days
+- Custom renderers: `renderItem`, `renderGroupHeader`, `renderSidebarHeader`, `renderDay`, `renderLoading`
+- Readonly mode, loading state, sticky header
+
+### GanttView wrapper
+
+`packages/ui/src/GanttView/` wraps `Timeline` with an optional external sidebar column (`sidebar` prop) and context menu slot. Use this when you need a separate sidebar panel next to the timeline.
+
+---
+
+## Consumers
+
+| File | Purpose | Uses |
+|------|---------|------|
+| `views/schedule/index.tsx` | Main schedule page (people/project allocation) | `Timeline` |
+| `views/people/single/index.tsx` | Person schedule view | `Timeline` |
+| `views/estimates/single/panes/timeline.tsx` | Estimate task gantt | `Timeline` |
+| `views/projects/single/panes/timeline.tsx` | Project task gantt | `Timeline` |
+| `views/recurring/single/index.tsx` | Recurring schedule editor | `GanttView` + `TreeBranchVSCode` |
+| `components/TaskViews/TimelineView.tsx` | Kanban→timeline (assignments) | `Timeline` |
+
+---
+
+## Anti-patterns — DO NOT
+
+- ❌ Create new custom timeline/schedule components outside `packages/ui/src/Timeline/`
+- ❌ Import Timeline from `@hexhive/ui` (legacy external package — migrate to `@hive-flow/ui`)
+- ❌ Build a timeline using raw divs and flex layout — use the shared component
+
+## Adding features
+
+1. Add the feature to `packages/ui/src/Timeline/`
+2. Write tests in `packages/ui/src/Timeline/__tests__/`
+3. All consumers get the feature for free
+
+---
+
+## Data model (backend)
 
 ### TimelineItem
 
@@ -26,11 +101,7 @@ Dependencies are a **many-to-many self-relation** via the `blocksTimeline` relat
 
 ---
 
-## How the Timeline view works
-
-The frontend Timeline (`packages/app/hiveflow-frontend/src/views/timeline/Timeline.tsx`) wraps `@hexhive/ui`'s Timeline component configured as a Gantt chart.
-
-### Built-in views
+## Built-in views (main timeline page)
 
 Three pre-configured timeline views, switchable from the header:
 
@@ -39,39 +110,6 @@ Three pre-configured timeline views, switchable from the header:
 | **Project** | Project items — shows work scheduled against projects |
 | **People** | People/crew items — shows who is assigned where |
 | **Estimate** | Estimate items — hatched bars for uncommitted work |
-
-### Data flow
-
-1. Two GraphQL queries run:
-   - `TimelineData` — fetches `timelineItems` filtered by the active view and date horizon.
-   - `ProjectInfo` — fetches all projects and estimates for the "add item" autocomplete.
-2. Items are mapped to Gantt bar format via `mapItems()`:
-   - `name`, `start`, `end`, `rank`
-   - `color`: CSS linear gradients built from hour-type breakdown (Welder, TA, Fabricator, Skilled Labourer, Civil Subcontractor).
-   - Estimate bars use a **hatched pattern** to visually distinguish them from committed project bars.
-   - `hoverInfo`: Detailed breakdown by item/location with colour-coded dots.
-
-### Dependency links
-
-Dependencies are rendered as **lines** between timeline bars:
-- **Data**: Derived from the `blocks` field — `{ id, source: blockingItem.id, target: blockedItem.id }`.
-- **Creation**: Drag from one bar to another — calls `createTimelineItemDependency` mutation.
-- **Deletion**: Select a link and press `Delete`/`Backspace` — calls `deleteTimelineItemDependency`.
-- **Selection**: Clicking a dependency line selects it for deletion (vs clicking a bar which selects the item).
-
-### Drag interactions
-
-- **Move**: Drag a bar horizontally to change its `startDate`/`endDate` → calls `updateTask`.
-- **Resize**: Drag the bar edge to change duration → same `updateTask` mutation.
-- **Reorder**: Drag items within the list → uses `@dnd-kit/sortable`'s `arrayMove` with LexoRank re-computation.
-
-### Capacity alerts
-
-The timeline computes a **capacity alarm** by comparing two metrics:
-- **Demand** (`job_power`): Total hours from all timeline items on a given day.
-- **Supply** (`week_power`): Available hours from people (crew capacity).
-
-Days where demand exceeds supply are coloured **red**. This gives a visual early warning of over-allocation.
 
 ---
 
@@ -106,6 +144,8 @@ When creating a `TimelineItem`, the backend uses a raw SQL CTE with `LEAD`/`LAG`
 
 | Layer    | File | Purpose |
 |----------|------|---------|
+| UI lib   | `packages/ui/src/Timeline/` | **Canonical timeline component** |
+| UI lib   | `packages/ui/src/GanttView/` | Sidebar-wrapper around Timeline |
 | Schema   | `packages/app/hiveflow-backend/prisma/schema.prisma` (lines 158–173) | TimelineItem model |
 | Backend  | `packages/app/hiveflow-backend/src/schema/schedule.ts` | TimelineItem resolvers (LexoRank CTE) |
 | Frontend | `packages/app/hiveflow-frontend/src/views/timeline/Timeline.tsx` | Main Gantt component (~1048 lines) |

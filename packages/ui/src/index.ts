@@ -16,6 +16,10 @@ export type { QuoteBuilderProps, QuoteItem } from './QuoteBuilder';
 export { RichTextEditor, extractChecklist, extractChecklistFromHtml } from './RichTextEditor';
 export type { RichTextEditorProps } from './RichTextEditor';
 
+// TaskDialog
+export { TaskDialog } from './TaskDialog';
+export type { TaskDialogProps, TaskData, TaskStatus, DateFieldDef } from './TaskDialog';
+
 // TreeBranch
 export { TreeBranch, TREE_INDENT_PER_DEPTH, TREE_TWISTY_WIDTH } from './TreeBranch';
 export type { TreeBranchProps } from './TreeBranch';

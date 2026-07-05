@@ -289,7 +289,7 @@ export function useAssignments(horizonDays: number = 7): UseAssignmentsReturn {
             : undefined;
           return {
             id: t.id,
-            title: t.title,
+            title: t.title ?? t.name,
             _task: t,
             groupKey,
             groupLabel,

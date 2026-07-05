@@ -17,7 +17,7 @@ import { useParams, useNavigate, Routes, Route, useLocation } from 'react-router
 import Spreadsheet, { createEmptyMatrix } from "react-spreadsheet";
 import { QuoteBuilder } from '@hive-flow/ui';
 import { debounce, throttle } from 'lodash';
-import { KanbanPane, TimelinePane } from './panes';
+import { TicketsPane } from './panes';
 import { EstimateSingleProvider } from './context';
 import { TaskModal } from '../../../modals/new-task';
 import { arrayMove } from '@dnd-kit/sortable';
@@ -102,12 +102,7 @@ export const EstimateSingle = (props) => {
         {
             title: "Tickets",
             path: "tickets",
-            element: <KanbanPane />
-        },
-        {
-            title: "Timeline",
-            path: "timeline",
-            element: <TimelinePane />
+            element: <TicketsPane />
         },
     ]
 
@@ -119,6 +114,7 @@ export const EstimateSingle = (props) => {
         <EstimateSingleProvider value={{
             estimateId: id,
             tasks: _estimate?.tasks || [],
+            finishTtl: (60 * 1000) * 60 * 24 * 7, //7 days
             refetch,
             createTask: (task: any) => {
                 console.log({ task })
