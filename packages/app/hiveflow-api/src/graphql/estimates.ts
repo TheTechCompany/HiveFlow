@@ -37,6 +37,7 @@ export const GET_ESTIMATE_SINGLE = gql`
         timelineRank
         columnRank
         members { id name }
+        createdBy { id name }
         lastUpdated
         dependencyOn { id title status endDate }
         dependencyOf { id title status endDate }

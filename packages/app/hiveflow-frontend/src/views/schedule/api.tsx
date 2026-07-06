@@ -67,8 +67,8 @@ export const useAPIFunctions = () => {
 
     const [removeCommentOnCalendar] = useMutation(gql`
         
-        mutation($id: ID, $commentId: ID){
-            removeCommentOnCalendar(id: $id, comment: $commentId){
+        mutation($id: ID, $comment: ID){
+            removeCommentOnCalendar(id: $id, comment: $comment){
                 id
             }
         }    

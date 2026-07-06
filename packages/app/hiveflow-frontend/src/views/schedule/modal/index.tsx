@@ -39,6 +39,7 @@ export const SchedulingModal = (props: any) => {
                 isOwner
                 
                 comments {
+                    id
                     message
                     user {
                         name

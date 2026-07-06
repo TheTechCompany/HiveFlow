@@ -1,30 +1,35 @@
-import React, { useEffect, useState } from 'react';
+// ── TaskModal — Thin wrapper around @hive-flow/ui TaskDialog ────────
+//
+// Keeps the same exported name and props so no consumer changes are
+// needed.  Internally delegates to TaskDialog with click-to-edit and
+// optional expandable sidebar.  All domain-specific features (members,
+// projects, skills, subtasks, dependencies, dates) are injected through
+// render slots.
+
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Add,
   Close,
-  Edit,
   ExpandLess,
   ExpandMore,
-  Label,
+  MoreHoriz,
 } from '@mui/icons-material';
 import {
   Autocomplete,
+  Avatar,
   Box,
   Button,
   Chip,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
   IconButton,
+  Menu,
+  MenuItem,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
 import { FormControl } from '@hexhive/ui';
-import { RichTextEditor } from '@hive-flow/ui';
+import { TaskDialog, type TaskData } from '@hive-flow/ui';
 import { MemberList } from './members';
 import { DatePicker } from '@mui/x-date-pickers';
 import moment from 'moment';
@@ -35,34 +40,43 @@ interface TaskModalProps {
   open: boolean;
   selected?: any;
   users?: Array<{ id: string; name: string }>;
-  /** When provided, shows a project autocomplete (for templates / unanchored tasks) */
   projects?: Array<{ id: string; displayId: string; name: string }>;
   skills?: Array<{ id: string; skill: string }>;
-  /** Pre-fill parentId when creating a new subtask */
   initialParentId?: string;
   onClose: () => void;
   onSubmit?: (task: any) => Promise<void>;
   onDelete?: () => Promise<void>;
-  /** Called to quickly create a subtask with just a title */
   onAddSubtask?: (parentId: string, title: string) => Promise<void>;
-  /** Called when a subtask row is clicked — navigates to that subtask's detail */
   onSelectTask?: (taskId: string) => void;
-  /** Called when description changes from a checklist toggle — auto-saves immediately */
   onAutoSaveDescription?: (html: string) => void;
 }
 
-interface TaskState {
-  title?: string;
-  description?: string;
-  status?: string;
+interface DomainState {
   projectId?: string;
-  parentId?: string;
   members?: string[];
   requiredSkills?: Array<{ skill?: string; hours?: string }>;
-  startDate?: Date;
-  endDate?: Date;
-  dependencyOn?: Array<{ title: string; status: string; endDate: Date }>;
-  dependencyOf?: Array<{ title: string; status: string; endDate: Date }>;
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────
+
+/** Extract TaskData fields from the app's raw task object. */
+function toTaskData(selected: any): TaskData {
+  if (!selected) return {};
+  return {
+    title: selected.title ?? '',
+    description: selected.description ?? '',
+    status: selected.status ?? 'Backlog',
+    startDate: selected.startDate
+      ? moment(selected.startDate).format('YYYY-MM-DD')
+      : selected.start
+        ? moment(selected.start).format('YYYY-MM-DD')
+        : '',
+    endDate: selected.endDate
+      ? moment(selected.endDate).format('YYYY-MM-DD')
+      : selected.end
+        ? moment(selected.end).format('YYYY-MM-DD')
+        : '',
+  };
 }
 
 // ── Inline subtask adder ─────────────────────────────────────────
@@ -96,7 +110,9 @@ const SubtasksInput: React.FC<{
         placeholder="Add subtask…"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleAdd();
+        }}
         disabled={adding}
         inputProps={{ sx: { fontSize: '0.8rem', py: 0.5 } }}
       />
@@ -114,441 +130,264 @@ const SubtasksInput: React.FC<{
 
 // ── Component ───────────────────────────────────────────────────────
 
-export const TaskModal: React.FC<TaskModalProps> = (props) => {
-  const [loading, setLoading] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [editing, setEditing] = useState(!props.selected?.id);
+export const TaskModal: React.FC<TaskModalProps> = ({
+  open,
+  selected,
+  users,
+  projects,
+  skills,
+  initialParentId,
+  onClose,
+  onSubmit,
+  onDelete,
+  onAddSubtask,
+  onSelectTask,
+  onAutoSaveDescription,
+}) => {
+  // ── Domain state (not part of TaskData) ─────────────────────────
+  const [domain, setDomain] = useState<DomainState>({});
   const [subtasksOpen, setSubtasksOpen] = useState(false);
 
-  const [task, setTask] = useState<TaskState>({
-    status: 'Backlog',
-    startDate: new Date(),
-    endDate: new Date(),
-  });
+  // "Add optional" dropdown
+  const addOptionalRef = useRef<HTMLButtonElement>(null);
+  const [addOptionalOpen, setAddOptionalOpen] = useState(false);
+  const [datesEnabled, setDatesEnabled] = useState(false);
 
+  // Sync domain state when selected changes.
   useEffect(() => {
-    const hasId = !!props.selected?.id;
-    setEditing(!hasId);
-    setTask({
-      status: 'Backlog',
-      startDate: new Date(),
-      endDate: new Date(),
-      parentId: props.initialParentId ?? undefined,
-      ...props.selected,
-      projectId: props.selected?.projectId ?? undefined,      members: props.selected?.members?.map((x: any) => x.id),
-      dependencyOn: props.selected?.dependencyOn ?? [],
-      dependencyOf: props.selected?.dependencyOf ?? [],
+    setDomain({
+      projectId: selected?.projectId ?? undefined,
+      members: selected?.members?.map((x: any) => x.id) ?? [],
+      requiredSkills: selected?.requiredSkills ?? [],
     });
-  }, [props.selected, props.initialParentId]);
+    setSubtasksOpen(false);
+    // Auto-enable dates if the task already has them
+    setDatesEnabled(!!selected?.startDate || !!selected?.endDate);
+  }, [selected]);
 
-  const onDelete = async () => {
-    setDeleteLoading(true);
-    try {
-      await props.onDelete?.();
-      setTask({ status: 'Backlog', startDate: new Date(), endDate: new Date() });
-    } catch {
-      // keep dialog open on failure
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
+  // ── Submit — merge TaskData + domain state ──────────────────────
+  const handleSubmit = useCallback(
+    async (taskData: TaskData) => {
+      if (!onSubmit) return;
+      const merged = {
+        ...selected,
+        ...taskData,
+        ...domain,
+        startDate: taskData.startDate
+          ? moment(taskData.startDate).toDate()
+          : undefined,
+        endDate: taskData.endDate
+          ? moment(taskData.endDate).toDate()
+          : undefined,
+      };
+      await onSubmit(merged);
+    },
+    [onSubmit, selected, domain],
+  );
 
-  const submit = async () => {
-    setLoading(true);
-    try {
-      await props.onSubmit?.(task);
-      setTask({ status: 'Backlog', startDate: new Date(), endDate: new Date() });
-    } catch {
-      // keep dialog open on failure
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ── Slots ───────────────────────────────────────────────────────
 
-  const hasDependencies =
-    (task.dependencyOn?.length ?? 0) > 0 ||
-    (task.dependencyOf?.length ?? 0) > 0;
+  const headerPrefix = selected?.parent ? (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+      <Typography
+        variant="body2"
+        onClick={() => onSelectTask?.(selected.parent.id)}
+        sx={{
+          color: 'primary.main',
+          cursor: 'pointer',
+          fontWeight: 500,
+          '&:hover': { textDecoration: 'underline' },
+        }}
+      >
+        {selected.parent.title || '(Untitled)'}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mx: 0.25 }}>
+        ›
+      </Typography>
+    </Box>
+  ) : undefined;
 
-  return (
-    <Dialog
-      maxWidth="md"
-      fullWidth
-      onClose={props.onClose}
-      open={props.open}
-      PaperProps={{ sx: { minHeight: '70vh' } }}
-    >
-      {/* ── Header ──────────────────────────────────────────────── */}
-      <DialogTitle sx={{ pb: 1 }}>
+  const renderHeaderActions = users
+    ? () => (
+        <MemberList
+          data={users}
+          members={users.filter((a) => domain.members?.includes(a.id)) ?? []}
+          onMembersChanged={(members) =>
+            setDomain((prev) => ({
+              ...prev,
+              members: members.map((x) => x.id),
+            }))
+          }
+        />
+      )
+    : undefined;
+
+  const renderExtraFields = (activeField: string | null) => (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* Project selector */}
+      {projects && projects.length > 0 && (
+        <Box>
+          <Autocomplete
+            size="small"
+            options={projects}
+            getOptionLabel={(opt) => `${opt.displayId} - ${opt.name}`}
+            value={
+              projects.find((p: any) => p.displayId === domain.projectId) ??
+              null
+            }
+            onChange={(_, val: any) =>
+              setDomain((prev) => ({
+                ...prev,
+                projectId: val?.displayId || '',
+              }))
+            }
+            isOptionEqualToValue={(opt: any, val: any) =>
+              opt.displayId === val.displayId
+            }
+            renderInput={(params) => (
+              <TextField {...params} label="Project" size="small" fullWidth />
+            )}
+          />
+        </Box>
+      )}
+
+      {/* Time estimate — only show the full section when items exist */}
+      {(domain.requiredSkills?.length ?? 0) > 0 ? (
         <Box
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 1,
+            p: 1.5,
           }}
         >
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-            {props.selected?.parent ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                <Typography
-                  variant="body2"
-                  onClick={() => props.onSelectTask?.(props.selected.parent.id)}
-                  sx={{
-                    color: 'primary.main',
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                    '&:hover': { textDecoration: 'underline' },
-                  }}
-                >
-                  {props.selected.parent.title || '(Untitled)'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mx: 0.25 }}>›</Typography>
-                <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1.1rem' }}>
-                  {task.title || 'Subtask'}
-                </Typography>
-              </Box>
-            ) : (
-              <Typography variant="h6" fontWeight="bold">
-                {props.selected?.id
-                  ? editing
-                    ? 'Edit Task'
-                    : 'Task Details'
-                  : 'New Task'}
-              </Typography>
-            )}
-          </Box>
-          <MemberList
-            editable={editing}
-            data={props.users || []}
-            members={
-              props.users?.filter((a) => task.members?.indexOf(a.id) > -1) ?? []
-            }
-            onMembersChanged={(members) =>
-              setTask({ ...task, members: members.map((x) => x.id) })
-            }
-          />
-        </Box>
-      </DialogTitle>
-      <Divider />
-
-      {/* ── Body ────────────────────────────────────────────────── */}
-      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2, pb: 1 }}>
-        {/* Project selector — shown when projects list provided */}
-        {props.projects && props.projects.length > 0 && (
-          <Box>
-            {editing ? (
-              <Autocomplete
-                size="small"
-                options={props.projects}
-                getOptionLabel={(opt) => `${opt.displayId} - ${opt.name}`}
-                value={props.projects.find((p: any) => p.displayId === task.projectId) || null}
-                onChange={(_, val: any) => setTask({ ...task, projectId: val?.displayId || '' })}
-                isOptionEqualToValue={(opt: any, val: any) => opt.displayId === val.displayId}
-                renderInput={(params) => <TextField {...params} label="Project" size="small" fullWidth />}
-              />
-            ) : task.projectId ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="caption" color="text.secondary">Project</Typography>
-                <Chip label={props.projects.find((p: any) => p.displayId === task.projectId)?.name ?? task.projectId} size="small" variant="outlined" />
-              </Box>
-            ) : null}
-          </Box>
-        )}
-
-        {/* Title — with edit icon in view mode */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {editing ? (
-            <TextField
-              label="Title"
-              fullWidth
-              size="small"
-              value={task.title ?? ''}
-              onChange={(e) => setTask({ ...task, title: e.target.value })}
-              InputProps={{
-                startAdornment: <Label sx={{ mr: 1, color: 'text.secondary' }} />,
-              }}
-            />
-          ) : (
-            <>
-              <Typography variant="h5" fontWeight="bold">
-                {task.title || '(Untitled)'}
-              </Typography>
-              {props.selected?.id && (
-                <IconButton
-                  size="small"
-                  onClick={() => setEditing(true)}
-                  color="primary"
-                >
-                  <Edit fontSize="small" />
-                </IconButton>
-              )}
-            </>
-          )}
-        </Box>
-
-        {/* Description — with edit icon in view mode */}
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-            <Typography variant="caption" color="text.secondary">
-              Description
-            </Typography>
-            {!editing && props.selected?.id && (
-              <IconButton
-                size="small"
-                onClick={() => setEditing(true)}
-                color="primary"
-                sx={{ p: 0.25 }}
-              >
-                <Edit sx={{ fontSize: 14 }} />
-              </IconButton>
-            )}
-          </Box>
-          <RichTextEditor
-            editable={editing}
-            value={task.description ?? ''}
-            onChange={(html) =>
-              setTask({ ...task, description: html })
-            }
-            onChecklistToggle={props.onAutoSaveDescription
-              ? (ev) => {
-                  setTask({ ...task, description: ev.html });
-                  props.onAutoSaveDescription!(ev.html);
-                }
-              : undefined
-            }
-            placeholder="Add a description…"
-            minHeight={200}
-          />
-        </Box>
-
-        {/* Parent */}
-        {props.selected?.parent && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="caption" color="text.secondary">Parent:</Typography>
-            <Chip
-              label={props.selected.parent.title}
-              size="small"
-              variant="outlined"
-              onClick={() => props.onSelectTask?.(props.selected.parent.id)}
-              sx={{ cursor: 'pointer' }}
-            />
-          </Box>
-        )}
-
-        {/* Children / subtasks */}
-        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
           <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              cursor: 'pointer',
+              mb: 1,
             }}
-            onClick={() => setSubtasksOpen(!subtasksOpen)}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Typography variant="subtitle2">Subtasks</Typography>
-              <Chip
-                label={props.selected?.children?.length ?? 0}
-                size="small"
-                sx={{ height: 18, fontSize: '0.65rem' }}
-              />
-            </Box>
-            <IconButton size="small" sx={{ p: 0 }}>
-              {subtasksOpen ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
+            <Typography variant="subtitle2">Time estimate</Typography>
+            <IconButton
+              size="small"
+              onClick={() =>
+                setDomain((prev) => ({
+                  ...prev,
+                  requiredSkills: [
+                    ...(prev.requiredSkills ?? []),
+                    { skill: '', hours: '0' },
+                  ],
+                }))
+              }
+            >
+              <Add fontSize="small" />
             </IconButton>
           </Box>
-          {subtasksOpen && (
-            <>
-              {(props.selected?.children?.length ?? 0) > 0 ? (
-                <Stack spacing={0.5} sx={{ mt: 1 }}>
-                  {props.selected.children.map((child: any) => (
-                    <Box
-                      key={child.id}
-                      onClick={() => props.onSelectTask?.(child.id)}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        cursor: 'pointer',
-                        px: 1,
-                        py: 0.5,
-                        borderRadius: 1,
-                        '&:hover': { bgcolor: 'action.hover' },
-                      }}
-                    >
-                      <Typography variant="body2">{child.title}</Typography>
-                      <Chip
-                        label={child.status || 'Backlog'}
-                        size="small"
-                        sx={{
-                          fontSize: '0.65rem',
-                          height: 20,
-                          bgcolor:
-                            child.status === 'Finished' ? '#4caf50' :
-                            child.status === 'In Progress' ? '#2196f3' :
-                            child.status === 'Reviewing' ? '#ff9800' :
-                            '#9e9e9e',
-                          color: 'white',
-                        }}
-                      />
-                    </Box>
-                  ))}
-                </Stack>
-              ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>No subtasks yet</Typography>
-              )}
-              {props.selected?.id && <Box sx={{ mt: 1 }}><SubtasksInput parentId={props.selected.id} onAdd={props.onAddSubtask} /></Box>}
-            </>
-          )}
+          {domain.requiredSkills?.map((skill, ix) => (
+            <Box
+              key={ix}
+              sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}
+            >
+              <Autocomplete
+                fullWidth
+                size="small"
+                value={skill.skill ?? ''}
+                onChange={(_e, newValue) => {
+                  const arr = (domain.requiredSkills ?? []).slice();
+                  arr[ix] = { ...arr[ix], skill: newValue ?? '' };
+                  setDomain((prev) => ({ ...prev, requiredSkills: arr }));
+                }}
+                options={skills?.map((s) => s.skill) ?? []}
+                renderInput={(params) => (
+                  <TextField {...params} placeholder="Task or activity" />
+                )}
+              />
+              <TextField
+                size="small"
+                type="number"
+                label="Hours"
+                sx={{ width: 100 }}
+                value={skill.hours ?? ''}
+                onChange={(e) => {
+                  const arr = (domain.requiredSkills ?? []).slice();
+                  arr[ix] = { ...arr[ix], hours: e.target.value };
+                  setDomain((prev) => ({ ...prev, requiredSkills: arr }));
+                }}
+              />
+              <IconButton
+                size="small"
+                onClick={() => {
+                  const arr = (domain.requiredSkills ?? []).slice();
+                  arr.splice(ix, 1);
+                  setDomain((prev) => ({
+                    ...prev,
+                    requiredSkills: arr.length > 0 ? arr : undefined,
+                  }));
+                }}
+              >
+                <Close fontSize="small" />
+              </IconButton>
+            </Box>
+          ))}
         </Box>
+      ) : null}
 
-        {/* Status */}
-        <Box>
-          {editing ? (
-            <FormControl
-              placeholder="Status"
-              value={task.status}
-              onChange={(val) => setTask({ ...task, status: val })}
-              labelKey="label"
-              valueKey="id"
-              options={['Backlog', 'In Progress', 'Reviewing', 'Finished'].map(
-                (x) => ({ id: x, label: x }),
-              )}
-            />
-          ) : (
-            <>
-              <Typography variant="caption" color="text.secondary">
-                Status
-              </Typography>
-              <Typography variant="body2">{task.status ?? '—'}</Typography>
-            </>
-          )}
-        </Box>
-
-        {/* Dates */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 1.5,
-          }}
+      {/* Add optional — dropdown for sections that start empty */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          ref={addOptionalRef}
+          size="small"
+          variant="text"
+          startIcon={<MoreHoriz />}
+          onClick={() => setAddOptionalOpen(true)}
+          sx={{ color: 'text.secondary', fontSize: '0.75rem' }}
         >
-          {editing ? (
-            <DatePicker
-              format="DD/MM/YYYY"
-              value={task.startDate ? moment(task.startDate) : null}
-              onChange={(date) =>
-                date && setTask({ ...task, startDate: date.toDate() })
-              }
-              slotProps={{ textField: { size: 'small', label: 'Start Date' } }}
-            />
-          ) : (
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                Start Date
-              </Typography>
-              <Typography variant="body2">
-                {task.startDate
-                  ? moment(task.startDate).format('DD/MM/YYYY')
-                  : '—'}
-              </Typography>
-            </Box>
-          )}
-          {editing ? (
-            <DatePicker
-              format="DD/MM/YYYY"
-              value={task.endDate ? moment(task.endDate) : null}
-              onChange={(date) =>
-                date && setTask({ ...task, endDate: date.toDate() })
-              }
-              slotProps={{ textField: { size: 'small', label: 'End Date' } }}
-            />
-          ) : (
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                End Date
-              </Typography>
-              <Typography variant="body2">
-                {task.endDate
-                  ? moment(task.endDate).format('DD/MM/YYYY')
-                  : '—'}
-              </Typography>
-            </Box>
-          )}
-        </Box>
-
-        {/* Dependencies info */}
-        {hasDependencies && (
-          <Box
-            sx={{
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 1,
-              p: 1.5,
+          Add optional
+        </Button>
+        <Menu
+          anchorEl={addOptionalRef.current}
+          open={addOptionalOpen}
+          onClose={() => setAddOptionalOpen(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <MenuItem
+            dense
+            onClick={() => {
+              setDomain((prev) => ({
+                ...prev,
+                requiredSkills: [
+                  ...(prev.requiredSkills ?? []),
+                  { skill: '', hours: '0' },
+                ],
+              }));
+              setAddOptionalOpen(false);
             }}
           >
-            <Typography variant="subtitle2" gutterBottom>
-              Dependencies
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              {task.dependencyOn?.length ? (
-                <Box sx={{ flex: 1 }}>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    gutterBottom
-                  >
-                    Needs
-                  </Typography>
-                  {task.dependencyOn
-                    .filter((d) => d.status !== 'Finished')
-                    .map((dep, i) => (
-                      <Chip
-                        key={i}
-                        size="small"
-                        label={dep.title}
-                        color={
-                          new Date(dep.endDate).getTime() < Date.now()
-                            ? 'error'
-                            : 'default'
-                        }
-                        sx={{ mr: 0.5, mb: 0.5 }}
-                      />
-                    ))}
-                </Box>
-              ) : null}
-              {task.dependencyOf?.length ? (
-                <Box sx={{ flex: 1 }}>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    gutterBottom
-                  >
-                    Needed by
-                  </Typography>
-                  {task.dependencyOf
-                    .filter((d) => d.status !== 'Finished')
-                    .map((dep, i) => (
-                      <Chip
-                        key={i}
-                        size="small"
-                        label={dep.title}
-                        color={
-                          new Date(dep.endDate).getTime() < Date.now()
-                            ? 'error'
-                            : 'default'
-                        }
-                        sx={{ mr: 0.5, mb: 0.5 }}
-                      />
-                    ))}
-                </Box>
-              ) : null}
-            </Box>
-          </Box>
-        )}
+            Time estimate
+          </MenuItem>
+          {!datesEnabled && (
+            <MenuItem
+              dense
+              onClick={() => {
+                setDatesEnabled(true);
+                setAddOptionalOpen(false);
+              }}
+            >
+              Dates
+            </MenuItem>
+          )}
+        </Menu>
+      </Box>
+    </Box>
+  );
 
-        {/* Skills section */}
-        <Box
+  const renderSubtasks =
+    selected?.id && (selected?.children || onAddSubtask)
+      ? () => (
+          <Box
             sx={{
               border: '1px solid',
               borderColor: 'divider',
@@ -561,137 +400,227 @@ export const TaskModal: React.FC<TaskModalProps> = (props) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                mb: 1,
+                cursor: 'pointer',
               }}
+              onClick={() => setSubtasksOpen(!subtasksOpen)}
             >
-              <Typography variant="subtitle2">Required Skills</Typography>
-              {editing && (
-                <IconButton
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography variant="subtitle2">Subtasks</Typography>
+                <Chip
+                  label={selected?.children?.length ?? 0}
                   size="small"
-                  onClick={() =>
-                    setTask({
-                      ...task,
-                      requiredSkills: [
-                        ...(task.requiredSkills ?? []),
-                        { skill: '', hours: '0' },
-                      ],
-                    })
-                  }
-                >
-                  <Add fontSize="small" />
-                </IconButton>
-              )}
-            </Box>
-            {task.requiredSkills?.length === 0 && (
-              <Typography variant="body2" color="text.secondary">
-                No skills added yet{editing ? '. Click + to add one.' : '.'}
-              </Typography>
-            )}
-            {task.requiredSkills?.map((skill, ix) => (
-              <Box
-                key={ix}
-                sx={{
-                  display: 'flex',
-                  gap: 1,
-                  alignItems: 'center',
-                  mb: 1,
-                }}
-              >
-                {editing ? (
-                  <>
-                    <Autocomplete
-                      fullWidth
-                      size="small"
-                      value={skill.skill ?? ''}
-                      onChange={(_e, newValue) => {
-                        const skills = (task.requiredSkills ?? []).slice();
-                        skills[ix] = { ...skills[ix], skill: newValue ?? '' };
-                        setTask({ ...task, requiredSkills: skills });
-                      }}
-                      options={props.skills?.map((s) => s.skill) ?? []}
-                      renderInput={(params) => (
-                        <TextField {...params} placeholder="Skill" />
-                      )}
-                    />
-                    <TextField
-                      size="small"
-                      type="number"
-                      label="Hours"
-                      sx={{ width: 100 }}
-                      value={skill.hours ?? ''}
-                      onChange={(e) => {
-                        const skills = (task.requiredSkills ?? []).slice();
-                        skills[ix] = { ...skills[ix], hours: e.target.value };
-                        setTask({ ...task, requiredSkills: skills });
-                      }}
-                    />
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        const skills = (task.requiredSkills ?? []).slice();
-                        skills.splice(ix, 1);
-                        setTask({
-                          ...task,
-                          requiredSkills:
-                            skills.length > 0 ? skills : undefined,
-                        });
-                      }}
-                    >
-                      <Close fontSize="small" />
-                    </IconButton>
-                  </>
+                  sx={{ height: 18, fontSize: '0.65rem' }}
+                />
+              </Box>
+              <IconButton size="small" sx={{ p: 0 }}>
+                {subtasksOpen ? (
+                  <ExpandLess fontSize="small" />
                 ) : (
-                  <Typography variant="body2">
-                    {skill.skill || '(unnamed)'}
-                    {skill.hours ? ` — ${skill.hours}h` : ''}
+                  <ExpandMore fontSize="small" />
+                )}
+              </IconButton>
+            </Box>
+            {subtasksOpen && (
+              <>
+                {(selected?.children?.length ?? 0) > 0 ? (
+                  <Stack spacing={0.5} sx={{ mt: 1 }}>
+                    {selected.children.map((child: any) => (
+                      <Box
+                        key={child.id}
+                        onClick={() => onSelectTask?.(child.id)}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          cursor: 'pointer',
+                          px: 1,
+                          py: 0.5,
+                          borderRadius: 1,
+                          '&:hover': { bgcolor: 'action.hover' },
+                        }}
+                      >
+                        <Typography variant="body2">{child.title}</Typography>
+                        <Chip
+                          label={child.status || 'Backlog'}
+                          size="small"
+                          sx={{
+                            fontSize: '0.65rem',
+                            height: 20,
+                            bgcolor:
+                              child.status === 'Finished'
+                                ? '#4caf50'
+                                : child.status === 'In Progress'
+                                  ? '#2196f3'
+                                  : child.status === 'Reviewing'
+                                    ? '#ff9800'
+                                    : '#9e9e9e',
+                            color: 'white',
+                          }}
+                        />
+                      </Box>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 1 }}
+                  >
+                    No subtasks yet
                   </Typography>
                 )}
-              </Box>
-            ))}
+                {selected?.id && (
+                  <Box sx={{ mt: 1 }}>
+                    <SubtasksInput
+                      parentId={selected.id}
+                      onAdd={onAddSubtask}
+                    />
+                  </Box>
+                )}
+              </>
+            )}
           </Box>
+        )
+      : undefined;
 
-      </DialogContent>
+  const hasDependencies =
+    (selected?.dependencyOn?.length ?? 0) > 0 ||
+    (selected?.dependencyOf?.length ?? 0) > 0;
 
-      {/* ── Footer ────────────────────────────────────────────────── */}
-      <DialogActions
-        sx={{
-          px: 3,
-          pb: 2,
-          display: 'flex',
-          justifyContent: props.selected?.id ? 'space-between' : 'flex-end',
-        }}
-      >
-        {props.selected?.id && (
-          <Button
-            onClick={onDelete}
-            disabled={deleteLoading}
-            variant="contained"
-            color="error"
-            size="small"
-          >
-            {deleteLoading ? <CircularProgress size={18} /> : 'Delete'}
-          </Button>
-        )}
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button onClick={props.onClose} size="small">
-            {editing ? 'Cancel' : 'Close'}
-          </Button>
-          {editing && (
-            <Button
-              onClick={submit}
-              disabled={loading}
-              color="primary"
-              variant="contained"
-              size="small"
-            >
-              {loading ? (
-                <CircularProgress size={18} sx={{ mr: 0.5 }} />
-              ) : null}
-              {props.selected?.id ? 'Save' : 'Create'}
-            </Button>
-          )}
+  const renderDependencies = hasDependencies
+    ? () => (
+        <Box
+          sx={{
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 1,
+            p: 1.5,
+          }}
+        >
+          <Typography variant="subtitle2" gutterBottom>
+            Dependencies
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            {selected?.dependencyOn?.length ? (
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="caption" color="text.secondary" gutterBottom>
+                  Needs
+                </Typography>
+                {selected.dependencyOn
+                  .filter((d: any) => d.status !== 'Finished')
+                  .map((dep: any, i: number) => (
+                    <Chip
+                      key={i}
+                      size="small"
+                      label={dep.title}
+                      color={
+                        new Date(dep.endDate).getTime() < Date.now()
+                          ? 'error'
+                          : 'default'
+                      }
+                      sx={{ mr: 0.5, mb: 0.5 }}
+                    />
+                  ))}
+              </Box>
+            ) : null}
+            {selected?.dependencyOf?.length ? (
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="caption" color="text.secondary" gutterBottom>
+                  Needed by
+                </Typography>
+                {selected.dependencyOf
+                  .filter((d: any) => d.status !== 'Finished')
+                  .map((dep: any, i: number) => (
+                    <Chip
+                      key={i}
+                      size="small"
+                      label={dep.title}
+                      color={
+                        new Date(dep.endDate).getTime() < Date.now()
+                          ? 'error'
+                          : 'default'
+                      }
+                      sx={{ mr: 0.5, mb: 0.5 }}
+                    />
+                  ))}
+              </Box>
+            ) : null}
+          </Box>
         </Box>
-      </DialogActions>
-    </Dialog>
+      )
+    : undefined;
+
+  const renderAfterStatus = selected?.createdBy
+    ? () => (
+        <Box>
+          <Typography variant="caption" color="text.secondary">
+            Created by
+          </Typography>
+          <Box
+            sx={{
+              mt: 0.25,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+            }}
+          >
+            <Chip
+              avatar={
+                <Avatar sx={{ width: 22, height: 22, fontSize: 11 }}>
+                  {selected.createdBy.name?.[0]}
+                </Avatar>
+              }
+              label={selected.createdBy.name}
+              size="small"
+              variant="outlined"
+            />
+          </Box>
+        </Box>
+      )
+    : undefined;
+
+  const renderDateField = ({
+    label,
+    value,
+    onChange,
+  }: {
+    label: string;
+    value?: string;
+    onChange: (iso: string) => void;
+    editable: boolean;
+  }) => (
+    <DatePicker
+      format="DD/MM/YYYY"
+      value={value ? moment(value) : null}
+      onChange={(date) => {
+        if (date) onChange(date.format('YYYY-MM-DD'));
+      }}
+      slotProps={{ textField: { size: 'small', label } }}
+    />
+  );
+
+  // ── Render ───────────────────────────────────────────────────────
+
+  return (
+    <TaskDialog
+      open={open}
+      task={toTaskData(selected)}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      onDelete={onDelete}
+      headerPrefix={headerPrefix}
+      renderHeaderActions={renderHeaderActions}
+      renderExtraFields={renderExtraFields}
+      renderSubtasks={renderSubtasks}
+      renderDependencies={renderDependencies}
+      renderDateField={renderDateField}
+      renderAfterStatus={renderAfterStatus}
+      hideDates={!datesEnabled}
+      onChecklistToggle={
+        onAutoSaveDescription
+          ? (ev) => onAutoSaveDescription(ev.html)
+          : undefined
+      }
+    />
   );
 };

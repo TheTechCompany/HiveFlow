@@ -967,7 +967,7 @@ export const Schedule: React.FC<any> = (props) => {
                   onClick={() => {
                     const project = rowOptions?.find((a: any) => a.id === group.id);
                     if (project && group.id !== 'on-leave') {
-                      router(`/${project?.project ? "projects" : "estimates"}/${project.displayId}/timeline`);
+                      router(`/${project?.project ? "projects" : "estimates"}/${project.displayId}/tickets`);
                     }
                   }}
                 >

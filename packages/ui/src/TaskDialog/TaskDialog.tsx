@@ -1,5 +1,9 @@
 // ── TaskDialog — Reusable task create / edit / view dialog ──────────
 //
+// Click-to-edit: each field flips individually when clicked.  A "Save"
+// button appears once anything is dirty.  An optional expandable sidebar
+// provides Comments / Activity / People tabs without cluttering the form.
+//
 // Pure UI component — all data flows in via props.  No GraphQL, no
 // routing, no side effects.  The host app owns the submit/delete logic.
 
@@ -17,13 +21,19 @@ import {
   IconButton,
   MenuItem,
   Select,
+  Tab,
+  Tabs,
   TextField,
   Typography,
   type SelectChangeEvent,
 } from '@mui/material';
-import { Edit, Label } from '@mui/icons-material';
+import {
+  ChatBubbleOutline,
+  Edit,
+  Label,
+} from '@mui/icons-material';
 import { RichTextEditor } from '../RichTextEditor';
-import type { TaskDialogProps, TaskData, TaskStatus } from './types';
+import type { TaskDialogProps, TaskData, TaskStatus, SidebarTab } from './types';
 
 // ── Constants ───────────────────────────────────────────────────────
 
@@ -44,12 +54,24 @@ const emptyTask = (): TaskData => ({
   endDate: '',
 });
 
-/** Derive the dialog label from `mode` and whether data is present. */
-function dialogTitle(mode: TaskDialogProps['mode'], hasId: boolean): string {
-  if (mode === 'create') return 'New Task';
-  if (mode === 'edit') return 'Edit Task';
-  // view
-  return hasId ? 'Task Details' : 'Task';
+/** True when the task has meaningful data (not just an empty shell). */
+function hasData(t: TaskData | undefined): boolean {
+  if (t == null) return false;
+  return (
+    !!t.title ||
+    !!t.description ||
+    !!t.status ||
+    !!t.startDate ||
+    !!t.endDate
+  );
+}
+
+/** Format an ISO date (YYYY-MM-DD) for display as dd/mm/yyyy. */
+function formatDate(iso: string | undefined): string {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-');
+  if (!y || !m || !d) return '—';
+  return `${d}/${m}/${y}`;
 }
 
 // ── Default date field (native <input type="date"> via MUI TextField) ─
@@ -58,16 +80,67 @@ const DefaultDateField: React.FC<{
   label: string;
   value?: string;
   onChange: (iso: string) => void;
-}> = ({ label, value, onChange }) => (
+  autoFocus?: boolean;
+  onBlur?: () => void;
+}> = ({ label, value, onChange, autoFocus, onBlur }) => (
   <TextField
     size="small"
     type="date"
     label={label}
+    autoFocus={autoFocus}
     value={value ?? ''}
     onChange={(e) => onChange(e.target.value)}
+    onBlur={onBlur}
     InputLabelProps={{ shrink: true }}
   />
 );
+
+// ── Sidebar panel ───────────────────────────────────────────────────
+
+const SidebarPanel: React.FC<{
+  tabs: SidebarTab[];
+}> = ({ tabs }) => {
+  const [tab, setTab] = useState(0);
+
+  return (
+    <>
+      <Divider orientation="vertical" flexItem />
+      <Box
+        sx={{
+          flex: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: 0,
+          overflow: 'hidden',
+        }}
+      >
+        <Tabs
+          value={tab}
+          onChange={(_, v) => setTab(v)}
+          sx={{ px: 2, pt: 1 }}
+        >
+          {tabs.map((t, i) => (
+            <Tab
+              key={t.key}
+              icon={t.icon}
+              label={
+                t.badge != null && t.badge > 0
+                  ? `${t.label} (${t.badge})`
+                  : t.label
+              }
+              iconPosition="start"
+              sx={{ minHeight: 40, fontSize: '0.8rem' }}
+            />
+          ))}
+        </Tabs>
+        <Divider />
+        <Box sx={{ flex: 1, overflow: 'auto' }}>
+          {tabs[tab]?.content}
+        </Box>
+      </Box>
+    </>
+  );
+};
 
 // ── Component ───────────────────────────────────────────────────────
 
@@ -75,57 +148,102 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
   open,
   onClose,
   task: taskProp,
-  mode: modeProp,
   onSubmit,
   onDelete,
   title: titleOverride,
+  sidebar,
+  headerPrefix,
   renderHeaderActions,
   renderExtraFields,
+  renderSubtasks,
+  renderDependencies,
   renderDateField,
+  renderAfterStatus,
+  hideDates,
+  onChecklistToggle,
 }) => {
-  // ── Derived state ───────────────────────────────────────────────
+  // ── State ──────────────────────────────────────────────────────
 
-  const hasId = taskProp != null && Object.keys(taskProp).length > 0;
-  const [mode, setMode] = useState<'create' | 'edit' | 'view'>(
-    modeProp ?? (hasId ? 'view' : 'create'),
-  );
   const [task, setTask] = useState<TaskData>(taskProp ?? emptyTask());
+  const [dirty, setDirty] = useState(false);
+  const [activeField, setActiveField] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // Sync external task data when the prop changes (e.g. opening for a
-  // different task).
+  // Sidebar
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Is this a "create" flow? (no existing data)
+  const isCreate = !hasData(taskProp);
+
+  // ── Sync with external task prop ───────────────────────────────
+
   useEffect(() => {
     const next = taskProp ?? emptyTask();
     setTask(next);
-    setMode(modeProp ?? (Object.keys(next).length > 0 && next.title ? 'view' : 'create'));
-  }, [taskProp, modeProp]);
+    setDirty(false);
+    setActiveField(null);
+    setSubmitting(false);
+    setDeleting(false);
+    setSidebarOpen(false);
+  }, [taskProp]);
 
-  // Reset local state when the dialog opens.
+  // Auto-focus title for create flow.
   useEffect(() => {
-    if (open) {
-      const next = taskProp ?? emptyTask();
-      setTask(next);
-      setMode(modeProp ?? (Object.keys(next).length > 0 && next.title ? 'view' : 'create'));
-      setSubmitting(false);
-      setDeleting(false);
+    if (open && isCreate) {
+      setActiveField('title');
+      setDirty(true); // show Save immediately so the user can create
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, isCreate]);
 
-  // ── Handlers ────────────────────────────────────────────────────
+  // Focus the active field's input after React commits the DOM.
+  useEffect(() => {
+    if (!activeField) return;
+    const id = requestAnimationFrame(() => {
+      const container = document.querySelector(
+        `[data-edit-field="${activeField}"]`,
+      );
+      if (container) {
+        const input = container.querySelector(
+          'input:not([type="hidden"]), textarea, [contenteditable="true"], [role="combobox"]',
+        );
+        if (input) (input as HTMLElement).focus();
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [activeField]);
+
+  // ── Helpers ────────────────────────────────────────────────────
 
   const handleField = useCallback(
-    <K extends keyof TaskData>(key: K, value: TaskData[K]) =>
-      setTask((prev) => ({ ...prev, [key]: value })),
+    <K extends keyof TaskData>(key: K, value: TaskData[K]) => {
+      setTask((prev) => ({ ...prev, [key]: value }));
+      setDirty(true);
+    },
     [],
   );
+
+  const editable = (name: string) => activeField === name;
+  const openField = (name: string) => {
+    setActiveField(name);
+    if (!isCreate) setDirty(true);
+  };
+
+  // ── Actions ────────────────────────────────────────────────────
+
+  const handleCancel = useCallback(() => {
+    setTask(taskProp ?? emptyTask());
+    setActiveField(null);
+    setDirty(false);
+  }, [taskProp]);
 
   const handleSubmit = async () => {
     if (!onSubmit) return;
     setSubmitting(true);
     try {
       await onSubmit(task);
+      setDirty(false);
+      setActiveField(null);
     } finally {
       setSubmitting(false);
     }
@@ -141,13 +259,33 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
     }
   };
 
-  const editing = mode === 'create' || mode === 'edit';
+  // ── Derived ────────────────────────────────────────────────────
 
-  // ── Render ──────────────────────────────────────────────────────
+  const isEditing = activeField !== null || isCreate;
+  const showDelete = hasData(taskProp) && onDelete;
+  const headerTitle =
+    titleOverride ?? (isCreate ? 'New Task' : 'Task Details');
+  const sidebarBadge = sidebar?.reduce(
+    (sum, t) => sum + (t.badge ?? 0),
+    0,
+  );
+
+  // ── Render ─────────────────────────────────────────────────────
 
   return (
-    <Dialog maxWidth="md" fullWidth onClose={onClose} open={open}>
-      {/* ── Title bar ──────────────────────────────────────────── */}
+    <Dialog
+      maxWidth={sidebarOpen && sidebar ? 'xl' : 'md'}
+      fullWidth
+      onClose={onClose}
+      open={open}
+      PaperProps={{
+        sx: {
+          minHeight: sidebarOpen ? '65vh' : 'auto',
+          transition: 'max-width 0.25s ease',
+        },
+      }}
+    >
+      {/* ── Header ────────────────────────────────────────────── */}
       <DialogTitle sx={{ pb: 1 }}>
         <Box
           sx={{
@@ -156,181 +294,315 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
             justifyContent: 'space-between',
           }}
         >
-          <Typography variant="h6" fontWeight="bold">
-            {titleOverride ?? dialogTitle(mode, hasId)}
-          </Typography>
-          {renderHeaderActions?.()}
+          {/* Left: prefix + title */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+            {headerPrefix}
+            <Typography variant="h6" fontWeight="bold">
+              {headerTitle}
+            </Typography>
+          </Box>
+
+          {/* Right: actions + unsaved chip + sidebar toggle */}
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            {renderHeaderActions?.()}
+            {sidebar && sidebar.length > 0 && (
+              <Button
+                size="small"
+                variant={sidebarOpen ? 'contained' : 'outlined'}
+                startIcon={<ChatBubbleOutline fontSize="small" />}
+                onClick={() => setSidebarOpen((p) => !p)}
+              >
+                {sidebarOpen
+                  ? 'Hide sidebar'
+                  : sidebarBadge && sidebarBadge > 0
+                    ? `Sidebar (${sidebarBadge})`
+                    : 'Sidebar'}
+              </Button>
+            )}
+          </Box>
         </Box>
       </DialogTitle>
       <Divider />
 
-      {/* ── Body ───────────────────────────────────────────────── */}
-      <DialogContent
-        sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2, pb: 1 }}
-      >
-        {/* Title */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {editing ? (
-            <TextField
-              label="Title"
-              fullWidth
-              size="small"
-              value={task.title ?? ''}
-              onChange={(e) => handleField('title', e.target.value)}
-              InputProps={{
-                startAdornment: <Label sx={{ mr: 1, color: 'text.secondary' }} />,
-              }}
-            />
-          ) : (
-            <>
-              <Typography variant="h5" fontWeight="bold">
-                {task.title || '(Untitled)'}
-              </Typography>
-              {hasId && (
-                <IconButton
-                  size="small"
-                  onClick={() => setMode('edit')}
-                  color="primary"
-                >
-                  <Edit fontSize="small" />
-                </IconButton>
-              )}
-            </>
-          )}
-        </Box>
-
-        {/* Description */}
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-            <Typography variant="caption" color="text.secondary">
-              Description
-            </Typography>
-            {!editing && hasId && (
-              <IconButton
+      {/* ── Body: form + optional sidebar ──────────────────────── */}
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        {/* ── Left: form (click-to-edit) ────────────────────── */}
+        <DialogContent
+          sx={{
+            flex: sidebarOpen ? 3 : 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            pt: 2,
+            pb: 1,
+            transition: 'flex 0.25s ease',
+          }}
+        >
+          {/* Title — click to edit */}
+          <Box
+            onClick={() => openField('title')}
+            data-edit-field="title"
+            sx={{ cursor: 'pointer' }}
+          >
+            {editable('title') ? (
+              <TextField
+                label="Title"
+                fullWidth
                 size="small"
-                onClick={() => setMode('edit')}
-                color="primary"
-                sx={{ p: 0.25 }}
+                autoFocus
+                value={task.title ?? ''}
+                onChange={(e) => handleField('title', e.target.value)}
+                onBlur={() => setActiveField(null)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setActiveField(null);
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <Label sx={{ mr: 1, color: 'text.secondary' }} />
+                  ),
+                }}
+              />
+            ) : (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  '&:hover .edit-hint': { opacity: 1 },
+                }}
               >
-                <Edit sx={{ fontSize: 14 }} />
-              </IconButton>
-            )}
-          </Box>
-          <RichTextEditor
-            editable={editing}
-            value={task.description ?? ''}
-            onChange={(html) => handleField('description', html)}
-            placeholder="Add a description…"
-            minHeight={200}
-          />
-        </Box>
-
-        {/* Status */}
-        <Box>
-          {editing ? (
-            <Select
-              size="small"
-              value={task.status ?? 'Backlog'}
-              onChange={(e: SelectChangeEvent) =>
-                handleField('status', e.target.value as TaskStatus)
-              }
-              fullWidth
-            >
-              {STATUSES.map((s) => (
-                <MenuItem key={s} value={s}>
-                  {s}
-                </MenuItem>
-              ))}
-            </Select>
-          ) : (
-            <>
-              <Typography variant="caption" color="text.secondary">
-                Status
-              </Typography>
-              <Box sx={{ mt: 0.25 }}>
-                <Chip
-                  label={task.status ?? '—'}
-                  size="small"
+                <Typography variant="h5" fontWeight="bold">
+                  {task.title || '(Untitled)'}
+                </Typography>
+                <Edit
+                  className="edit-hint"
                   sx={{
-                    bgcolor: STATUS_COLOUR[task.status as TaskStatus] ?? '#9e9e9e',
-                    color: 'white',
+                    fontSize: 16,
+                    color: 'text.disabled',
+                    opacity: 0,
+                    transition: 'opacity 0.15s',
                   }}
                 />
               </Box>
-            </>
+            )}
+          </Box>
+
+          {/* Description — click to edit */}
+          <Box
+            onClick={() => openField('description')}
+            data-edit-field="description"
+            sx={{ cursor: 'pointer' }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                mb: 0.5,
+                '&:hover .edit-hint': { opacity: 1 },
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                Description
+              </Typography>
+              <Edit
+                className="edit-hint"
+                sx={{
+                  fontSize: 14,
+                  color: 'text.disabled',
+                  opacity: 0,
+                  transition: 'opacity 0.15s',
+                }}
+              />
+            </Box>
+            <RichTextEditor
+              editable={editable('description')}
+              value={task.description ?? ''}
+              onChange={(html) => handleField('description', html)}
+              onChecklistToggle={onChecklistToggle}
+              placeholder="Add a description…"
+              minHeight={sidebarOpen ? 140 : 180}
+            />
+          </Box>
+
+          {/* Status + Owner row */}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 1.5,
+            }}
+          >
+            {/* Status — click to edit */}
+            <Box
+              onClick={() => openField('status')}
+              data-edit-field="status"
+              sx={{ cursor: 'pointer' }}
+            >
+              {editable('status') ? (
+                <Select
+                  size="small"
+                  autoFocus
+                  value={task.status ?? 'Backlog'}
+                  onChange={(e: SelectChangeEvent) => {
+                    handleField('status', e.target.value as TaskStatus);
+                    setActiveField(null);
+                  }}
+                  onBlur={() => setActiveField(null)}
+                  fullWidth
+                >
+                  {STATUSES.map((s) => (
+                    <MenuItem key={s} value={s}>
+                      {s}
+                    </MenuItem>
+                  ))}
+                </Select>
+              ) : (
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Status
+                  </Typography>
+                  <Box
+                    sx={{
+                      mt: 0.25,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      '&:hover .edit-hint': { opacity: 1 },
+                    }}
+                  >
+                    <Chip
+                      label={task.status ?? '—'}
+                      size="small"
+                      sx={{
+                        bgcolor:
+                          STATUS_COLOUR[
+                            task.status as TaskStatus
+                          ] ?? '#9e9e9e',
+                        color: 'white',
+                      }}
+                    />
+                    <Edit
+                      className="edit-hint"
+                      sx={{
+                        fontSize: 14,
+                        color: 'text.disabled',
+                        opacity: 0,
+                        transition: 'opacity 0.15s',
+                      }}
+                    />
+                  </Box>
+                </Box>
+              )}
+            </Box>
+
+            {/* Owner / creator (injected) */}
+            {renderAfterStatus?.() ?? <Box />}
+          </Box>
+
+          {/* Dates row */}
+          {!hideDates && (
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 1.5,
+            }}
+          >
+            {/* Dates — click to edit */}
+            {(['startDate', 'endDate'] as const).map((key) => {
+              const label =
+                key === 'startDate' ? 'Start Date' : 'End Date';
+
+              if (editable(key) && renderDateField) {
+                return (
+                  <Box key={key}>
+                    {renderDateField({
+                      label,
+                      value: task[key],
+                      onChange: (v) => handleField(key, v),
+                      editable: true,
+                    })}
+                  </Box>
+                );
+              }
+
+              return (
+                <Box
+                  key={key}
+                  onClick={() => openField(key)}
+                  data-edit-field={key}
+                  sx={{ cursor: 'pointer' }}
+                >
+                  <Typography variant="caption" color="text.secondary">
+                    {label}
+                  </Typography>
+                  {editable(key) ? (
+                    <DefaultDateField
+                      label={label}
+                      value={task[key]}
+                      onChange={(v) => handleField(key, v)}
+                      autoFocus
+                      onBlur={() => setActiveField(null)}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        mt: 0.25,
+                        '&:hover .edit-hint': { opacity: 1 },
+                      }}
+                    >
+                      <Typography variant="body2">
+                        {formatDate(task[key])}
+                      </Typography>
+                      <Edit
+                        className="edit-hint"
+                        sx={{
+                          fontSize: 14,
+                          color: 'text.disabled',
+                          opacity: 0,
+                          transition: 'opacity 0.15s',
+                        }}
+                      />
+                    </Box>
+                  )}
+                </Box>
+              );
+            })}
+          </Box>
           )}
-        </Box>
 
-        {/* Dates */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 1.5,
-          }}
-        >
-          {editing ? (
-            renderDateField ? (
-              <>
-                {renderDateField({
-                  label: 'Start Date',
-                  value: task.startDate,
-                  onChange: (v) => handleField('startDate', v),
-                  editable: editing,
-                })}
-                {renderDateField({
-                  label: 'End Date',
-                  value: task.endDate,
-                  onChange: (v) => handleField('endDate', v),
-                  editable: editing,
-                })}
-              </>
-            ) : (
-              <>
-                <DefaultDateField
-                  label="Start Date"
-                  value={task.startDate}
-                  onChange={(v) => handleField('startDate', v)}
-                />
-                <DefaultDateField
-                  label="End Date"
-                  value={task.endDate}
-                  onChange={(v) => handleField('endDate', v)}
-                />
-              </>
-            )
-          ) : (
-            <>
-              <Box>
-                <Typography variant="caption" color="text.secondary">
-                  Start Date
-                </Typography>
-                <Typography variant="body2">{task.startDate || '—'}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary">
-                  End Date
-                </Typography>
-                <Typography variant="body2">{task.endDate || '—'}</Typography>
-              </Box>
-            </>
-          )}
-        </Box>
+          {/* App-specific extra fields */}
+          {renderExtraFields?.(activeField)}
 
-        {/* App-specific extra fields */}
-        {renderExtraFields?.(editing)}
-      </DialogContent>
+          {/* Subtasks */}
+          {renderSubtasks?.()}
 
-      {/* ── Footer ──────────────────────────────────────────────── */}
+          {/* Dependencies */}
+          {renderDependencies?.()}
+        </DialogContent>
+
+        {/* ── Right panel: expandable sidebar ────────────────── */}
+        {sidebarOpen && sidebar && sidebar.length > 0 && (
+          <SidebarPanel tabs={sidebar} />
+        )}
+      </Box>
+
+      {/* ── Footer ────────────────────────────────────────────── */}
+      <Divider />
       <DialogActions
         sx={{
           px: 3,
           pb: 2,
           display: 'flex',
-          justifyContent: hasId && onDelete ? 'space-between' : 'flex-end',
+          justifyContent:
+            showDelete ? 'space-between' : 'flex-end',
         }}
       >
-        {hasId && onDelete && (
+        {showDelete && (
           <Button
             onClick={handleDelete}
             disabled={deleting}
@@ -342,21 +614,29 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
           </Button>
         )}
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button onClick={onClose} size="small">
-            {editing ? 'Cancel' : 'Close'}
-          </Button>
-          {editing && onSubmit && (
-            <Button
-              onClick={handleSubmit}
-              disabled={submitting}
-              color="primary"
-              variant="contained"
-              size="small"
-            >
-              {submitting ? (
-                <CircularProgress size={18} sx={{ mr: 0.5 }} />
-              ) : null}
-              {mode === 'create' ? 'Create' : 'Save'}
+          {isEditing ? (
+            <>
+              <Button onClick={handleCancel} size="small">
+                Cancel
+              </Button>
+              {onSubmit && (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  color="primary"
+                  variant="contained"
+                  size="small"
+                >
+                  {submitting ? (
+                    <CircularProgress size={18} sx={{ mr: 0.5 }} />
+                  ) : null}
+                  {isCreate ? 'Create' : 'Save'}
+                </Button>
+              )}
+            </>
+          ) : (
+            <Button onClick={onClose} size="small">
+              Close
             </Button>
           )}
         </Box>

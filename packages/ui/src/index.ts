@@ -18,7 +18,7 @@ export type { RichTextEditorProps } from './RichTextEditor';
 
 // TaskDialog
 export { TaskDialog } from './TaskDialog';
-export type { TaskDialogProps, TaskData, TaskStatus, DateFieldDef } from './TaskDialog';
+export type { TaskDialogProps, TaskData, TaskStatus, DateFieldDef, SidebarTab, ChecklistToggleEvent } from './TaskDialog';
 
 // HandoverDialog
 export { HandoverDialog } from './HandoverDialog';

@@ -50,6 +50,10 @@ export const GET_PROJECT = gql`
           id
           name
         }
+        createdBy {
+          id
+          name
+        }
         requiredSkills
         lastUpdated
         dependencyOn {
