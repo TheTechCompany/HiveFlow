@@ -20,6 +20,17 @@ export type { RichTextEditorProps } from './RichTextEditor';
 export { TaskDialog } from './TaskDialog';
 export type { TaskDialogProps, TaskData, TaskStatus, DateFieldDef } from './TaskDialog';
 
+// HandoverDialog
+export { HandoverDialog } from './HandoverDialog';
+export type {
+  HandoverDialogProps,
+  HandoverTask,
+  HandoverTaskStatus,
+  HandoverPerson,
+  HandoverProject,
+  HandoverAssignment,
+} from './HandoverDialog';
+
 // TreeBranch
 export { TreeBranch, TREE_INDENT_PER_DEPTH, TREE_TWISTY_WIDTH } from './TreeBranch';
 export type { TreeBranchProps } from './TreeBranch';

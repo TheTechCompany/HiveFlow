@@ -12,6 +12,7 @@ import { useQuery as useApollo, useMutation as useApolloMutation, gql, useApollo
 import { ScheduleItem, ScheduleModal } from '../../modals/schedule';
 import { Timeline, type TimelineItem, type TimelineGroup, type TimelineStep, type ItemChange, type HighlightedDay } from '@hive-flow/ui';
 import { SchedulingModal } from './modal';
+import { HandoverScheduleWrapper } from './handover-wrapper';
 import { mergeDateRanges, subtractIntervals } from './utils';
 import { Collapse, Typography, Box, Paper, Popover, Menu as UIMenu, MenuItem, IconButton, Switch } from '@mui/material';
 import { groupBy, head } from 'lodash';
@@ -604,7 +605,7 @@ export const Schedule: React.FC<any> = (props) => {
           open={leaveOpen}
           onClose={() => openLeave(false)}
         />
-        <SchedulingModal
+        <HandoverScheduleWrapper
           open={modalOpen}
           selected={selected}
           projects={projects}
