@@ -156,6 +156,7 @@ export const TableView: React.FC<TableViewProps> = ({
       component={Paper}
       sx={{
         flex: 1,
+        overflow: 'auto',
         bgcolor: 'background.paper',
         borderTopLeftRadius: 0,
         borderTopRightRadius: 0,

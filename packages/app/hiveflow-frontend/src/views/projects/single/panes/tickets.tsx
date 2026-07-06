@@ -945,7 +945,7 @@ export const TicketsPane: React.FC = () => {
           />
         </Box>
       ) : viewMode === 'list' ? (
-        <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
           <TableView
             columns={columns}
             onSelectCard={handleSelectCard}
