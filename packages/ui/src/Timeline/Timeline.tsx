@@ -638,8 +638,10 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
       const cx = panDrag.currentX - bodyRect.left - sw;
       const left = Math.min(sx, cx);
       const width = Math.max(4, Math.abs(cx - sx));
-      const top = panDrag.targetRowTop;
-      const height = panDrag.targetRowHeight || totalRowsHeight;
+      // When dragging below all rows (targetRowHeight === 0), show a
+      // single-row ghost at the bottom — signalling a new-lane creation.
+      const top = panDrag.targetRowHeight ? panDrag.targetRowTop : totalRowsHeight;
+      const height = panDrag.targetRowHeight || defaultLaneH;
       return (
         <div
           style={{

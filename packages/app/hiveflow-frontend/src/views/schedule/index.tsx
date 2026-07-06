@@ -447,12 +447,18 @@ export const Schedule: React.FC<any> = (props) => {
       timelineItems.map((item) => item.groupId).filter(Boolean),
     );
 
-    const groups: TimelineGroup[] = rowOptions
+    const groups: TimelineGroup[] = [];
+
+    // Always show an empty placeholder row at the top for adding new items
+    groups.push({ id: '__add__', label: 'Click or drag to add...' });
+
+    const projectGroups = rowOptions
       .filter((x) => activeGroupIds.has(x.id))
       .map((x) => ({
         id: x.id,
         label: `${x.displayId ? x.displayId + ' - ' : ''}${x.name}`,
       }));
+    groups.push(...projectGroups);
 
     // Only show On Leave group if there are leave items
     if (activeGroupIds.has('on-leave')) {
@@ -719,7 +725,7 @@ export const Schedule: React.FC<any> = (props) => {
                 return task.endDate?.getTime() > start.getTime() &&
                   task.startDate?.getTime() < end.getTime();
               });
-              if (groupId) {
+              if (groupId && groupId !== '__add__') {
                 tasks = (tasks || []).filter((a: any) => a.project?.id == groupId);
               }
               const event = {
@@ -853,23 +859,51 @@ export const Schedule: React.FC<any> = (props) => {
                 </Box>
               </Box>
             ),
-            renderGroupHeader: (group: TimelineGroup, _expanded: boolean) => (
-              <Typography
-                fontSize={'small'}
-                sx={{
-                  cursor: 'pointer',
-                  '&:hover': { textDecoration: 'underline' },
-                }}
-                onClick={() => {
-                  const project = rowOptions?.find((a: any) => a.id === group.id);
-                  if (project && group.id !== 'on-leave') {
-                    router(`/${project?.project ? "projects" : "estimates"}/${project.displayId}/timeline`);
-                  }
-                }}
-              >
-                {group.label}
-              </Typography>
-            ),
+            renderGroupHeader: (group: TimelineGroup, _expanded: boolean) => {
+              if (group.id === '__add__') {
+                return (
+                  <Box
+                    sx={{
+                      display: 'flex', alignItems: 'center', gap: 0.5,
+                      cursor: 'pointer', color: 'text.secondary',
+                      '&:hover': { color: 'primary.main' },
+                    }}
+                    onClick={() => {
+                      const span = moment(horizon.end).diff(moment(horizon.start), 'milliseconds');
+                      const mid = moment(horizon.start).add(span / 2, 'milliseconds');
+                      const start = mid.clone().startOf('day').toDate();
+                      const end = mid.clone().add(1, 'day').toDate();
+                      setModalDate(start);
+                      setTasks([]);
+                      setSelected({ start, end, groupBy: undefined, data: { people: [], tasks: [] } });
+                      openModal(true);
+                    }}
+                  >
+                    <Add fontSize="small" />
+                    <Typography fontSize={'small'}>
+                      {group.label}
+                    </Typography>
+                  </Box>
+                );
+              }
+              return (
+                <Typography
+                  fontSize={'small'}
+                  sx={{
+                    cursor: 'pointer',
+                    '&:hover': { textDecoration: 'underline' },
+                  }}
+                  onClick={() => {
+                    const project = rowOptions?.find((a: any) => a.id === group.id);
+                    if (project && group.id !== 'on-leave') {
+                      router(`/${project?.project ? "projects" : "estimates"}/${project.displayId}/timeline`);
+                    }
+                  }}
+                >
+                  {group.label}
+                </Typography>
+              );
+            },
           }}
         />
       </ScheduleRootProvider>

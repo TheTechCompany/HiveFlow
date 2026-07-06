@@ -130,6 +130,16 @@ export const HandoverDialog: React.FC<HandoverDialogProps> = ({
   const someChecked =
     selectedTasks.length > 0 && selectedTasks.length < availableTasks.length;
 
+  // People summary — computed at render level so it updates reliably
+  const assignedIds = new Set(
+    assignments.flatMap((a) => a.personIds),
+  );
+  const extraIds = new Set(extraPeople.map((p) => p.id));
+  const allListedIds = new Set([...assignedIds, ...extraIds]);
+  const assignedPeople = people.filter((p) => assignedIds.has(p.id));
+  const availableForExtra = people.filter((p) => !allListedIds.has(p.id));
+  const extraOnlyPeople = extraPeople.filter((p) => !assignedIds.has(p.id));
+
   return (
     <Dialog maxWidth="lg" fullWidth onClose={onClose} open={open}>
       <DialogTitle sx={{ pb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -443,80 +453,55 @@ export const HandoverDialog: React.FC<HandoverDialogProps> = ({
         )}
 
         {/* People summary — always visible */}
-        {(() => {
-          const assignedIds = new Set(
-            assignments.flatMap((a) => a.personIds),
-          );
-          const extraIds = new Set(extraPeople.map((p) => p.id));
-          const allListedIds = new Set([...assignedIds, ...extraIds]);
-          const totalCount = allListedIds.size;
+        <Box sx={{ mt: 1.5 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
+            {assignedPeople.map((p) => {
+              const taskCount = assignments.filter((a) =>
+                a.personIds.includes(p.id),
+              ).length;
+              return (
+                <Chip
+                  key={p.id}
+                  label={`${p.name}${taskCount > 1 ? ` · ${taskCount}` : ''}`}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                  title={`Assigned to ${taskCount} task${taskCount > 1 ? 's' : ''}`}
+                />
+              );
+            })}
 
-          const assignedPeople = people.filter((p) =>
-            assignedIds.has(p.id),
-          );
-          const extraOnlyPeople = extraPeople.filter(
-            (p) => !assignedIds.has(p.id),
-          );
-          const availableForExtra = people.filter(
-            (p) => !allListedIds.has(p.id),
-          );
-
-          return (
-            <Box sx={{ mt: 1.5 }}>
-              <Autocomplete
-                multiple
-                fullWidth
-                size="small"
-                options={availableForExtra}
-                value={extraOnlyPeople}
-                getOptionLabel={(p) => p.name}
-                isOptionEqualToValue={(a, b) => a.id === b.id}
-                onChange={(_e, value) => {
-                  const filtered = value.filter(
-                    (p) => !assignedIds.has(p.id),
-                  );
-                  onExtraPeopleChange(filtered);
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder={totalCount > 0 ? '+ Add' : 'People'}
-                    size="small"
-                    sx={{ '& .MuiInputBase-root': { fontSize: 13 } }}
-                  />
-                )}
-                renderTags={(value, getTagProps) => (
-                  <>
-                    {assignedPeople.map((p) => {
-                      const taskCount = assignments.filter((a) =>
-                        a.personIds.includes(p.id),
-                      ).length;
-                      return (
-                        <Chip
-                          key={p.id}
-                          label={`${p.name}${taskCount > 1 ? ` · ${taskCount}` : ''}`}
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                          title={`Assigned to ${taskCount} task${taskCount > 1 ? 's' : ''}`}
-                        />
-                      );
-                    })}
-                    {value.map((p, ix) => (
-                      <Chip
-                        key={p.id}
-                        label={p.name}
-                        size="small"
-                        variant="outlined"
-                        {...getTagProps({ index: ix })}
-                      />
-                    ))}
-                  </>
-                )}
-              />
-            </Box>
-          );
-        })()}
+            <Autocomplete
+              multiple
+              size="small"
+              options={availableForExtra}
+              value={extraOnlyPeople}
+              getOptionLabel={(p) => p.name}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              onChange={(_e, value) => {
+                onExtraPeopleChange(
+                  value.filter((p) => !assignedIds.has(p.id)),
+                );
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder={
+                    assignedPeople.length + extraOnlyPeople.length > 0
+                      ? '+ Add'
+                      : 'People'
+                  }
+                  size="small"
+                  sx={{
+                    '& .MuiInputBase-root': { fontSize: 13 },
+                    minWidth: 150,
+                  }}
+                />
+              )}
+              sx={{ minWidth: 160 }}
+            />
+          </Box>
+        </Box>
 
         {/* Comment */}
         <Box sx={{ mt: 1.5 }}>

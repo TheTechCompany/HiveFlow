@@ -31,7 +31,7 @@ import type {
 import { AvatarList } from '@hexhive/ui';
 import { stringToColor } from '@hexhive/utils';
 import { gql, useMutation as useApolloMutation, useQuery } from '@apollo/client';
-import { UPDATE_PROJECT_TASK } from '@hive-flow/api';
+import { UPDATE_PROJECT_TASK, CREATE_PROJECT_TASK } from '@hive-flow/api';
 import moment from 'moment';
 import { KanbanBoard } from '../../../../components/KanbanBoard';
 import { TableView } from '../../../../components/TaskViews';
@@ -122,25 +122,34 @@ export const TicketsPane: React.FC = () => {
   const [range, setRange] = useState(() => computeInitialRange(tasks));
   const [ganttStep, setGanttStep] = useState<TimelineStep>('day');
 
+  const [updateTaskDirect] = useApolloMutation(UPDATE_PROJECT_TASK);
+  const [createTaskDirect] = useApolloMutation(CREATE_PROJECT_TASK);
+
   // ── New task row state ───────────────────────────────────────
   const NEW_TASK_ID = '__new_task__';
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskStart, setNewTaskStart] = useState('');
   const [newTaskEnd, setNewTaskEnd] = useState('');
 
-  const handleCreateNewTask = useCallback(() => {
+  const handleCreateNewTask = useCallback(async () => {
     const title = newTaskTitle.trim();
     if (!title) return;
-    createTask?.({
-      status: 'Backlog',
-      title,
-      start: newTaskStart ? new Date(newTaskStart) : new Date(),
-      end: newTaskEnd ? new Date(newTaskEnd) : new Date(),
+    await createTaskDirect({
+      variables: {
+        input: {
+          title,
+          status: 'Backlog',
+          startDate: newTaskStart ? new Date(newTaskStart) : new Date(),
+          endDate: newTaskEnd ? new Date(newTaskEnd) : new Date(),
+          projectId,
+        },
+      },
     });
+    refetch?.();
     setNewTaskTitle('');
     setNewTaskStart('');
     setNewTaskEnd('');
-  }, [newTaskTitle, newTaskStart, newTaskEnd, createTask]);
+  }, [newTaskTitle, newTaskStart, newTaskEnd, createTaskDirect, projectId, refetch]);
 
   // ── Enter-to-commit in sidebar: save field, then focus next ───
   const focusNextSidebarField = useCallback((current: HTMLInputElement) => {
@@ -154,8 +163,6 @@ export const TicketsPane: React.FC = () => {
       setTimeout(() => { next.focus(); next.select(); }, 0);
     }
   }, []);
-
-  const [updateTaskDirect] = useApolloMutation(UPDATE_PROJECT_TASK);
 
   // ── Public holidays ──────────────────────────────────────────
 
@@ -458,6 +465,7 @@ export const TicketsPane: React.FC = () => {
                 onChange={(e) => setNewTaskTitle(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
+                    e.stopPropagation();
                     if (newTaskTitle.trim()) {
                       handleCreateNewTask();
                     } else {
@@ -478,7 +486,7 @@ export const TicketsPane: React.FC = () => {
                 value={newTaskStart}
                 onChange={(e) => setNewTaskStart(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') focusNextSidebarField(e.target as HTMLInputElement);
+                  if (e.key === 'Enter') { e.stopPropagation(); focusNextSidebarField(e.target as HTMLInputElement); }
                 }}
                 InputLabelProps={{ shrink: true }}
                 inputProps={{ 'data-sidebar-input': '' } as any}
@@ -503,7 +511,7 @@ export const TicketsPane: React.FC = () => {
                 value={newTaskEnd}
                 onChange={(e) => setNewTaskEnd(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') focusNextSidebarField(e.target as HTMLInputElement);
+                  if (e.key === 'Enter') { e.stopPropagation(); focusNextSidebarField(e.target as HTMLInputElement); }
                 }}
                 InputLabelProps={{ shrink: true }}
                 inputProps={{ 'data-sidebar-input': '' } as any}
@@ -660,7 +668,7 @@ export const TicketsPane: React.FC = () => {
         </Box>
       );
     },
-    [rowById, collapsed, toggleCollapse, updateTaskField],
+    [rowById, collapsed, toggleCollapse, updateTaskField, newTaskTitle, newTaskStart, newTaskEnd, handleCreateNewTask, focusNextSidebarField],
   );
 
   // ── Kanban handlers ────────────────────────────────────────────
