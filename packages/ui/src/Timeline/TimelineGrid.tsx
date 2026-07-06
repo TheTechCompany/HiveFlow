@@ -147,8 +147,11 @@ export const TimelineGrid: React.FC<TimelineGridProps> = React.memo(
           const hd = highlightMap.get(key);
           if (!hd) return null;
 
-          const x = dateToX(iv.start, start, geometry.pxPerMs);
-          const w = dateToX(iv.end, start, geometry.pxPerMs) - x;
+          let x = dateToX(iv.start, start, geometry.pxPerMs);
+          let w = dateToX(iv.end, start, geometry.pxPerMs) - x;
+          // Clamp to visible area — intervals may start before the horizon
+          if (x + w <= 0) return null;
+          if (x < 0) { w += x; x = 0; }
           const bgColor = hd.color ?? HIGHLIGHT_COLORS[hd.type ?? ''] ?? HIGHLIGHT_COLORS.important;
 
           return (
@@ -180,8 +183,11 @@ export const TimelineGrid: React.FC<TimelineGridProps> = React.memo(
           return day === 0 || day === 6;
         })
         .map((iv, i) => {
-          const x = dateToX(iv.start, start, geometry.pxPerMs);
-          const w = dateToX(iv.end, start, geometry.pxPerMs) - x;
+          let x = dateToX(iv.start, start, geometry.pxPerMs);
+          let w = dateToX(iv.end, start, geometry.pxPerMs) - x;
+          // Clamp to visible area — intervals may start before the horizon
+          if (x + w <= 0) return null;
+          if (x < 0) { w += x; x = 0; }
           return (
             <div
               key={`we-${i}`}
