@@ -111,6 +111,10 @@ export const HandoverDialog: React.FC<HandoverDialogProps> = ({
       onAssignmentChange({ taskId: task.id, personIds: [] });
     } else {
       onTasksChange([...selectedTasks, task]);
+      // Pre-populate with the task's existing members
+      if (task.memberIds && task.memberIds.length > 0) {
+        onAssignmentChange({ taskId: task.id, personIds: task.memberIds });
+      }
     }
   };
 
@@ -119,6 +123,13 @@ export const HandoverDialog: React.FC<HandoverDialogProps> = ({
       onTasksChange([]);
     } else {
       onTasksChange([...availableTasks]);
+      // Pre-populate newly selected tasks with their existing members
+      const currentlySelected = selectedIds(selectedTasks);
+      for (const task of availableTasks) {
+        if (!currentlySelected.has(task.id) && task.memberIds && task.memberIds.length > 0) {
+          onAssignmentChange({ taskId: task.id, personIds: task.memberIds });
+        }
+      }
     }
   };
 
@@ -137,7 +148,6 @@ export const HandoverDialog: React.FC<HandoverDialogProps> = ({
   const extraIds = new Set(extraPeople.map((p) => p.id));
   const allListedIds = new Set([...assignedIds, ...extraIds]);
   const assignedPeople = people.filter((p) => assignedIds.has(p.id));
-  const availableForExtra = people.filter((p) => !allListedIds.has(p.id));
   const extraOnlyPeople = extraPeople.filter((p) => !assignedIds.has(p.id));
 
   return (
@@ -454,53 +464,54 @@ export const HandoverDialog: React.FC<HandoverDialogProps> = ({
 
         {/* People summary — always visible */}
         <Box sx={{ mt: 1.5 }}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
-            {assignedPeople.map((p) => {
-              const taskCount = assignments.filter((a) =>
-                a.personIds.includes(p.id),
-              ).length;
-              return (
-                <Chip
-                  key={p.id}
-                  label={`${p.name}${taskCount > 1 ? ` · ${taskCount}` : ''}`}
-                  size="small"
-                  color="primary"
-                  variant="outlined"
-                  title={`Assigned to ${taskCount} task${taskCount > 1 ? 's' : ''}`}
-                />
+          <Autocomplete
+            multiple
+            fullWidth
+            size="small"
+            options={people.filter((p) => !allListedIds.has(p.id))}
+            value={[...assignedPeople, ...extraOnlyPeople]}
+            getOptionLabel={(p) => p.name}
+            isOptionEqualToValue={(a, b) => a.id === b.id}
+            onChange={(_e, value) => {
+              onExtraPeopleChange(
+                value.filter((p) => !assignedIds.has(p.id)),
               );
-            })}
-
-            <Autocomplete
-              multiple
-              size="small"
-              options={availableForExtra}
-              value={extraOnlyPeople}
-              getOptionLabel={(p) => p.name}
-              isOptionEqualToValue={(a, b) => a.id === b.id}
-              onChange={(_e, value) => {
-                onExtraPeopleChange(
-                  value.filter((p) => !assignedIds.has(p.id)),
+            }}
+            renderTags={(value, getTagProps) =>
+              value.map((p, ix) => {
+                const isAssigned = assignedIds.has(p.id);
+                const tagProps = getTagProps({ index: ix });
+                const taskCount = isAssigned
+                  ? assignments.filter((a) => a.personIds.includes(p.id)).length
+                  : 0;
+                return (
+                  <Chip
+                    key={p.id}
+                    label={`${p.name}${taskCount > 1 ? ` · ${taskCount}` : ''}`}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    {...tagProps}
+                    onDelete={isAssigned ? undefined : tagProps.onDelete}
+                  />
                 );
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  placeholder={
-                    assignedPeople.length + extraOnlyPeople.length > 0
-                      ? '+ Add'
-                      : 'People'
-                  }
-                  size="small"
-                  sx={{
-                    '& .MuiInputBase-root': { fontSize: 13 },
-                    minWidth: 150,
-                  }}
-                />
-              )}
-              sx={{ minWidth: 160 }}
-            />
-          </Box>
+              })
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                placeholder={
+                  assignedPeople.length + extraOnlyPeople.length > 0
+                    ? '+ Add'
+                    : 'People'
+                }
+                size="small"
+                sx={{
+                  '& .MuiInputBase-root': { fontSize: 13 },
+                }}
+              />
+            )}
+          />
         </Box>
 
         {/* Comment */}

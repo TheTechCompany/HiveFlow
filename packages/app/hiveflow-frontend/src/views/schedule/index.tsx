@@ -59,6 +59,9 @@ export const Schedule: React.FC<any> = (props) => {
           title
           startDate
           endDate
+          members {
+            id
+          }
         }
       }
       projects{
@@ -72,6 +75,9 @@ export const Schedule: React.FC<any> = (props) => {
           startDate
           endDate
           requiredSkills
+          members {
+            id
+          }
         }
       }
       equipment {
@@ -635,21 +641,48 @@ export const Schedule: React.FC<any> = (props) => {
 
             if (!schedule.id) {
 
+              // Use schedule.data (new HandoverScheduleWrapper) if present,
+              // otherwise fall back to flat fields from the old SchedulingModal.
+              const dataPayload = schedule.data
+                ? {
+                    people: schedule.data.people,
+                    tasks: schedule.data.tasks,
+                    comment: schedule.data.comment,
+                    assignments: schedule.data.assignments,
+                    comments: schedule.data.comments,
+                  }
+                : {
+                    people: schedule.people,
+                    comments: schedule.comments,
+                    tasks: schedule.tasks,
+                  };
+
               promise = createCalendarItem({
                 variables: {
                   input: {
                     start: schedule.start,
                     end: schedule.end,
                     groupBy: schedule.groupBy,
-                    data: {
-                      people: schedule.people,
-                      comments: schedule.comments,
-                      tasks: schedule.tasks,
-                    }
+                    data: dataPayload,
                   }
                 }
               })
             } else {
+              // Same data-payload logic as the create path above.
+              const dataPayload = schedule.data
+                ? {
+                    people: schedule.data.people,
+                    tasks: schedule.data.tasks,
+                    comment: schedule.data.comment,
+                    assignments: schedule.data.assignments,
+                    comments: schedule.data.comments,
+                  }
+                : {
+                    people: schedule.people,
+                    comments: schedule.comments,
+                    tasks: schedule.tasks,
+                  };
+
               promise = updateCalendarItem({
                 variables: {
                   id: schedule.id,
@@ -657,11 +690,7 @@ export const Schedule: React.FC<any> = (props) => {
                     start: schedule.start,
                     end: schedule.end,
                     groupBy: schedule.groupBy,
-                    data: {
-                      people: schedule.people,
-                      comments: schedule.comments,
-                      tasks: schedule.tasks,
-                    }
+                    data: dataPayload,
                   }
                 }
               })

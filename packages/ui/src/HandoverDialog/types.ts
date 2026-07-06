@@ -8,6 +8,8 @@ export interface HandoverTask {
   status: HandoverTaskStatus;
   startDate?: string; // ISO date string (YYYY-MM-DD)
   endDate?: string;
+  /** IDs of members already assigned to this task. Used to pre-populate assignments. */
+  memberIds?: string[];
 }
 
 export type HandoverTaskStatus = 'Backlog' | 'In Progress' | 'Reviewing' | 'Finished';

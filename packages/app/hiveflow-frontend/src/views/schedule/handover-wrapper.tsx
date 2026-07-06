@@ -51,6 +51,7 @@ function mapTask(t: any): HandoverTask {
     status: (t.status as any) ?? 'Backlog',
     startDate: t.startDate ? toISO(t.startDate) : undefined,
     endDate: t.endDate ? toISO(t.endDate) : undefined,
+    memberIds: (t.members ?? []).map((m: any) => m.id),
   };
 }
 
@@ -75,13 +76,17 @@ function deriveState(selected: any, projects: any[], estimates: any[]) {
     storedTaskIds.has(t.id),
   );
 
+  // Managers come from permissions + createdBy (primary).
+  // Fall back to data.managers only for backward compat with old records.
   const storedManagers: any[] =
-    selected?.data?.managers ??
     (selected?.id
       ? (selected?.permissions ?? [])
           .map((x: any) => x.user)
           .concat(selected?.createdBy ? [selected?.createdBy] : [])
       : []);
+  if (storedManagers.length === 0 && selected?.data?.managers) {
+    storedManagers.push(...selected.data.managers);
+  }
   const managers: HandoverPerson[] = storedManagers.map(mapPerson);
 
   const storedAssignments: HandoverAssignment[] =
@@ -108,10 +113,6 @@ function deriveState(selected: any, projects: any[], estimates: any[]) {
     selected?.data?.comments?.[0]?.message ??
     '';
 
-  const extraPeople: HandoverPerson[] = (
-    selected?.data?.extraPeople ?? selected?.data?.additionalPeople ?? []
-  ).map(mapPerson);
-
   return {
     projectId,
     startDate,
@@ -121,7 +122,6 @@ function deriveState(selected: any, projects: any[], estimates: any[]) {
     managers,
     assignments,
     comment,
-    extraPeople,
   };
 }
 
@@ -178,7 +178,18 @@ export const HandoverScheduleWrapper: React.FC<WrapperProps> = ({
       setManagers(s.managers);
       setAssignments(s.assignments);
       setComment(s.comment);
-      setExtraPeople(s.extraPeople);
+
+      // Derive extra people: data.people IDs not covered by any assignment.
+      const peopleIds: string[] = selected?.data?.people ?? [];
+      const assignedIds = new Set(
+        s.assignments.flatMap((a: HandoverAssignment) => a.personIds),
+      );
+      const extraIds = peopleIds.filter((id: string) => !assignedIds.has(id));
+      const extraPeopleList: HandoverPerson[] = extraIds
+        .map((id: string) => allPeople.find((p: any) => p.id === id))
+        .filter(Boolean)
+        .map(mapPerson);
+      setExtraPeople(extraPeopleList);
     }
     prevOpenRef.current = open;
   }, [open, selected, projects, estimates]);
@@ -216,6 +227,7 @@ export const HandoverScheduleWrapper: React.FC<WrapperProps> = ({
     const allAssignedPeople = [
       ...new Set(assignments.flatMap((a) => a.personIds)),
     ];
+    const extraPeopleIds = extraPeople.map((p) => p.id);
 
     const schedule: any = {
       id: selected?.id,
@@ -229,11 +241,9 @@ export const HandoverScheduleWrapper: React.FC<WrapperProps> = ({
           }
         : undefined,
       data: {
-        people: allAssignedPeople,
+        people: [...new Set([...allAssignedPeople, ...extraPeopleIds])],
         tasks: selectedTasks.map((t) => t.id),
-        managers: managers,
         comment: comment || undefined,
-        extraPeople: extraPeople,
         comments: selected?.data?.comments ?? [],
         assignments: assignments.filter((a) => a.personIds.length > 0),
       },
@@ -247,7 +257,6 @@ export const HandoverScheduleWrapper: React.FC<WrapperProps> = ({
     endDate,
     assignments,
     selectedTasks,
-    managers,
     extraPeople,
     comment,
     allProjects,
