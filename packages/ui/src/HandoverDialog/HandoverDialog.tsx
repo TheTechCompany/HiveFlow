@@ -16,6 +16,8 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  IconButton,
+  Paper,
   Table,
   TableBody,
   TableCell,
@@ -25,7 +27,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { Edit, PictureAsPdf } from '@mui/icons-material';
+import { Edit, PictureAsPdf, Close, Send } from '@mui/icons-material';
 import type {
   HandoverDialogProps,
   HandoverTask,
@@ -78,8 +80,9 @@ export const HandoverDialog: React.FC<HandoverDialogProps> = ({
   people,
   assignments,
   onAssignmentChange,
-  comment,
-  onCommentChange,
+  comments,
+  onAddComment,
+  onDeleteComment,
   extraPeople,
   onExtraPeopleChange,
   onExportPdf,
@@ -91,6 +94,7 @@ export const HandoverDialog: React.FC<HandoverDialogProps> = ({
   );
 
   const [editingTasks, setEditingTasks] = useState(!handoverId);
+  const [newComment, setNewComment] = useState('');
 
   // Reset edit mode each time the dialog opens
   const prevOpenRef = useRef(false);
@@ -131,6 +135,13 @@ export const HandoverDialog: React.FC<HandoverDialogProps> = ({
         }
       }
     }
+  };
+
+  const handleSendComment = () => {
+    const trimmed = newComment.trim();
+    if (!trimmed) return;
+    onAddComment(trimmed);
+    setNewComment('');
   };
 
   // ── Render ────────────────────────────────────────────────────
@@ -238,6 +249,58 @@ export const HandoverDialog: React.FC<HandoverDialogProps> = ({
           />
         </Box>
 
+        {/* People summary — always visible */}
+        <Box sx={{ mb: 1.5 }}>
+          <Autocomplete
+            multiple
+            fullWidth
+            size="small"
+            options={people.filter((p) => !allListedIds.has(p.id))}
+            value={[...assignedPeople, ...extraOnlyPeople]}
+            getOptionLabel={(p) => p.name}
+            isOptionEqualToValue={(a, b) => a.id === b.id}
+            onChange={(_e, value) => {
+              onExtraPeopleChange(
+                value.filter((p) => !assignedIds.has(p.id)),
+              );
+            }}
+            renderTags={(value, getTagProps) =>
+              value.map((p, ix) => {
+                const isAssigned = assignedIds.has(p.id);
+                const tagProps = getTagProps({ index: ix });
+                const taskCount = isAssigned
+                  ? assignments.filter((a) => a.personIds.includes(p.id)).length
+                  : 0;
+                return (
+                  <Chip
+                    key={p.id}
+                    label={`${p.name}${taskCount > 1 ? ` · ${taskCount}` : ''}`}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    {...tagProps}
+                    onDelete={isAssigned ? undefined : tagProps.onDelete}
+                  />
+                );
+              })
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                placeholder={
+                  assignedPeople.length + extraOnlyPeople.length > 0
+                    ? '+ Add'
+                    : 'People'
+                }
+                size="small"
+                sx={{
+                  '& .MuiInputBase-root': { fontSize: 13 },
+                }}
+              />
+            )}
+          />
+        </Box>
+
         {/* Tasks */}
         {selectedProject && availableTasks.length > 0 && (
           <>
@@ -315,6 +378,16 @@ export const HandoverDialog: React.FC<HandoverDialogProps> = ({
                       }}
                     >
                       People
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontWeight: 600,
+                        width: 160,
+                        bgcolor: 'secondary.main',
+                        color: 'secondary.contrastText',
+                      }}
+                    >
+                      Feedback
                     </TableCell>
                   </TableRow>
                 </TableHead>
@@ -433,6 +506,27 @@ export const HandoverDialog: React.FC<HandoverDialogProps> = ({
                             </Box>
                           )}
                         </TableCell>
+
+                        <TableCell sx={{ width: 160 }}>
+                          {task.feedback ? (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              {task.feedback}
+                            </Typography>
+                          ) : (
+                            <Typography variant="caption" color="text.disabled">
+                              —
+                            </Typography>
+                          )}
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -462,72 +556,81 @@ export const HandoverDialog: React.FC<HandoverDialogProps> = ({
           </Box>
         )}
 
-        {/* People summary — always visible */}
-        <Box sx={{ mt: 1.5 }}>
-          <Autocomplete
-            multiple
-            fullWidth
-            size="small"
-            options={people.filter((p) => !allListedIds.has(p.id))}
-            value={[...assignedPeople, ...extraOnlyPeople]}
-            getOptionLabel={(p) => p.name}
-            isOptionEqualToValue={(a, b) => a.id === b.id}
-            onChange={(_e, value) => {
-              onExtraPeopleChange(
-                value.filter((p) => !assignedIds.has(p.id)),
-              );
-            }}
-            renderTags={(value, getTagProps) =>
-              value.map((p, ix) => {
-                const isAssigned = assignedIds.has(p.id);
-                const tagProps = getTagProps({ index: ix });
-                const taskCount = isAssigned
-                  ? assignments.filter((a) => a.personIds.includes(p.id)).length
-                  : 0;
-                return (
-                  <Chip
-                    key={p.id}
-                    label={`${p.name}${taskCount > 1 ? ` · ${taskCount}` : ''}`}
-                    size="small"
-                    color="primary"
-                    variant="outlined"
-                    {...tagProps}
-                    onDelete={isAssigned ? undefined : tagProps.onDelete}
-                  />
-                );
-              })
-            }
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                placeholder={
-                  assignedPeople.length + extraOnlyPeople.length > 0
-                    ? '+ Add'
-                    : 'People'
-                }
-                size="small"
-                sx={{
-                  '& .MuiInputBase-root': { fontSize: 13 },
-                }}
-              />
-            )}
-          />
-        </Box>
+        {/* Discussion comments */}
+        {handoverId && (
+          <>
+            <Divider sx={{ my: 1.5 }} />
+            <Typography fontWeight="bold" sx={{ mb: 1 }}>
+              Discussion
+            </Typography>
 
-        {/* Comment */}
-        <Box sx={{ mt: 1.5 }}>
-          <TextField
-            fullWidth
-            size="small"
-            label="Comment"
-            multiline
-            minRows={2}
-            maxRows={5}
-            value={comment}
-            onChange={(e) => onCommentChange(e.target.value)}
-            placeholder="Add a general handover comment…"
-          />
-        </Box>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+                mb: 1.5,
+                maxHeight: 200,
+                overflowY: 'auto',
+              }}
+            >
+              {comments.length === 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  No comments yet.
+                </Typography>
+              )}
+              {comments.map((c) => (
+                <Paper
+                  key={c.id}
+                  variant="outlined"
+                  sx={{ p: 1, display: 'flex', alignItems: 'flex-start' }}
+                >
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="body2">{c.message}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {c.userName} — {c.createdAt}
+                    </Typography>
+                  </Box>
+                  <IconButton
+                    size="small"
+                    onClick={() => onDeleteComment(c.id)}
+                    sx={{ ml: 0.5 }}
+                  >
+                    <Close fontSize="small" />
+                  </IconButton>
+                </Paper>
+              ))}
+            </Box>
+
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
+              <TextField
+                fullWidth
+                size="small"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyDown={(e) => {
+                  if (!e.shiftKey && e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSendComment();
+                  }
+                }}
+                placeholder="Write a comment…"
+                multiline
+                minRows={1}
+                maxRows={4}
+              />
+              <Button
+                variant="contained"
+                size="small"
+                onClick={handleSendComment}
+                disabled={!newComment.trim()}
+                sx={{ flexShrink: 0, mb: '2px' }}
+              >
+                <Send fontSize="small" />
+              </Button>
+            </Box>
+          </>
+        )}
       </DialogContent>
 
       <DialogActions

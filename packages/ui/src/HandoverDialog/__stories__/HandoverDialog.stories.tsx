@@ -9,6 +9,7 @@ import type {
   HandoverTask,
   HandoverPerson,
   HandoverAssignment,
+  HandoverComment,
 } from '../types';
 
 // ── Meta ─────────────────────────────────────────────────────────────
@@ -79,8 +80,10 @@ const mockAdditional: HandoverPerson[] = [
   { id: 'eric', name: 'Eric Johansson' },
 ];
 
-const mockComment =
-  'Morning shift handover — Alice covering Diana\'s tasks while she is on leave.';
+const mockComments: HandoverComment[] = [
+  { id: 'c1', message: 'Morning shift handover — Alice covering Diana\'s tasks while she is on leave.', userName: 'Alice Chen', createdAt: '09:30am 06/07' },
+  { id: 'c2', message: 'Noted. I\'ve updated the task list for tomorrow.', userName: 'Bob Martinez', createdAt: '10:15am 06/07' },
+];
 
 // ── Dialog wrapper ───────────────────────────────────────────────────
 
@@ -100,8 +103,9 @@ const actionProps = {
   onTasksChange: action('tasks-change'),
   onAssignmentChange: action('assignment-change'),
   onManagersChange: action('managers-change'),
-  onCommentChange: action('comment-change'),
   onExtraPeopleChange: action('extra-people-change'),
+  onAddComment: action('add-comment'),
+  onDeleteComment: action('delete-comment'),
   onExportPdf: action('export-pdf'),
   onSubmit: action('submit'),
 };
@@ -110,7 +114,7 @@ const emptyDefaults = {
   assignments: [] as HandoverAssignment[],
   managers: [] as HandoverPerson[],
   extraPeople: [] as HandoverPerson[],
-  comment: '',
+  comments: [] as HandoverComment[],
 };
 
 // ── Stories ──────────────────────────────────────────────────────────
@@ -203,7 +207,7 @@ export const FullyPopulated: Story = {
           assignments={mockAssignments}
           managers={mockManagers}
           extraPeople={mockAdditional}
-          comment={mockComment}
+          comments={mockComments}
           {...actionProps}
         />
       )}
@@ -220,7 +224,7 @@ export const Interactive: Story = {
     const [assignments, setAssignments] = useState<HandoverAssignment[]>(mockAssignments);
     const [managers, setManagers] = useState<HandoverPerson[]>(mockManagers);
     const [extraPeople, setExtraPeople] = useState<HandoverPerson[]>(mockAdditional);
-    const [comment, setComment] = useState(mockComment);
+    const [comments, setComments] = useState<HandoverComment[]>(mockComments);
 
     const handleAssignmentChange = useCallback((a: HandoverAssignment) => {
       action('assignment-change')(a);
@@ -265,8 +269,21 @@ export const Interactive: Story = {
             onManagersChange={(m) => { action('managers-change')(m); setManagers(m); }}
             extraPeople={extraPeople}
             onExtraPeopleChange={(p) => { action('extra-people-change')(p); setExtraPeople(p); }}
-            comment={comment}
-            onCommentChange={(c) => { action('comment-change')(c); setComment(c); }}
+            comments={comments}
+            onAddComment={(message) => {
+              action('add-comment')(message);
+              const newComment: HandoverComment = {
+                id: `c${Date.now()}`,
+                message,
+                userName: 'You',
+                createdAt: new Date().toLocaleString(),
+              };
+              setComments((prev) => [...prev, newComment]);
+            }}
+            onDeleteComment={(commentId) => {
+              action('delete-comment')(commentId);
+              setComments((prev) => prev.filter((c) => c.id !== commentId));
+            }}
             onExportPdf={action('export-pdf')}
             onSubmit={action('submit')}
           />

@@ -29,6 +29,7 @@ export type {
   HandoverPerson,
   HandoverProject,
   HandoverAssignment,
+  HandoverComment,
 } from './HandoverDialog';
 
 // TreeBranch

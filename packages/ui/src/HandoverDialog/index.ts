@@ -8,4 +8,5 @@ export type {
   HandoverPerson,
   HandoverProject,
   HandoverAssignment,
+  HandoverComment,
 } from './types';

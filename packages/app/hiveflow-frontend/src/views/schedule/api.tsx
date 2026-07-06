@@ -62,18 +62,18 @@ export const useAPIFunctions = () => {
             }
         }    
     `, {
-        refetchQueries: ['CommentQuery']
+        refetchQueries: ['CommentQuery', 'CalendarItems']
     })
 
     const [removeCommentOnCalendar] = useMutation(gql`
         
-        mutation($id: ID, $message: ID){
-            removeCommentOnCalendar(id: $id, comment: $message){
+        mutation($id: ID, $commentId: ID){
+            removeCommentOnCalendar(id: $id, comment: $commentId){
                 id
             }
         }    
     `, {
-        refetchQueries: ['CommentQuery']
+        refetchQueries: ['CommentQuery', 'CalendarItems']
     })
 
 
@@ -117,6 +117,15 @@ export const CALENDAR_ITEMS_QUERY = gql`
 
         data
         groupBy
+
+        comments {
+          id
+          message
+          user {
+            name
+          }
+          createdAt
+        }
 
         permissions {
 

@@ -57,6 +57,8 @@ export const Schedule: React.FC<any> = (props) => {
         tasks {
           id
           title
+          description
+          status
           startDate
           endDate
           members {
@@ -72,6 +74,8 @@ export const Schedule: React.FC<any> = (props) => {
         tasks {
           id
           title
+          description
+          status
           startDate
           endDate
           requiredSkills
@@ -111,7 +115,7 @@ export const Schedule: React.FC<any> = (props) => {
     }));
   }, [holidaysData]);
 
-  const { createCalendarItem, updateCalendarItem, deleteCalendarItem } = useAPIFunctions();
+  const { createCalendarItem, updateCalendarItem, deleteCalendarItem, commentOnCalendar, removeCommentOnCalendar } = useAPIFunctions();
   const { calendarData } = useAPIData(fetchHorizon);
 
   const [tasks, setTasks] = useState<any[]>([]);
@@ -581,6 +585,45 @@ export const Schedule: React.FC<any> = (props) => {
 
   const [leaveOpen, openLeave] = useState(false);
 
+  // ── Discussion comments ──────────────────────────────────────────
+  // Derive from calendarData (not selected) so that refetches after
+  // commentOnCalendar / removeCommentOnCalendar mutations update the
+  // list immediately without requiring a dialog close/reopen.
+  const discussionComments = useMemo(() => {
+    if (!selected?.id) return [];
+    const fresh = (calendarData?.calendarItems ?? []).find(
+      (item: any) => item.id === selected.id,
+    );
+    const raw = fresh?.comments ?? [];
+    return raw.map((c: any) => ({
+      id: c.id,
+      message: c.message,
+      userName: c.user?.name ?? 'Unknown',
+      createdAt: c.createdAt
+        ? moment(c.createdAt).format('hh:mma DD/MM')
+        : '',
+    }));
+  }, [selected?.id, calendarData]);
+
+  const handleAddComment = useCallback(
+    (message: string) => {
+      if (!selected?.id) return;
+      commentOnCalendar({
+        variables: { id: selected.id, message },
+      });
+    },
+    [selected?.id, commentOnCalendar],
+  );
+
+  const handleDeleteComment = useCallback(
+    (commentId: string) => {
+      removeCommentOnCalendar({
+        variables: { id: selected?.id, comment: commentId },
+      });
+    },
+    [selected?.id, removeCommentOnCalendar],
+  );
+
   return (
     <Box
       sx={{
@@ -624,6 +667,9 @@ export const Schedule: React.FC<any> = (props) => {
           estimates={estimates}
           people={people}
           tasks={tasks}
+          discussionComments={discussionComments}
+          onAddComment={handleAddComment}
+          onDeleteComment={handleDeleteComment}
           onDelete={() => {
             deleteCalendarItem({
               variables: {
@@ -647,9 +693,7 @@ export const Schedule: React.FC<any> = (props) => {
                 ? {
                     people: schedule.data.people,
                     tasks: schedule.data.tasks,
-                    comment: schedule.data.comment,
                     assignments: schedule.data.assignments,
-                    comments: schedule.data.comments,
                   }
                 : {
                     people: schedule.people,
@@ -673,9 +717,7 @@ export const Schedule: React.FC<any> = (props) => {
                 ? {
                     people: schedule.data.people,
                     tasks: schedule.data.tasks,
-                    comment: schedule.data.comment,
                     assignments: schedule.data.assignments,
-                    comments: schedule.data.comments,
                   }
                 : {
                     people: schedule.people,

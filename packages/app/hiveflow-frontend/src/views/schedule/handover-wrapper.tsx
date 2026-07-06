@@ -14,6 +14,7 @@ import type {
   HandoverTask,
   HandoverPerson,
   HandoverAssignment,
+  HandoverComment,
 } from '@hive-flow/ui';
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -30,6 +31,13 @@ interface WrapperProps {
   estimates?: any[];
   people?: any[];
   tasks?: any[];
+
+  /** Discussion comments from CalendarItemComment[] relation. */
+  discussionComments?: HandoverComment[];
+  /** Called when the user adds a discussion comment. */
+  onAddComment?: (message: string) => void;
+  /** Called when the user deletes a discussion comment. */
+  onDeleteComment?: (commentId: string) => void;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -54,11 +62,41 @@ function mapTask(t: any): HandoverTask {
     startDate: t.startDate ? toISO(t.startDate) : undefined,
     endDate: t.endDate ? toISO(t.endDate) : undefined,
     memberIds: (t.members ?? []).map((m: any) => m.id),
+    feedback: t.handoverNote ?? undefined,
   };
 }
 
 function mapPerson(p: any): HandoverPerson {
   return { id: p.id, name: p.name ?? p.id };
+}
+
+/**
+ * Build the discussion comment list, auto-migrating legacy data.comment
+ * as a synthetic comment when no relation-table comments exist yet.
+ */
+function deriveComments(
+  selected: any,
+  discussionComments?: HandoverComment[],
+): HandoverComment[] {
+  // If we have real relation-table comments, use them.
+  if (discussionComments && discussionComments.length > 0) {
+    return discussionComments;
+  }
+  // Auto-migrate legacy data.comment as a synthetic comment.
+  const legacyComment: string | undefined =
+    selected?.data?.comment ??
+    selected?.data?.comments?.[0]?.message;
+  if (legacyComment?.trim()) {
+    return [
+      {
+        id: '__legacy__',
+        message: legacyComment,
+        userName: 'System',
+        createdAt: '',
+      },
+    ];
+  }
+  return [];
 }
 
 function deriveState(selected: any, projects: any[], estimates: any[]) {
@@ -69,12 +107,13 @@ function deriveState(selected: any, projects: any[], estimates: any[]) {
   const source =
     projects.find((p: any) => p.id === projectId) ??
     estimates.find((e: any) => e.id === projectId);
-  const availableTasks: HandoverTask[] = (source?.tasks ?? []).map(mapTask);
+  const allTasks: HandoverTask[] = (source?.tasks ?? []).map(mapTask);
 
   const storedTaskIds: Set<string> = new Set(
     (selected?.data?.tasks ?? []) as string[],
   );
-  const selectedTasks = availableTasks.filter((t) =>
+  // Include finished tasks that were previously assigned to this handover.
+  const selectedTasks = allTasks.filter((t) =>
     storedTaskIds.has(t.id),
   );
 
@@ -110,20 +149,13 @@ function deriveState(selected: any, projects: any[], estimates: any[]) {
         : [];
   }
 
-  const comment: string =
-    selected?.data?.comment ??
-    selected?.data?.comments?.[0]?.message ??
-    '';
-
   return {
     projectId,
     startDate,
     endDate,
-    availableTasks,
     selectedTasks,
     managers,
     assignments,
-    comment,
   };
 }
 
@@ -137,6 +169,9 @@ export const HandoverScheduleWrapper: React.FC<WrapperProps> = ({
   projects = [],
   estimates = [],
   people = [],
+  discussionComments,
+  onAddComment,
+  onDeleteComment,
 }) => {
   const prevOpenRef = useRef(false);
 
@@ -167,8 +202,13 @@ export const HandoverScheduleWrapper: React.FC<WrapperProps> = ({
   const [selectedTasks, setSelectedTasks] = useState<HandoverTask[]>([]);
   const [managers, setManagers] = useState<HandoverPerson[]>([]);
   const [assignments, setAssignments] = useState<HandoverAssignment[]>([]);
-  const [comment, setComment] = useState('');
   const [extraPeople, setExtraPeople] = useState<HandoverPerson[]>([]);
+
+  // Discussion comments — derived from props + legacy auto-migration.
+  const comments = useMemo(
+    () => deriveComments(selected, discussionComments),
+    [selected, discussionComments],
+  );
 
   // Snapshot ref so the stable export callback always reads fresh state.
   const exportRef = useRef({
@@ -178,7 +218,6 @@ export const HandoverScheduleWrapper: React.FC<WrapperProps> = ({
     selectedTasks: [] as HandoverTask[],
     managers: [] as HandoverPerson[],
     assignments: [] as HandoverAssignment[],
-    comment: '',
     extraPeople: [] as HandoverPerson[],
     allProjects: [] as HandoverProject[],
     allPeople: [] as HandoverPerson[],
@@ -191,7 +230,6 @@ export const HandoverScheduleWrapper: React.FC<WrapperProps> = ({
     selectedTasks,
     managers,
     assignments,
-    comment,
     extraPeople,
     allProjects,
     allPeople,
@@ -269,7 +307,8 @@ export const HandoverScheduleWrapper: React.FC<WrapperProps> = ({
     doc.text('Tasks', leftX, tableStartY);
 
     const head = [['Task', 'People']];
-    const body = s.selectedTasks.map((task) => {
+    const body: any[] = [];
+    s.selectedTasks.forEach((task) => {
       const assignment = s.assignments.find(
         (a) => a.taskId === task.id,
       );
@@ -283,10 +322,19 @@ export const HandoverScheduleWrapper: React.FC<WrapperProps> = ({
         .replace(/<[^>]*>/g, '')
         .substring(0, 120);
 
-      return [`${task.title}\n${desc}`, peopleNames];
-    });
+      const feedback = task.feedback?.trim() || '';
 
-    let afterTableY = tableStartY + 6;
+      // Row 1 — bold title + people (spans both rows)
+      body.push([
+        { content: task.title, styles: { fontStyle: 'bold' } },
+        { content: peopleNames, rowSpan: 2 },
+      ]);
+      // Row 2 — description + feedback + blank writing space
+      body.push([
+        `${desc}\nFeedback: ${feedback}\n \n \n \n `,
+        '',
+      ]);
+    });
 
     if (body.length > 0) {
       autoTable(doc, {
@@ -304,22 +352,9 @@ export const HandoverScheduleWrapper: React.FC<WrapperProps> = ({
           1: { cellWidth: 60 },
         },
         margin: { left: 14, right: 14 },
+        theme: 'grid',
       });
-      afterTableY = (doc as any).lastAutoTable?.finalY ?? tableStartY + 6;
-    } else {
-      doc.setFontSize(10);
-      doc.text('No tasks selected.', leftX, tableStartY + 6);
     }
-
-    // ── Comment (at the bottom) ────────────────────────────────
-    const commentY = afterTableY + 10;
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
-    doc.text('Comment:', leftX, commentY);
-    doc.setFont(undefined, 'normal');
-    const commentText = s.comment || '—';
-    const splitComment = doc.splitTextToSize(commentText, 180);
-    doc.text(splitComment, valueX, commentY);
 
     // ── Save ───────────────────────────────────────────────────
     const filename = `Handover${s.date ? `_${s.date.replace(/\//g, '-')}` : ''}.pdf`;
@@ -335,7 +370,6 @@ export const HandoverScheduleWrapper: React.FC<WrapperProps> = ({
       setSelectedTasks(s.selectedTasks);
       setManagers(s.managers);
       setAssignments(s.assignments);
-      setComment(s.comment);
 
       // Derive extra people: data.people IDs not covered by any assignment.
       const peopleIds: string[] = selected?.data?.people ?? [];
@@ -357,8 +391,31 @@ export const HandoverScheduleWrapper: React.FC<WrapperProps> = ({
     const source =
       projects.find((p: any) => p.id === projectId) ??
       estimates.find((e: any) => e.id === projectId);
-    return (source?.tasks ?? []).map(mapTask);
-  }, [projectId, projects, estimates]);
+    const all = (source?.tasks ?? []).map(mapTask);
+    const selIds = new Set(selectedTasks.map((t) => t.id));
+
+    // Filter out finished tasks unless already selected.
+    const filtered = all.filter(
+      (t: HandoverTask) => t.status !== 'Finished' || selIds.has(t.id),
+    );
+
+    // Sort: tasks overlapping the handover window first, then the rest.
+    const windowStart = startDate ? new Date(startDate) : null;
+    const windowEnd = endDate ? new Date(endDate) : null;
+    const inWindow = (t: HandoverTask): boolean => {
+      if (!windowStart || !windowEnd) return false;
+      const ts = t.startDate ? new Date(t.startDate) : null;
+      const te = t.endDate ? new Date(t.endDate) : null;
+      if (!ts || !te) return false;
+      return ts <= windowEnd && te >= windowStart;
+    };
+
+    return [...filtered].sort((a, b) => {
+      const aIn = inWindow(a) ? 0 : 1;
+      const bIn = inWindow(b) ? 0 : 1;
+      return aIn - bIn;
+    });
+  }, [projectId, projects, estimates, selectedTasks, startDate, endDate]);
 
   // ── Handlers ───────────────────────────────────────────────────
 
@@ -401,8 +458,6 @@ export const HandoverScheduleWrapper: React.FC<WrapperProps> = ({
       data: {
         people: [...new Set([...allAssignedPeople, ...extraPeopleIds])],
         tasks: selectedTasks.map((t) => t.id),
-        comment: comment || undefined,
-        comments: selected?.data?.comments ?? [],
         assignments: assignments.filter((a) => a.personIds.length > 0),
       },
     };
@@ -416,7 +471,6 @@ export const HandoverScheduleWrapper: React.FC<WrapperProps> = ({
     assignments,
     selectedTasks,
     extraPeople,
-    comment,
     allProjects,
     onSubmit,
   ]);
@@ -448,8 +502,9 @@ export const HandoverScheduleWrapper: React.FC<WrapperProps> = ({
       people={allPeople}
       assignments={assignments}
       onAssignmentChange={handleAssignmentChange}
-      comment={comment}
-      onCommentChange={setComment}
+      comments={comments}
+      onAddComment={onAddComment ?? (() => {})}
+      onDeleteComment={onDeleteComment ?? (() => {})}
       extraPeople={extraPeople}
       onExtraPeopleChange={setExtraPeople}
       onExportPdf={handleExportPdf}

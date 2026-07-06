@@ -10,6 +10,8 @@ export interface HandoverTask {
   endDate?: string;
   /** IDs of members already assigned to this task. Used to pre-populate assignments. */
   memberIds?: string[];
+  /** Handover feedback captured on the ticket. */
+  feedback?: string;
 }
 
 export type HandoverTaskStatus = 'Backlog' | 'In Progress' | 'Reviewing' | 'Finished';
@@ -31,6 +33,14 @@ export interface HandoverProject {
 export interface HandoverAssignment {
   taskId: string;
   personIds: string[];
+}
+
+/** A discussion comment on a handover. */
+export interface HandoverComment {
+  id: string;
+  message: string;
+  userName: string;
+  createdAt: string; // ISO date string
 }
 
 export interface HandoverDialogProps {
@@ -99,12 +109,14 @@ export interface HandoverDialogProps {
   /** Called when extra people change. */
   onExtraPeopleChange: (people: HandoverPerson[]) => void;
 
-  // ── Comment ───────────────────────────────────────────────────
+  // ── Discussion comments ─────────────────────────────────────
 
-  /** General comment for the handover. */
-  comment: string;
-  /** Called when the comment changes. */
-  onCommentChange: (comment: string) => void;
+  /** Discussion comments on this handover. */
+  comments: HandoverComment[];
+  /** Called when the user adds a comment. */
+  onAddComment: (message: string) => void;
+  /** Called when the user deletes a comment. */
+  onDeleteComment: (commentId: string) => void;
 
   // ── Actions ────────────────────────────────────────────────────
 

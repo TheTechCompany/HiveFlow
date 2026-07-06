@@ -479,9 +479,10 @@ export default (prisma: PrismaClient) => {
                 return comment
             }, 
             removeCommentOnCalendar: async (root: any, args: any, context: any) => {
-                const comment = await prisma.calendarItemComment.findFirst({
+                const comment = await prisma.calendarItemComment.delete({
                     where: {
-                        id: args.id,
+                        id: args.comment,
+                        itemId: args.id,
                     }
                 })
                 
