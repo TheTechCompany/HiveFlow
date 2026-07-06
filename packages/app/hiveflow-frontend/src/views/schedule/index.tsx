@@ -7,14 +7,14 @@ import { schedule as scheduleActions } from '../../actions'
 import { useContext } from 'react';
 import { AuthContext, useAuth } from '@hexhive/auth-ui';
 import { useEffect } from 'react';
-import { Menu, ChevronLeft as Previous, ChevronRight as Next, X, Add, Remove } from '@mui/icons-material';
+import { Menu, X, Add, Remove } from '@mui/icons-material';
 import { DraftPane } from './draft-pane';
 import { useQuery as useApollo, useMutation as useApolloMutation, gql, useApolloClient } from '@apollo/client';
 import { ScheduleItem, ScheduleModal } from '../../modals/schedule';
 import { Timeline, type TimelineItem, type TimelineGroup, type TimelineStep, type ItemChange, type HighlightedDay } from '@hive-flow/ui';
 import { SchedulingModal } from './modal';
 import { mergeDateRanges, subtractIntervals } from './utils';
-import { Collapse, Typography, Button, Box, Paper, Popover, Menu as UIMenu, MenuItem, IconButton } from '@mui/material';
+import { Collapse, Typography, Box, Paper, Popover, Menu as UIMenu, MenuItem, IconButton, Switch } from '@mui/material';
 import { groupBy, head } from 'lodash';
 import { ConfirmModal } from '../../modals/confirm';
 import { useAPIData, useAPIFunctions } from './api';
@@ -114,15 +114,6 @@ export const Schedule: React.FC<any> = (props) => {
     setHorizon({
       start: new Date(center - clamped / 2),
       end: new Date(center + clamped / 2),
-    });
-  };
-
-  const shiftHorizon = (dir: -1 | 1) => {
-    const span = horizon.end.getTime() - horizon.start.getTime();
-    const shift = (span / 4) * dir;
-    setHorizon({
-      start: new Date(horizon.start.getTime() + shift),
-      end: new Date(horizon.end.getTime() + shift),
     });
   };
 
@@ -526,6 +517,7 @@ export const Schedule: React.FC<any> = (props) => {
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
+        position: 'relative',
       }} className="schedule-container">
 
       <ScheduleRootProvider value={{
@@ -636,6 +628,7 @@ export const Schedule: React.FC<any> = (props) => {
           movable={true}
           showLinks={false}
           showToday={true}
+          itemHeightMode="fillLane"
           highlightedDays={highlightedDays}
           fitContainer
           callbacks={{
@@ -788,27 +781,15 @@ export const Schedule: React.FC<any> = (props) => {
                 <Typography fontSize={13} fontWeight={600} color="#666" sx={{ flexShrink: 0 }}>
                   Groups
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <IconButton size="small" onClick={() => shiftHorizon(-1)} title="Previous">
-                    <Previous fontSize="inherit" />
-                  </IconButton>
-                  <IconButton size="small" onClick={() => zoomHorizon('out')} title="Zoom out">
-                    <Remove fontSize="inherit" />
-                  </IconButton>
-                  <IconButton size="small" onClick={() => zoomHorizon('in')} title="Zoom in">
-                    <Add fontSize="inherit" />
-                  </IconButton>
-                  <IconButton size="small" onClick={() => shiftHorizon(1)} title="Next">
-                    <Next fontSize="inherit" />
-                  </IconButton>
-                  <Button
-                    size="small"
-                    variant={groupBySource ? 'contained' : 'outlined'}
-                    onClick={() => setGroupBySource((v) => !v)}
-                    sx={{ minWidth: 0, px: 0.75, fontSize: 10, ml: 0.5 }}
-                  >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                  <Typography fontSize={11} color="text.secondary">
                     Group
-                  </Button>
+                  </Typography>
+                  <Switch
+                    size="small"
+                    checked={groupBySource}
+                    onChange={() => setGroupBySource((v) => !v)}
+                  />
                 </Box>
               </Box>
             ),
@@ -832,7 +813,31 @@ export const Schedule: React.FC<any> = (props) => {
           }}
         />
       </ScheduleRootProvider>
-    </Box>
+
+        {/* Floating zoom controls */}
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 16,
+            right: 16,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 0.5,
+            zIndex: 10,
+            backgroundColor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: 3,
+            p: 0.25,
+          }}
+        >
+          <IconButton size="small" onClick={() => zoomHorizon('in')} title="Zoom in">
+            <Add fontSize="small" />
+          </IconButton>
+          <IconButton size="small" onClick={() => zoomHorizon('out')} title="Zoom out">
+            <Remove fontSize="small" />
+          </IconButton>
+        </Box>
+      </Box>
   );
 
 }
