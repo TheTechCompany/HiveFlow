@@ -1,14 +1,14 @@
-import { refetch, useMutation, useQuery } from '@hive-flow/api';
+import { useQuery, useMutation } from '@apollo/client';
+import { GET_PROJECTS, CREATE_PROJECT, UPDATE_PROJECT, DELETE_PROJECT } from '@hive-flow/api';
 import { useTypeConfiguration } from '../../../context';
-import { Box, TextInput, Select } from 'grommet';
+import { Box } from '@mui/material';
 import React, {
   Component, useEffect, useState
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { DataTable } from '../../../components/DataTable'
+import { DataTable } from '@hive-flow/ui'
 
-// import { useQuery } from '../../../gqless';
 import { Header } from './header';
 import { Project, ProjectModal } from '../../../modals/project';
 import { Paper } from '@mui/material';
@@ -30,12 +30,10 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
 
   const configuration = useTypeConfiguration('Project');
 
-  const query = useQuery({
-    suspense: false,
-    staleWhileRevalidate: true
-  })
+  const { data } = useQuery(GET_PROJECTS, { fetchPolicy: 'cache-and-network' })
 
-  const projects = query.projects({})
+  const projects = ((data as any)?.projects || []) as any[]
+  const users = ((data as any)?.users || []) as any[]
 
   const history = useNavigate()
 
@@ -45,83 +43,11 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
 
   const statusList = Array.from(new Set((projects || []).map((x: any) => x.status || '')))?.filter((a) => a != '');
 
-  const [ createProject ] = useMutation((mutation, args: {
-    displayId?: string, 
-    name?: string, 
-    description?: string,
-    colour?: string,
-    status?: string,
-    startDate?: Date,
-    endDate?: Date,
-  }) => {
-    const item = mutation.createProject({
-      input: {
-        id: args.displayId,
-        name: args.name,
-        description: args.description,
-        colour: args.colour,
-        startDate: args.startDate?.toISOString(),
-        endDate: args.endDate?.toISOString(),
-        status: args.status
-      }
-    })
-    return {
-      item: {
-        ...item
-      }
-    }
-  }, {
-    awaitRefetchQueries: true,
-    refetchQueries: [query.projects({})]
-  })
+  const [ createProject ] = useMutation(CREATE_PROJECT, { refetchQueries: ['GetProjects'] })
 
-  const [ updateProject ] = useMutation((mutation, args: {
-    id: string, 
-    displayId?: string, 
-    name?: string, 
-    description?: string,
-    status?: string,
-    colour?: string,
-    startDate?: Date,
-    endDate?: Date,
-  }) => {
-    if(!args.id) return;
-    const item = mutation.updateProject({
-      id: args.id,
-      input: {
-        id: args.displayId,
-        name: args.name,
-        colour: args.colour,
-        description: args.description, 
-        startDate: args.startDate?.toISOString(),
-        endDate: args.endDate?.toISOString(),
-        status: args.status
-      }
-    })
-    return {
-      item: { 
-        ...item
-      }
-    }
-  }, {
-    awaitRefetchQueries: true,
-    refetchQueries: [query.projects({})]
-  })
+  const [ updateProject ] = useMutation(UPDATE_PROJECT, { refetchQueries: ['GetProjects'] })
 
-  const [ deleteProject ] = useMutation((mutation, args: {id: string}) => {
-    if(!args.id) return;
-    const item = mutation.deleteProject({
-      id: args.id
-    })
-    return {
-      item: {
-        ...item
-      }
-    }
-  }, {
-    awaitRefetchQueries: true,
-    refetchQueries: [query.projects({})]
-  })
+  const [ deleteProject ] = useMutation(DELETE_PROJECT, { refetchQueries: ['GetProjects'] })
 
   const getJobs = () => {
     let items = projects?.map((x) => ({
@@ -169,19 +95,19 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
 
     return (false) ? null : (
       <Box
-        flex
-        direction="column">
+        sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
           <ProjectModal 
             selected={selected}
             error={modalError}
             statusList={statusList}
+            users={users || []}
             onClose={() => {
               openModal(false)
               setSelected(undefined)
             }}
             onDelete={() => {
-              deleteProject({args: {id: selected?.displayId}}).then(()=> {
+              deleteProject({ variables: { id: selected?.displayId } }).then(()=> {
                 openModal(false)
                 setSelected(undefined);
                 // refetch()
@@ -191,18 +117,36 @@ export const ProjectList : React.FC<ProjectListProps> = (props) => {
               setModalError({});
               
               if(project.id){
-                updateProject({args: {
+                updateProject({ variables: {
                   id: project.displayId,
-                  ...project
+                  input: {
+                    id: project.displayId,
+                    name: project.name,
+                    description: project.description,
+                    colour: project.colour,
+                    status: project.status,
+                    startDate: project.startDate?.toISOString(),
+                    endDate: project.endDate?.toISOString(),
+                    managers: project.managers
+                  }
                 }}).then(() => {
                   openModal(false);
                   setSelected(undefined)
                   // refetch();
                 })
               }else{
-                createProject({
-                  args: project
-                }).then(() => {
+                createProject({ variables: {
+                  input: {
+                    id: project.displayId,
+                    name: project.name,
+                    description: project.description,
+                    colour: project.colour,
+                    status: project.status,
+                    startDate: project.startDate?.toISOString(),
+                    endDate: project.endDate?.toISOString(),
+                    managers: project.managers
+                  }
+                }}).then(() => {
                   openModal(false);
                   setSelected(undefined)
                   // refetch();

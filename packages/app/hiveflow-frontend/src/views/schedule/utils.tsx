@@ -30,3 +30,35 @@ export function mergeDateRanges(ranges : {start: Date, end: Date}[]) {
   
     return merged;
   }
+
+  /**
+   * Subtract a set of cut intervals from a set of source intervals.
+   * Returns the remaining non-overlapping segments.
+   */
+  export function subtractIntervals(
+    intervals: { start: Date; end: Date }[],
+    cuts: { start: Date; end: Date }[],
+  ): { start: Date; end: Date }[] {
+    let result = [...intervals];
+    for (const cut of cuts) {
+      const next: { start: Date; end: Date }[] = [];
+      for (const seg of result) {
+        if (cut.end <= seg.start || cut.start >= seg.end) {
+          // No overlap — keep the segment intact
+          next.push(seg);
+        } else {
+          // Keep the left portion before the cut (if any)
+          if (cut.start > seg.start) {
+            next.push({ start: seg.start, end: cut.start });
+          }
+          // Keep the right portion after the cut (if any)
+          if (cut.end < seg.end) {
+            next.push({ start: cut.end, end: seg.end });
+          }
+          // The overlapping middle is removed
+        }
+      }
+      result = next;
+    }
+    return result;
+  }

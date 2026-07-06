@@ -6,6 +6,7 @@ import FormData from 'form-data';
 
 import axios from 'axios';``
 import { LexoRank } from "lexorank";
+import { ensureGeneratedTasks } from "../utils/recurring";
 // import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 // import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 
@@ -71,7 +72,9 @@ export default (prisma: PrismaClient) => {
                         tasks: {
                             include: {
                                 dependencyOf: true,
-                                dependencyOn: true
+                                dependencyOn: true,
+                                children: true,
+                                parent: true,
                             }
                         }
                     }
@@ -84,6 +87,7 @@ export default (prisma: PrismaClient) => {
                         createdBy: task.createdBy ? {id: task.createdBy} : undefined,
                         members: task.members?.map((member) => ({id: member}))
                     })),
+		    managers: x.managers?.map((manager) => ({id: manager})),
 					organisation: {id: x.organisation}
 				}));            
             }
@@ -105,7 +109,8 @@ export default (prisma: PrismaClient) => {
                                     description: args.input.description,
                                     startDate: args.input.startDate,
                                     endDate: args.input.endDate,
-                                    status: args.input.status || 'draft'
+                                    status: args.input.status || 'draft',
+                                    managers: args.input.managers?.length ? args.input.managers : [context.jwt.id]
                                 }
                             })
                             return project
@@ -135,7 +140,8 @@ export default (prisma: PrismaClient) => {
                         startDate: args.input.startDate,
                         endDate: args.input.endDate,
                         description: args.input.description,
-                        status: args.input.status
+                        status: args.input.status,
+                        managers: args.input.managers || []
                     }
                 })
             },
@@ -149,204 +155,214 @@ export default (prisma: PrismaClient) => {
                     }
                 })
             },
-            createProjectTask: async (root: any, args: any, context: any) => {
+            // ── Unified Task mutations ──────────────────────────
 
-                const {columnRank: lastColumnRank} = await prisma.projectTask.findFirst({
-                    where: {
-                        project: {
-                            organisation: context?.jwt?.organisation,
-                            displayId: args.input.projectId
+            createTask: async (root: any, args: any, context: any) => {
+                // Standalone task (no project/estimate) — subtasks etc.
+                if (!args.input.projectId && !args.input.estimateId) {
+                    return await prisma.task.create({
+                        data: {
+                            id: nanoid(),
+                            title: args.input.title,
+                            description: args.input.description,
+                            createdBy: context?.jwt?.id,
+                            members: args.input.members || [],
+                            requiredSkills: args.input.requiredSkills,
+                            startDate: args.input.startDate,
+                            endDate: args.input.endDate,
+                            status: args.input.status || 'Backlog',
+                            taskType: args.input.taskType || 'task',
+                            category: args.input.category,
+                            recurringEventId: args.input.recurringEventId,
+                            parentId: args.input.parentId || undefined,
+                            lastUpdated: new Date(),
                         },
-                        status: args.input.status
-                    },
-                    orderBy: {
-                        columnRank: 'desc'
-                    }
-                }) || {};
+                    });
+                }
 
-                const { timelineRank: lastTimelineRank } = await prisma.projectTask.findFirst({
-                    where: {
-                        project: {
-                            organisation: context?.jwt?.organisation,
-                            displayId: args.input.projectId
+                // ── Create under a project ──────────────────────
+                if (args.input.projectId) {
+                    const {columnRank: lastColumnRank} = await prisma.task.findFirst({
+                        where: {
+                            project: { organisation: context?.jwt?.organisation, displayId: args.input.projectId },
+                            status: args.input.status
                         },
-                    },
-                    orderBy: {
-                        timelineRank: 'desc'
-                    }
-                }) || {};
+                        orderBy: { columnRank: 'desc' }
+                    }) || {};
 
+                    const { timelineRank: lastTimelineRank } = await prisma.task.findFirst({
+                        where: {
+                            project: { organisation: context?.jwt?.organisation, displayId: args.input.projectId },
+                        },
+                        orderBy: { timelineRank: 'desc' }
+                    }) || {};
 
+                    let aboveColumnRank = LexoRank.parse(lastColumnRank || LexoRank.min().toString())
+                    let aboveTimelineRank = LexoRank.parse(lastTimelineRank || LexoRank.min().toString())
+                    let belowRank = LexoRank.parse(LexoRank.max().toString())
 
-                let aboveColumnRank = LexoRank.parse(lastColumnRank || LexoRank.min().toString())
-                let aboveTimelineRank = LexoRank.parse(lastTimelineRank || LexoRank.min().toString())
-                let belowRank = LexoRank.parse(LexoRank.max().toString())
-
-                let nextTimelineRank = aboveTimelineRank.between(belowRank).toString();
-                let nextColumnRank = aboveColumnRank.between(belowRank).toString();
-
-                return await prisma.project.update({
-                    where: {
-                        organisation_displayId: {
-                            organisation: context?.jwt?.organisation,
-                            displayId: args.input.projectId
-                        }
-                    },
-                    data: {
-                        tasks: {
-                            create: {
-                                id: nanoid(),
-                                title: args.input.title,
-                                description: args.input.description,
-                                createdBy: context?.jwt?.id,
-                                members: args.input.members || [],
-                                requiredSkills: args.input.requiredSkills,
-                                columnRank: nextColumnRank,
-                                timelineRank: nextTimelineRank,
-                                startDate: args.input.startDate,
-                                endDate: args.input.endDate,
-                                status: args.input.status,
-                                lastUpdated: new Date()
+                    return await prisma.project.update({
+                        where: {
+                            organisation_displayId: { organisation: context?.jwt?.organisation, displayId: args.input.projectId }
+                        },
+                        data: {
+                            tasks: {
+                                create: {
+                                    id: nanoid(),
+                                    title: args.input.title,
+                                    description: args.input.description,
+                                    createdBy: context?.jwt?.id,
+                                    members: args.input.members || [],
+                                    requiredSkills: args.input.requiredSkills,
+                                    columnRank: aboveColumnRank.between(belowRank).toString(),
+                                    timelineRank: aboveTimelineRank.between(belowRank).toString(),
+                                    startDate: args.input.startDate,
+                                    endDate: args.input.endDate,
+                                    status: args.input.status,
+                                    taskType: args.input.taskType || 'task',
+                                    category: args.input.category,
+                                    recurringEventId: args.input.recurringEventId,
+                                    parentId: args.input.parentId || undefined,
+                                    lastUpdated: new Date()
+                                }
                             }
                         }
+                    })
+                }
+
+                // ── Create under an estimate ────────────────────
+                if (args.input.estimateId) {
+                    const estimate = await prisma.estimate.findFirst({
+                        where: {
+                            organisation: context?.jwt?.organisation,
+                            displayId: args.input.estimateId,
+                        },
+                    });
+                    if (!estimate) {
+                        throw new Error(`Estimate not found: ${args.input.estimateId}`);
                     }
-                })
+                    return await prisma.task.create({
+                        data: {
+                            id: nanoid(),
+                            title: args.input.title,
+                            description: args.input.description,
+                            createdBy: context?.jwt?.id,
+                            members: args.input.members || [],
+                            requiredSkills: args.input.requiredSkills,
+                            startDate: args.input.startDate,
+                            endDate: args.input.endDate,
+                            status: args.input.status || 'Backlog',
+                            taskType: args.input.taskType || 'task',
+                            category: args.input.category,
+                            recurringEventId: args.input.recurringEventId,
+                            parentId: args.input.parentId || undefined,
+                            estimateId: estimate.id,
+                            lastUpdated: new Date(),
+                        },
+                    });
+                }
             },
-            updateProjectTaskTimelineOrder: async (root: any, args: any, context: any) => {
 
-             
-                const projectRoot = await prisma.projectTask.findFirst({
-                    where: {
-                        id: args.id,
-                        project: {
-                            organisation: context?.jwt?.organisation
-                        }
-                    }
+            updateTaskTimelineOrder: async (root: any, args: any, context: any) => {
+                const taskRoot = await prisma.task.findFirst({
+                    where: { id: args.id }
                 })
-                
-                if(!projectRoot) throw new Error("No projectTask found")
+                if(!taskRoot) throw new Error("No task found")
 
-                let aboveTask: any | null, belowTask : any | null;
+                // Authorisation: task must belong to an org-scoped project or estimate
+                if (taskRoot.projectId) {
+                    const project = await prisma.project.findFirst({
+                        where: { id: taskRoot.projectId, organisation: context?.jwt?.organisation }
+                    });
+                    if (!project) throw new Error("Not authorised");
+                } else if (taskRoot.estimateId) {
+                    const estimate = await prisma.estimate.findFirst({
+                        where: { id: taskRoot.estimateId, organisation: context?.jwt?.organisation }
+                    });
+                    if (!estimate) throw new Error("Not authorised");
+                }
+
+                const scopeFilter = taskRoot.projectId
+                    ? { projectId: taskRoot.projectId }
+                    : { estimateId: taskRoot.estimateId };
 
                 let aboveTimelineRank, belowTimelineRank;
-
                 if(args.above){
-                    aboveTask = await prisma.projectTask.findFirst({
-                        where: {
-                            id: args.above,
-                            projectId: projectRoot?.projectId
-                        }
-                    });
+                    const aboveTask = await prisma.task.findFirst({ where: { id: args.above, ...scopeFilter } });
                     aboveTimelineRank = aboveTask?.timelineRank;
                 }
-
                 if(args.below){
-                    belowTask = await prisma.projectTask.findFirst({
-                        where: {
-                            id: args.below,
-                            projectId: projectRoot?.projectId
-                        }
-                    })
-
+                    const belowTask = await prisma.task.findFirst({ where: { id: args.below, ...scopeFilter } })
                     belowTimelineRank = belowTask?.timelineRank;
                 }
-
-
                 let aboveRank = LexoRank.parse(aboveTimelineRank || LexoRank.min().toString())
                 let belowRank = LexoRank.parse(belowTimelineRank || LexoRank.max().toString())
-
-                let nextTimelineRank = aboveRank.between(belowRank).toString();
-
-                return await prisma.projectTask.update({
-                    where: {
-                        projectId_id: {
-                            id: args.id,
-                            projectId: projectRoot?.projectId
-                        }
-                    },
-                    data: {
-                        timelineRank: nextTimelineRank
-                    }
+                return await prisma.task.update({
+                    where: { id: args.id },
+                    data: { timelineRank: aboveRank.between(belowRank).toString() }
                 })
+            },
 
-
-            }, 
-            updateProjectTask: async (root: any, args: any, context: any) => {
-                
-                const rootTask = await prisma.projectTask.findFirst({
-                    where: {
-                        id: args.id,
-                        project: {
-                            organisation: context?.jwt?.organisation
-                        }
-                    }
+            updateTask: async (root: any, args: any, context: any) => {
+                const rootTask = await prisma.task.findFirst({
+                    where: { id: args.id }
                 })
-
                 if(!rootTask) throw new Error("No task found");
+
+                // Authorisation: task must belong to an org-scoped project or estimate
+                if (rootTask.projectId) {
+                    const project = await prisma.project.findFirst({
+                        where: { id: rootTask.projectId, organisation: context?.jwt?.organisation }
+                    });
+                    if (!project) throw new Error("Not authorised");
+                } else if (rootTask.estimateId) {
+                    const estimate = await prisma.estimate.findFirst({
+                        where: { id: rootTask.estimateId, organisation: context?.jwt?.organisation }
+                    });
+                    if (!estimate) throw new Error("Not authorised");
+                }
+
+                if (args.input?.status === 'Finished' && rootTask.status !== 'Finished' && rootTask.recurringEventId) {
+                    const event = await prisma.recurringEvent.findUnique({ where: { id: rootTask.recurringEventId } });
+                    if (event) {
+                        const today = new Date(); today.setHours(0,0,0,0);
+                        const horizonEnd = new Date(today); horizonEnd.setDate(horizonEnd.getDate() + 365);
+                        await ensureGeneratedTasks(prisma, event as any, today, horizonEnd);
+                    }
+                }
 
                 let projectId;
                 if(args.input.projectId) {
-                    const p = await prisma.project.findFirst({
-                        where: {
-                            displayId: args.input.projectId
-                        }
-                    })
+                    const p = await prisma.project.findFirst({ where: { displayId: args.input.projectId } })
                     projectId = p?.id
                 }
 
-
                 let nextRank;
-
                 if(args.input?.above || args.input?.below){
-
                     let aboveColumnRank, belowColumnRank;
-
                     if(args.input.above){
-                        const aboveTask = await prisma.projectTask.findFirst({
-                            where: {
-                                id: args.input?.above,
-                                projectId: rootTask?.projectId
-                            }
-                        })
+                        const aboveTask = await prisma.task.findFirst({ where: { id: args.input?.above, projectId: rootTask?.projectId } })
                         aboveColumnRank = aboveTask?.columnRank;
                     }
-
                     if(args.input.below){
-                        const belowTask = await prisma.projectTask.findFirst({
-                            where: {
-                                id: args.input?.below,
-                                projectId: rootTask?.projectId
-                            }
-                        })
+                        const belowTask = await prisma.task.findFirst({ where: { id: args.input?.below, projectId: rootTask?.projectId } })
                         belowColumnRank = belowTask?.columnRank;
                     }
-
                     let aboveRank = LexoRank.parse(aboveColumnRank || LexoRank.min().toString())
                     let belowRank = LexoRank.parse(belowColumnRank || LexoRank.max().toString())
-                     nextRank = aboveRank.between(belowRank).toString();
-
+                    nextRank = aboveRank.between(belowRank).toString();
                 }else if(args.input?.status){
-                    const { columnRank } = await prisma.projectTask.findFirst({
-                        where: {
-                            projectId: rootTask?.projectId,
-                            status: args.input?.status
-                        },
-                        orderBy: {
-                            columnRank: 'asc'
-                        }
+                    const { columnRank } = await prisma.task.findFirst({
+                        where: { projectId: rootTask?.projectId, status: args.input?.status },
+                        orderBy: { columnRank: 'asc' }
                     }) || {}
-
                     let aboveRank = LexoRank.parse(columnRank || LexoRank.min().toString())
                     let belowRank = LexoRank.parse(LexoRank.max().toString())
-                     nextRank = aboveRank.between(belowRank).toString();
-            
+                    nextRank = aboveRank.between(belowRank).toString();
                 }
 
-
-                return await prisma.projectTask.update({
-                    where: {
-                        id: args.id
-                    },
+                return await prisma.task.update({
+                    where: { id: args.id },
                     data: {
                         title: args.input.title,
                         description: args.input.description,
@@ -356,68 +372,76 @@ export default (prisma: PrismaClient) => {
                         endDate: args.input.endDate,
                         columnRank: nextRank,
                         status: args.input.status,
+                        taskType: args.input.taskType,
+                        category: args.input.category,
+                        recurringEventId: args.input.recurringEventId,
+                        parentId: args.input.parentId || undefined,
                         projectId: projectId,
                         lastUpdated: new Date()
                     }
                 })
             },
+
+            updateProjectTaskColumn: async (root: any, args: any, context: any) => {
+                return resolvers.Mutation.updateTask(root, { ...args, input: { status: args.status, above: args.above, below: args.below } }, context);
+            },
+
+            deleteTask: async (root: any, args: any) => {
+                return await prisma.task.delete({where: {id: args.id}})
+            },
+
+            // Legacy aliases
+            createProjectTask: async (root: any, args: any, context: any) => {
+                return resolvers.Mutation.createTask(root, args, context);
+            },
+            createEstimateTask: async (root: any, args: any, context: any) => {
+                return resolvers.Mutation.createTask(root, args, context);
+            },
+            updateProjectTask: async (root: any, args: any, context: any) => {
+                return resolvers.Mutation.updateTask(root, args, context);
+            },
+            updateEstimateTask: async (root: any, args: any, context: any) => {
+                return resolvers.Mutation.updateTask(root, args, context);
+            },
+            updateProjectTaskTimelineOrder: async (root: any, args: any, context: any) => {
+                return resolvers.Mutation.updateTaskTimelineOrder(root, args, context);
+            },
+            updateEstimateTaskTimelineOrder: async (root: any, args: any, context: any) => {
+                return resolvers.Mutation.updateTaskTimelineOrder(root, args, context);
+            },
             deleteProjectTask: async (root: any, args: any) => {
-                return await prisma.projectTask.delete({where: {id: args.id}})
+                return resolvers.Mutation.deleteTask(root, args);
+            },
+            deleteEstimateTask: async (root: any, args: any) => {
+                return resolvers.Mutation.deleteTask(root, args);
+            },
+
+            createTaskDependency: async (root: any, args: any, context: any) => {
+                // Connect dependency directly on the task — works for both project and estimate tasks
+                return await prisma.task.update({
+                    where: { id: args.source },
+                    data: { dependencyOf: { connect: { id: args.target } } }
+                })
             },
             createProjectTaskDependency: async (root: any, args: any, context: any) => {
+                return resolvers.Mutation.createTaskDependency(root, args, context);
+            },
+            createEstimateTaskDependency: async (root: any, args: any, context: any) => {
+                return resolvers.Mutation.createTaskDependency(root, args, context);
+            },
 
-                return await prisma.project.update({
-                    where: {
-                        organisation_displayId: {
-                            organisation: context?.jwt?.organisation,
-                            displayId: args.project
-                        }
-                    },
-                    data: {
-                        tasks: {
-                            update: [{
-                                where: {
-                                    id: args.source,
-                                },
-                                data: {
-                                    dependencyOf: {
-                                        connect: {
-                                            id: args.target
-                                        }
-                                    }
-                                }
-                            
-                            }]
-                        }
-                    }
+            deleteTaskDependency: async (root: any, args: any, context: any) => {
+                // Disconnect dependency directly on the task — works for both project and estimate tasks
+                return await prisma.task.update({
+                    where: { id: args.source },
+                    data: { dependencyOf: { disconnect: { id: args.target } } }
                 })
             },
             deleteProjectTaskDependency: async (root: any, args: any, context: any) => {
-                return await prisma.project.update({
-                    where: {
-                        organisation_displayId: {
-                            organisation: context?.jwt?.organisation,
-                            displayId: args.project
-                        }
-                    },
-                    data: {
-                        tasks: {
-                            update: [{
-                                where: {
-                                    id: args.source,
-                                },
-                                data: {
-                                    dependencyOf: {
-                                        disconnect: {
-                                            id: args.target
-                                        }
-                                    }
-                                }
-                            
-                            }]
-                        }
-                    }
-                })
+                return resolvers.Mutation.deleteTaskDependency(root, args, context);
+            },
+            deleteEstimateTaskDependency: async (root: any, args: any, context: any) => {
+                return resolvers.Mutation.deleteTaskDependency(root, args, context);
             },
             createProjectFolder: async (root: any, args: any, context: any) => {
                 const appPath = `/Application Data/Flow/${args.project}`
@@ -610,18 +634,33 @@ export default (prisma: PrismaClient) => {
 		updateProject(id: ID!, input: ProjectInput): Project!
 		deleteProject(id: ID!): Project!
 
-        createProjectTask(input: ProjectTaskInput): ProjectTask!
-        updateProjectTask(id: ID, input: ProjectTaskInput): ProjectTask!
-        updateProjectTaskTimelineOrder(id: ID, above: String, below: String): ProjectTask!
-        updateProjectTaskColumn(id: ID, status: String, above: String, below: String): ProjectTask
-        deleteProjectTask(id: ID): ProjectTask!
+        # ── Unified Task API ───────────────────────────────────
+        createTask(input: TaskInput): Task!
+        updateTask(id: ID, input: TaskInput): Task!
+        deleteTask(id: ID): Task!
+        updateTaskTimelineOrder(id: ID, above: String, below: String): Task!
+        updateProjectTaskColumn(id: ID, status: String, above: String, below: String): Task
+        createTaskDependency(project: ID, source: ID, target: ID): Task!
+        deleteTaskDependency(project: ID, source: ID, target: ID): Task!
 
-        createProjectTaskDependency(project: ID, source: ID, target: ID): ProjectTask!
-        deleteProjectTaskDependency(project: ID, source: ID, target: ID): ProjectTask!
+        # ── Legacy aliases (ProjectTask / EstimateTask) ────────
+        createProjectTask(input: ProjectTaskInput): Task!
+        updateProjectTask(id: ID, input: ProjectTaskInput): Task!
+        updateProjectTaskTimelineOrder(id: ID, above: String, below: String): Task!
+        deleteProjectTask(id: ID): Task!
+        createProjectTaskDependency(project: ID, source: ID, target: ID): Task!
+        deleteProjectTaskDependency(project: ID, source: ID, target: ID): Task!
 
+        createEstimateTask(input: EstimateTaskInput): Task!
+        updateEstimateTask(id: ID, input: EstimateTaskInput): Task!
+        updateEstimateTaskTimelineOrder(id: ID, above: String, below: String): Task!
+        deleteEstimateTask(id: ID): Task!
+        createEstimateTaskDependency(project: ID, source: ID, target: ID): Task!
+        deleteEstimateTaskDependency(project: ID, source: ID, target: ID): Task!
+
+        # ── Files ──────────────────────────────────────────────
         createProjectFolder(project: ID!, path: String): File
         updateProjectFolder(project: ID!, path: String): File
-
         moveProjectFile(project: ID!, path: String, newPath: String): File
 		uploadProjectFiles(project: ID!, path: String, files: [Upload]): [File!]!
         renameProjectFile(project: ID!, path: String, newPath: String): File
@@ -636,11 +675,11 @@ export default (prisma: PrismaClient) => {
         startDate: DateTime
         endDate: DateTime
         status: String
+        managers: [String]
     }
 
     input ProjectWhere {
         archived: Boolean
-    
         status: [String]
         start: DateTime
         end: DateTime
@@ -648,71 +687,107 @@ export default (prisma: PrismaClient) => {
     }
 
     type Project {
-        id: ID! 
-
+        id: ID!
         displayId: String
         name: String
         description: String
-
         colour: String
-
         organisation: HiveOrganisation
-        
-        schedule: [ScheduleItem!]! 
+        schedule: [ScheduleItem!]!
         plan: [TimelineItem!]!
-
-        tasks: [ProjectTask]
-
+        tasks: [Task]
         files(path: String): [File]
-
         startDate: DateTime
         endDate: DateTime
         status: String
+        managers: [HiveUser]
     }
 
+    # ── Unified Task type (replaces ProjectTask + EstimateTask) ─
+
+    type Task {
+        id: ID!
+        title: String
+        description: String
+        timelineRank: String
+        columnRank: String
+        startDate: DateTime
+        endDate: DateTime
+        status: String
+        project: Project
+        estimate: Estimate
+        recurringEvent: RecurringEvent
+        recurringEventId: String
+        members: [HiveUser]
+        requiredSkills: JSON
+        taskType: String
+        category: String
+        createdBy: HiveUser
+        handoverNote: String
+        lastUpdated: DateTime
+        dependencyOf: [Task]
+        dependencyOn: [Task]
+        parent: Task
+        parentId: String
+        children: [Task]
+    }
+
+    input TaskInput {
+        title: String
+        description: String
+        members: [String]
+        requiredSkills: JSON
+        startDate: DateTime
+        endDate: DateTime
+        status: String
+        above: String
+        below: String
+        projectId: String
+        estimateId: String
+        handoverNote: String
+        taskType: String
+        category: String
+        recurringEventId: String
+        parentId: String
+    }
+
+    # Legacy input type aliases (for GQty client compatibility)
     input ProjectTaskInput {
         title: String
         description: String
-
         members: [String]
         requiredSkills: JSON
-
         startDate: DateTime
         endDate: DateTime
-
         status: String
-
         above: String
         below: String
-        
         projectId: String
+        estimateId: String
+        handoverNote: String
+        taskType: String
+        category: String
+        recurringEventId: String
+        parentId: String
     }
 
-    type ProjectTask {
-        id: ID!
-
+    input EstimateTaskInput {
         title: String
         description: String
-
-        timelineRank: String
-        columnRank: String
-
+        members: [String]
+        requiredSkills: JSON
         startDate: DateTime
         endDate: DateTime
-
         status: String
-
-        project: Project
-
-        members: [HiveUser]
-        requiredSkills: JSON
-
-        createdBy: HiveUser
-
-        lastUpdated: DateTime
-
-        dependencyOf: [ProjectTask]
-        dependencyOn: [ProjectTask]
+        above: String
+        below: String
+        projectId: String
+        estimateId: String
+        handoverNote: String
+        taskType: String
+        category: String
+        recurringEventId: String
+        parentId: String
     }
     
 `

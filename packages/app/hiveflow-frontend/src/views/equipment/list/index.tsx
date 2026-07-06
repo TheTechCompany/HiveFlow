@@ -5,9 +5,10 @@ import React, {
 
 // import utils from '../../../utils';
 import moment from 'moment';
-import { DataTable } from '../../../components/DataTable'
+import { DataTable } from '@hive-flow/ui'
 import { PlantHeader } from './header';
-import { useMutation, useQuery } from '@hive-flow/api';
+import { useMutation, useQuery } from '@apollo/client';
+import { GET_EQUIPMENT, CREATE_EQUIPMENT, UPDATE_EQUIPMENT, DELETE_EQUIPMENT } from '@hive-flow/api';
 import { useTypeConfiguration } from '../../../context';
 import { Equipment, EquipmentModal } from '../../../modals/equipment';
 import { Box, Paper } from '@mui/material'
@@ -28,10 +29,7 @@ export const EquipmentList: React.FC<any> = (props) => {
     { property: 'status', header: 'Status', size: 'small', sortable: true },
   ]
 
-  const query = useQuery({
-    suspense: false,
-    staleWhileRevalidate: true
-  });
+  const { data } = useQuery(GET_EQUIPMENT, { fetchPolicy: 'cache-and-network' });
 
 
   const [ direction, setDirection ] = useState<"asc" | "desc" | undefined>('desc')
@@ -66,58 +64,13 @@ export const EquipmentList: React.FC<any> = (props) => {
    // return items.map((x) => ({...x, price: formatter.format(x.price)}))
   }
 
-  const listData = query?.equipment || [];
+  const listData = (data as any)?.equipment || [];
 
-  const [ createEquipment ] = useMutation((mutation, args: {name: string}) => {
-    const item = mutation.createEquipment({
-      input: {
-  
-          name: args.name
-  
-      }
-    })
-    return {
-      item: {
-        ...item
-      }
-    }
-  }, {
-    awaitRefetchQueries: true,
-    refetchQueries: [query.equipment]
-  })
+  const [ createEquipment ] = useMutation(CREATE_EQUIPMENT, { refetchQueries: ['GetEquipment'] })
 
-  const [ updateEquipment ] = useMutation((mutation, args: {id: string, name: string}) => {
-    if(!args.id) return;
-    const item = mutation.updateEquipment({
-      id: args.id,
-      input: {
-        name: args.name,
-      }
-    })
-    return {
-      item: { 
-        ...item
-      }
-    }
-  }, {
-    awaitRefetchQueries: true,
-    refetchQueries: [query.equipment]
-  })
+  const [ updateEquipment ] = useMutation(UPDATE_EQUIPMENT, { refetchQueries: ['GetEquipment'] })
 
-  const [ deleteEquipment ] = useMutation((mutation, args: {id: string}) => {
-    if(!args.id) return;
-    const item = mutation.deleteEquipment({
-      id: args.id
-    })
-    return {
-      item: {
-        ...item
-      }
-    }
-  }, {
-    awaitRefetchQueries: true,
-    refetchQueries: [query.equipment]
-  })
+  const [ deleteEquipment ] = useMutation(DELETE_EQUIPMENT, { refetchQueries: ['GetEquipment'] })
 
   // constructor(props: any){
   //   super(props);
@@ -177,7 +130,7 @@ export const EquipmentList: React.FC<any> = (props) => {
         open={modalOpen} 
         selected={selected}
         onDelete={() => {
-          deleteEquipment({args: {id: selected?.id}}).then(()=> {
+          deleteEquipment({ variables: { id: selected?.id } }).then(()=> {
             openModal(false)
             setSelected(undefined);
             // refetch()
@@ -185,9 +138,11 @@ export const EquipmentList: React.FC<any> = (props) => {
         }}
         onSubmit={(project) => {
           if(project.id){
-            updateEquipment({args: {
+            updateEquipment({ variables: {
               id: project.id,
-              name: project.name,
+              input: {
+                name: project.name
+              }
             }}).then(() => {
               openModal(false);
               setSelected(undefined)
@@ -195,8 +150,10 @@ export const EquipmentList: React.FC<any> = (props) => {
             })
           }else{
             createEquipment({
-              args: {
-                name: project.name,
+              variables: {
+                input: {
+                  name: project.name
+                }
               }
             }).then(() => {
               openModal(false);

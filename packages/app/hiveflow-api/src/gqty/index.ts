@@ -1,92 +1,66 @@
 /**
- * GQTY: You can safely modify this file and Query Fetcher based on your needs
+ * @hive-flow/api — GraphQL operations and utility types for HiveFlow.
+ * All queries and mutations are gql document nodes compatible with @apollo/client.
  */
 
-import { createReactClient } from "@gqty/react";
-
-import type { QueryFetcher } from "gqty";
-import { createClient } from "gqty";
-import type {
-  GeneratedSchema,
-  SchemaObjectTypes,
-  SchemaObjectTypesNames,
-} from "./schema.generated";
-import { generatedSchema, scalarsEnumsHash } from "./schema.generated";
-
-const queryFetcher: QueryFetcher = async function (query, variables) {
-  // Modify "/api/graphql" if needed
-  const API_URL = localStorage.getItem('HEXHIVE_API');
-
-  let url = process.env.NODE_ENV == 'production' ? `${API_URL}/graphql` || (process.env.REACT_APP_API != undefined ? `${process.env.REACT_APP_API}/graphql` : '/graphql') : "http://localhost:7000/graphql"
-  
-  const response = await fetch(`${url}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      query,
-      variables,
-    }),
-    mode: "cors",
-    credentials: 'include'
-  });
-
-  const json = await response.json();
-
-  return json;
-};
-
-export const client = createClient<
-  GeneratedSchema,
-  SchemaObjectTypesNames,
-  SchemaObjectTypes
->({
-  schema: generatedSchema,
-  scalarsEnumsHash,
-  queryFetcher,
-});
-
-const { query, mutation, mutate, subscription, resolved, refetch, track } =
-  client;
-
-export { query, mutation, mutate, subscription, resolved, refetch, track };
-
-const {
-  graphql,
-  useQuery,
-  usePaginatedQuery,
-  useTransactionQuery,
-  useLazyQuery,
-  useRefetch,
-  useMutation,
-  useMetaState,
-  prepareReactRender,
-  useHydrateCache,
-  prepareQuery,
-} = createReactClient<GeneratedSchema>(client, {
-  defaults: {
-    // Set this flag as "true" if your usage involves React Suspense
-    // Keep in mind that you can overwrite it in a per-hook basis
-    suspense: false,
-
-    // Set this flag based on your needs
-    staleWhileRevalidate: false,
-  },
-});
+export type Maybe<T> = T | null;
 
 export {
-  graphql,
-  useQuery,
-  usePaginatedQuery,
-  useTransactionQuery,
-  useLazyQuery,
-  useRefetch,
-  useMutation,
-  useMetaState,
-  prepareReactRender,
-  useHydrateCache,
-  prepareQuery,
-};
+  GET_PROJECTS,
+  GET_PROJECT,
+  CREATE_PROJECT,
+  UPDATE_PROJECT,
+  DELETE_PROJECT,
+  UPDATE_PROJECT_TASK,
+  CREATE_PROJECT_TASK,
+  DELETE_PROJECT_TASK,
+  CREATE_PROJECT_TASK_DEPENDENCY,
+  DELETE_PROJECT_TASK_DEPENDENCY,
+  UPDATE_PROJECT_TASK_TIMELINE_ORDER,
+} from '../graphql/projects';
 
-export * from "./schema.generated";
+export {
+  GET_EQUIPMENT,
+  CREATE_EQUIPMENT,
+  UPDATE_EQUIPMENT,
+  DELETE_EQUIPMENT,
+} from '../graphql/equipment';
+
+export {
+  GET_ESTIMATES,
+  GET_ESTIMATE_SINGLE,
+  CREATE_ESTIMATE,
+  UPDATE_ESTIMATE,
+  DELETE_ESTIMATE,
+  UPDATE_ESTIMATE_TASK,
+  CREATE_ESTIMATE_TASK,
+  DELETE_ESTIMATE_TASK,
+  CREATE_ESTIMATE_TASK_DEPENDENCY,
+  DELETE_ESTIMATE_TASK_DEPENDENCY,
+  CREATE_ESTIMATE_LINE_ITEM,
+  UPDATE_ESTIMATE_LINE_ITEM,
+  DELETE_ESTIMATE_LINE_ITEM,
+  UPDATE_ESTIMATE_TASK_TIMELINE_ORDER,
+} from '../graphql/estimates';
+
+export {
+  GET_PROJECT_FILES,
+  CREATE_PROJECT_FOLDER,
+  MOVE_PROJECT_FILE,
+  DELETE_PROJECT_FILE,
+  RENAME_PROJECT_FILE,
+  UPLOAD_PROJECT_FILES,
+} from '../graphql/files';
+
+export {
+  GET_TIMELINES,
+  GET_TIMELINE_DATA,
+  GET_PROJECT_INFO,
+  CREATE_TIMELINE,
+  CREATE_TIMELINE_ITEM,
+  DELETE_TIMELINE_ITEM,
+  UPDATE_TIMELINE_ITEM,
+  UPDATE_TIMELINE_ITEM_ORDER,
+  CREATE_TIMELINE_ITEM_DEPENDENCY,
+  DELETE_TIMELINE_ITEM_DEPENDENCY,
+} from '../graphql/timeline';

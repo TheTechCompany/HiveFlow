@@ -1,3 +1,5 @@
 export * from './files'
 export * from './kanban'
 export * from './timeline'
+export * from './tickets'
+export * from './info'

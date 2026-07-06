@@ -1,4 +1,5 @@
 import { gql, useMutation, useQuery } from "@apollo/client"
+import { useRef } from "react"
 
 export const useAPIFunctions = () => {
 
@@ -61,18 +62,18 @@ export const useAPIFunctions = () => {
             }
         }    
     `, {
-        refetchQueries: ['CommentQuery']
+        refetchQueries: ['CommentQuery', 'CalendarItems']
     })
 
     const [removeCommentOnCalendar] = useMutation(gql`
         
-        mutation($id: ID, $message: ID){
-            removeCommentOnCalendar(id: $id, comment: $message){
+        mutation($id: ID, $comment: ID){
+            removeCommentOnCalendar(id: $id, comment: $comment){
                 id
             }
         }    
     `, {
-        refetchQueries: ['CommentQuery']
+        refetchQueries: ['CommentQuery', 'CalendarItems']
     })
 
 
@@ -91,57 +92,74 @@ export const useAPIFunctions = () => {
     }
 }
 
-export const useAPIData = (horizon: any) => {
+export const CALENDAR_ITEMS_QUERY = gql`
+    query CalendarItems($startDate: DateTime, $endDate: DateTime){
 
-    const { data: calendarData } = useQuery(gql`
-        query CalendarItems($startDate: DateTime, $endDate: DateTime){
-
-        allUsers: users{
+    allUsers: users{
+        id
+        name
+    }
+     users(active: true){
             id
             name
+
+            leave (where: {start_LTE: $endDate, end_GTE: $startDate}){
+                id
+
+                start
+                end
+            }
         }
-         users(active: true){
-                id
-                name
+      calendarItems (where: {start_LTE: $endDate, end_GTE: $startDate} ){
+        id
+        start
+        end
 
-                leave (where: {start_LTE: $endDate, end_GTE: $startDate}){
-                    id
+        data
+        groupBy
 
-                    start
-                    end
-                }
-            }
-          calendarItems (where: {start_LTE: $endDate, end_GTE: $startDate} ){
-            id
-            start
-            end
-    
-            data
-            groupBy
-    
-            permissions {
-    
-              user {
-                id
-                name
-              }
-            }
-    
-            createdBy {
-                id
-              name
-            }
+        comments {
+          id
+          message
+          user {
+            name
           }
-        }  
-      `, {
+          createdAt
+        }
+
+        permissions {
+
+          user {
+            id
+            name
+          }
+        }
+
+        createdBy {
+            id
+          name
+        }
+      }
+    }  
+  `;
+
+export const useAPIData = (horizon: any) => {
+
+    const { data: calendarData, loading } = useQuery(CALENDAR_ITEMS_QUERY, {
         variables: {
             startDate: horizon?.start,
             endDate: horizon?.end
         }
     })
 
+    // Preserve the last known data during refetches to prevent
+    // calendar items from vanishing when the horizon changes and
+    // Apollo returns undefined for the new variables' cache key.
+    const prevRef = useRef(calendarData);
+    if (calendarData) prevRef.current = calendarData;
 
     return {
-        calendarData
+        calendarData: calendarData ?? prevRef.current,
+        loading,
     }
 }

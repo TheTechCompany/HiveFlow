@@ -3,7 +3,8 @@
     "baseUrl": "./packages",                                  /* Specify the base directory to resolve non-relative module names. */
     "paths": {
       "@hive-flow/api": ["./app/hiveflow-api/src/gqty"],
-      "@hive-flow/frontend": ["./app/hiveflow-frontend/src"]
+      "@hive-flow/frontend": ["./app/hiveflow-frontend/src"],
+      "@hive-flow/ui": ["./ui/src"]
     }
   }
 }

@@ -18,11 +18,18 @@ export interface Project {
 
     startDate?: Date;
     endDate?: Date;
+
+    managers?: string[];
 }
 
 interface ProjectStatusOption {
     text: string;
     inputValue?: string;
+}
+
+interface UserOption {
+    id: string;
+    name?: string;
 }
 
 export interface ProjectModalProps {
@@ -32,6 +39,7 @@ export interface ProjectModalProps {
     error?: any;
 
     statusList?: string[];
+    users?: UserOption[];
 
     onClose?: () => void;
     onSubmit?: (project: Project) => void;
@@ -158,7 +166,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = (props) => {
 
                     <Box sx={{ display: 'flex' }}>
                         <DatePicker
-                            value={moment(project?.startDate) || null}
+                            value={project?.startDate ? moment(project.startDate) : null}
                             onChange={(start: any) => setProject({ ...project, startDate: start })}
                             format='DD/MM/YYYY'
                             slotProps={{
@@ -169,7 +177,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = (props) => {
                             }}
                             label="Start Date" />
                         <DatePicker
-                            value={moment(project?.endDate) || null}
+                            value={project?.endDate ? moment(project.endDate) : null}
                             onChange={(end: any) => setProject({ ...project, endDate: end })}
                             format='DD/MM/YYYY'
                             minDate={moment(project?.startDate)}
@@ -182,6 +190,20 @@ export const ProjectModal: React.FC<ProjectModalProps> = (props) => {
                             label="End Date" />
                     </Box>
                     <Divider sx={{ marginTop: '12px', marginBottom: '12px' }} />
+
+                    <Autocomplete
+                        multiple
+                        sx={{ marginBottom: '6px' }}
+                        options={props.users || []}
+                        getOptionLabel={(option) => option.name || option.id}
+                        isOptionEqualToValue={(option, value) => option.id === value.id}
+                        value={(props.users || []).filter(u => project.managers?.includes(u.id))}
+                        onChange={(ev, newValue) => {
+                            setProject({ ...project, managers: newValue.map(u => u.id) })
+                        }}
+                        filterSelectedOptions
+                        renderInput={(params) => <TextField {...params} size="small" label="Managers" />}
+                    />
 
                     <TextField
                         fullWidth

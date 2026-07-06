@@ -1,264 +1,626 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Add, Close } from '@mui/icons-material'
-import { Autocomplete, Box, Button, CircularProgress, Collapse, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Menu, MenuItem, Paper, Popover, TextField, Typography } from '@mui/material'
-import { FormControl } from '@hexhive/ui'
-import { MemberList } from './members'
-import { DatePicker } from '@mui/x-date-pickers'
-import moment from 'moment'
+// ── TaskModal — Thin wrapper around @hive-flow/ui TaskDialog ────────
+//
+// Keeps the same exported name and props so no consumer changes are
+// needed.  Internally delegates to TaskDialog with click-to-edit and
+// optional expandable sidebar.  All domain-specific features (members,
+// projects, skills, subtasks, dependencies, dates) are injected through
+// render slots.
 
-export const TaskModal = (props) => {
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import {
+  Add,
+  Close,
+  ExpandLess,
+  ExpandMore,
+  MoreHoriz,
+} from '@mui/icons-material';
+import {
+  Autocomplete,
+  Avatar,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  IconButton,
+  Menu,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import { FormControl } from '@hexhive/ui';
+import { TaskDialog, type TaskData } from '@hive-flow/ui';
+import { MemberList } from './members';
+import { DatePicker } from '@mui/x-date-pickers';
+import moment from 'moment';
 
-    const [skillRef, setSkillRef] = useState(null);
+// ── Types ───────────────────────────────────────────────────────────
 
-    const [ loading, setLoading ] = useState(false);
-
-    const [ deleteLoading, setDeleteLoading ] = useState(false)
-
-    const [ task, setTask ] = useState<{
-        title?: string;
-        description?: string;
-        status?: string;
-        members?: string[];
-        requiredSkills?: any;
-        startDate?: Date;
-        endDate?: Date;
-        dependencyOn?: {title: string, status: string, endDate: Date}[];
-        dependencyOf?: {title: string, status: string, endDate: Date}[];
-    }>({
-        status: 'Backlog',
-        startDate: new Date(),
-        endDate: new Date()
-    });
-
-    useEffect(() => {
-        setTask({
-            status: 'Backlog',
-            startDate: new Date(),
-            endDate: new Date(),
-            ...props.selected,
-            members: props.selected?.members?.map((x) => x.id)
-        })
-    }, [props.selected])
-
-    const onDelete = async () => {
-        setDeleteLoading(true);
-        try{
-            await props.onDelete?.();
-            setTask({
-                status: 'Backlog',
-                startDate: new Date(),
-                endDate: new Date()
-            })
-            setDeleteLoading(false);
-        }catch(err){
-            setDeleteLoading(false);
-            //setError(true);
-        }
-    }
-
-    const submit = async () => {
-        setLoading(true);
-        try{
-            await props.onSubmit?.(task);
-            setTask({
-                status: 'Backlog',
-                startDate: new Date(),
-                endDate: new Date()
-            });
-            setLoading(false)
-        }catch(err){
-            setLoading(false);
-            //setError(true);
-        }
-    }
-
-    return (
-        <Dialog 
-            maxWidth="lg"
-            onClose={props.onClose}
-            open={props.open}>
-            <DialogTitle>
-                <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                    <Typography>Task</Typography>
-                    <MemberList
-                        data={props.users || []}
-                        members={props.users.filter((a) => task.members?.indexOf(a.id) > -1) || []}
-                        onMembersChanged={(members) => {
-                            setTask({...task, members: members.map((x) => x.id)})
-                        }}
-                        />
-                </Box>
-            </DialogTitle>
-            <DialogContent sx={{display: 'flex', gap: '8px', position: 'relative'}}>
-
-                {/* <Collapse in={task.dependencyOf?.length > 0 || task.dependencyOn?.length > 0} sx={{display: 'flex', flexDirection: 'column', padding: '3px', position: 'absolute', top: 0, bottom: 0, left: '-100%'}}>
-                    {task.dependencyOn?.length > 0 && <Paper>
-                        <Box sx={{padding: '3px', color: 'white', bgcolor: 'secondary.light'}}>
-                            <Typography>Needs</Typography>
-                        </Box>
-                        <Divider />
-                        <Box sx={{padding: '3px'}}>
-                            {task.dependencyOn?.filter((a) => a.status != "Done" && a.status != "Reviewing").map((dependency) => (
-                                <Box sx={{display: 'flex', alignItems: 'center'}}>
-                                {(new Date(dependency.endDate).getTime() < new Date().getTime()) ? <ColorDot size={8} color="red" /> : ""}
-                                <Typography>{dependency.title}</Typography>
-                                </Box>
-                            )).map((x) => [x, <Divider />])}
-                        </Box>
-                    </Paper>}
-                    {task.dependencyOf?.length > 0 && <Paper>
-                        <Box sx={{padding: '3px', color: 'white', bgcolor: 'secondary.light'}}>
-                            <Typography>Needed by</Typography>
-                        </Box>
-                        <Divider />
-                        <Box sx={{padding: '3px'}}>
-                            {task.dependencyOf?.filter((a) => a.status != "Done" && a.status != "Reviewing").map((dependency) => (
-                                <Box sx={{display: 'flex', alignItems: 'center'}}>
-                                    {(new Date(dependency.endDate).getTime() < new Date().getTime()) ? <ColorDot size={8} color="red" /> : ""}
-                                    <Typography>{dependency.title}</Typography>
-                                </Box>
-                            )).map((x) => [x, <Divider />])}
-                        </Box>
-                    </Paper>}
-                </Collapse> */}
-
-                <Box sx={{display: 'flex', flex: 1, flexDirection: 'column'}}>
-                    <TextField 
-                        sx={{marginTop: '8px'}}
-                        label="Title" 
-                        fullWidth 
-                        size="small"
-                        value={task.title}
-                        onChange={(e) => setTask({...task, title: e.target.value})}
-                            />
-                    <TextField 
-                        sx={{marginTop: '8px', marginBottom: '8px'}}
-                        multiline 
-                        minRows={3}
-                        label="Description" 
-                        fullWidth 
-                        value={task.description}
-                        onChange={(e) => setTask({...task, description: e.target.value})}
-                        size="small" />
-                    
-                    <FormControl
-                        placeholder='Status'
-                        value={task.status}
-                        onChange={(val) => setTask({...task, status: val})}
-                        labelKey='label'
-                        valueKey='id'
-                        options={["Backlog", "In Progress", "Reviewing", "Finished"].map((x) => ({id: x, label: x}))}
-                            />
-
-                    <Box sx={{marginTop: '8px', marginBottom: '3px', display: 'flex'}}>
-                        <DatePicker 
-                            format='DD/MM/YYYY'
-                            value={task.startDate ? moment(task.startDate) : null}
-                            onChange={(date) => {
-                                    // console.log({date, old: '12'})
-                                    setTask({...task, startDate: date.toDate() })
-
-                            
-                            }}
-                            slotProps={{
-                                textField: {
-                                    size: 'small'
-                                }
-                            }}
-                            label='Start Date' />
-                        <DatePicker 
-                            format='DD/MM/YYYY'
-                            value={task.endDate ? moment(task.endDate) : null}
-                            onChange={(date) => setTask({...task, endDate: date.toDate() })}
-                            slotProps={{
-                                textField: {
-                                    size: 'small'
-                                }
-                            }}
-                            label="End Date" />
-                    </Box>
-
-                    {task.requiredSkills ? (
-                        <Box>
-                            <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                                <Typography>Skills</Typography>
-                                <IconButton
-                                    onClick={() => {
-                                        setTask({
-                                            ...task,
-                                            requiredSkills: [...task.requiredSkills, {}]
-                                        })
-                                    }}
-                                    size="small"><Add /></IconButton>
-                            </Box>
-                            {task.requiredSkills?.map((skill, ix) => (
-                                <Box sx={{display: 'flex'}}>
-                                    <Autocomplete
-                                        fullWidth
-                                        value={skill.skill}
-                                        onChange={(e, newValue) => {
-                                            let requiredSkills = task.requiredSkills.slice();
-                                            requiredSkills[ix].skill = newValue
-                                            setTask({
-                                                ...task, 
-                                                requiredSkills
-                                            })
-                                        }}
-                                        options={props.skills || []}
-                                        getOptionLabel={(option) => typeof(option) == 'string' ? option : option.skill}
-                                        renderInput={(params) => <TextField {...params} size="small" />}
-                                        />
-                                    <TextField 
-                                        fullWidth
-                                        value={skill.hours}
-                                        onChange={(e) => {
-                                            let requiredSkills = task.requiredSkills.slice();
-                                            requiredSkills[ix].hours = e.target.value
-                                            setTask({
-                                                ...task, 
-                                                requiredSkills
-                                            })
-                                        }}
-                                        size="small" />
-                                    <IconButton size="small" onClick={() => {
-                                          let requiredSkills = task.requiredSkills.slice();
-                                          requiredSkills.splice(ix, 1)
-                                          setTask({
-                                              ...task, 
-                                              requiredSkills
-                                          })
-                                    }}>
-                                        <Close />
-                                    </IconButton>
-                                </Box>
-                            ))}
-                        </Box>
-                    ) : null}
-                </Box>
-                <Box sx={{paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
-
-                    <Button 
-                        variant="outlined"
-                        sx={{textTransform: 'none'}}>Members</Button>
-                    <Button 
-                        // ref={skillRef}
-                        onClick={(e) => {
-                            setTask({...task, requiredSkills: []})
-                        }}
-                        variant={task.requiredSkills ? 'contained' : "outlined"}
-                        sx={{textTransform: 'none'}}>Skills</Button>
-                   
-                </Box>
-            </DialogContent>
-            <DialogActions sx={{display: 'flex', justifyContent: props.selected?.id ? 'space-between' : undefined}}>
-                {props.selected?.id &&  <Box>
-                    <Button onClick={onDelete} disabled={deleteLoading} variant="contained" color="error">{deleteLoading ? <CircularProgress size="20px" /> : "Delete"}</Button>
-                </Box>}
-                <Box>
-                    <Button onClick={props.onClose}>Close</Button>
-                    <Button onClick={submit} disabled={loading} color="primary" variant="contained">{loading ? <CircularProgress size="20px" /> : "Save"}</Button>
-                </Box>
-            </DialogActions>
-        </Dialog>
-    )
+interface TaskModalProps {
+  open: boolean;
+  selected?: any;
+  users?: Array<{ id: string; name: string }>;
+  projects?: Array<{ id: string; displayId: string; name: string }>;
+  skills?: Array<{ id: string; skill: string }>;
+  initialParentId?: string;
+  onClose: () => void;
+  onSubmit?: (task: any) => Promise<void>;
+  onDelete?: () => Promise<void>;
+  onAddSubtask?: (parentId: string, title: string) => Promise<void>;
+  onSelectTask?: (taskId: string) => void;
+  onAutoSaveDescription?: (html: string) => void;
 }
+
+interface DomainState {
+  projectId?: string;
+  members?: string[];
+  requiredSkills?: Array<{ skill?: string; hours?: string }>;
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────
+
+/** Extract TaskData fields from the app's raw task object. */
+function toTaskData(selected: any): TaskData {
+  if (!selected) return {};
+  return {
+    title: selected.title ?? '',
+    description: selected.description ?? '',
+    status: selected.status ?? 'Backlog',
+    startDate: selected.startDate
+      ? moment(selected.startDate).format('YYYY-MM-DD')
+      : selected.start
+        ? moment(selected.start).format('YYYY-MM-DD')
+        : '',
+    endDate: selected.endDate
+      ? moment(selected.endDate).format('YYYY-MM-DD')
+      : selected.end
+        ? moment(selected.end).format('YYYY-MM-DD')
+        : '',
+  };
+}
+
+// ── Inline subtask adder ─────────────────────────────────────────
+
+const SubtasksInput: React.FC<{
+  parentId: string;
+  onAdd?: (parentId: string, title: string) => Promise<void>;
+}> = ({ parentId, onAdd }) => {
+  const [title, setTitle] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  const handleAdd = async () => {
+    const trimmed = title.trim();
+    if (!trimmed || !onAdd) return;
+    setAdding(true);
+    try {
+      await onAdd(parentId, trimmed);
+      setTitle('');
+    } catch {
+      // keep input on failure
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  return (
+    <Box sx={{ display: 'flex', gap: 0.5 }}>
+      <TextField
+        size="small"
+        fullWidth
+        placeholder="Add subtask…"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleAdd();
+        }}
+        disabled={adding}
+        inputProps={{ sx: { fontSize: '0.8rem', py: 0.5 } }}
+      />
+      <IconButton
+        size="small"
+        onClick={handleAdd}
+        disabled={adding || !title.trim()}
+        color="primary"
+      >
+        {adding ? <CircularProgress size={16} /> : <Add fontSize="small" />}
+      </IconButton>
+    </Box>
+  );
+};
+
+// ── Component ───────────────────────────────────────────────────────
+
+export const TaskModal: React.FC<TaskModalProps> = ({
+  open,
+  selected,
+  users,
+  projects,
+  skills,
+  initialParentId,
+  onClose,
+  onSubmit,
+  onDelete,
+  onAddSubtask,
+  onSelectTask,
+  onAutoSaveDescription,
+}) => {
+  // ── Domain state (not part of TaskData) ─────────────────────────
+  const [domain, setDomain] = useState<DomainState>({});
+  const [subtasksOpen, setSubtasksOpen] = useState(false);
+
+  // "Add optional" dropdown
+  const addOptionalRef = useRef<HTMLButtonElement>(null);
+  const [addOptionalOpen, setAddOptionalOpen] = useState(false);
+  const [datesEnabled, setDatesEnabled] = useState(false);
+
+  // Sync domain state when selected changes.
+  useEffect(() => {
+    setDomain({
+      projectId: selected?.projectId ?? undefined,
+      members: selected?.members?.map((x: any) => x.id) ?? [],
+      requiredSkills: selected?.requiredSkills ?? [],
+    });
+    setSubtasksOpen(false);
+    // Auto-enable dates if the task already has them
+    setDatesEnabled(!!selected?.startDate || !!selected?.endDate);
+  }, [selected]);
+
+  // ── Submit — merge TaskData + domain state ──────────────────────
+  const handleSubmit = useCallback(
+    async (taskData: TaskData) => {
+      if (!onSubmit) return;
+      const merged = {
+        ...selected,
+        ...taskData,
+        ...domain,
+        startDate: taskData.startDate
+          ? moment(taskData.startDate).toDate()
+          : undefined,
+        endDate: taskData.endDate
+          ? moment(taskData.endDate).toDate()
+          : undefined,
+      };
+      await onSubmit(merged);
+    },
+    [onSubmit, selected, domain],
+  );
+
+  // ── Slots ───────────────────────────────────────────────────────
+
+  const headerPrefix = selected?.parent ? (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+      <Typography
+        variant="body2"
+        onClick={() => onSelectTask?.(selected.parent.id)}
+        sx={{
+          color: 'primary.main',
+          cursor: 'pointer',
+          fontWeight: 500,
+          '&:hover': { textDecoration: 'underline' },
+        }}
+      >
+        {selected.parent.title || '(Untitled)'}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mx: 0.25 }}>
+        ›
+      </Typography>
+    </Box>
+  ) : undefined;
+
+  const renderHeaderActions = users
+    ? () => (
+        <MemberList
+          data={users}
+          members={users.filter((a) => domain.members?.includes(a.id)) ?? []}
+          onMembersChanged={(members) =>
+            setDomain((prev) => ({
+              ...prev,
+              members: members.map((x) => x.id),
+            }))
+          }
+        />
+      )
+    : undefined;
+
+  const renderExtraFields = (activeField: string | null) => (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* Project selector */}
+      {projects && projects.length > 0 && (
+        <Box>
+          <Autocomplete
+            size="small"
+            options={projects}
+            getOptionLabel={(opt) => `${opt.displayId} - ${opt.name}`}
+            value={
+              projects.find((p: any) => p.displayId === domain.projectId) ??
+              null
+            }
+            onChange={(_, val: any) =>
+              setDomain((prev) => ({
+                ...prev,
+                projectId: val?.displayId || '',
+              }))
+            }
+            isOptionEqualToValue={(opt: any, val: any) =>
+              opt.displayId === val.displayId
+            }
+            renderInput={(params) => (
+              <TextField {...params} label="Project" size="small" fullWidth />
+            )}
+          />
+        </Box>
+      )}
+
+      {/* Time estimate — only show the full section when items exist */}
+      {(domain.requiredSkills?.length ?? 0) > 0 ? (
+        <Box
+          sx={{
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 1,
+            p: 1.5,
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              mb: 1,
+            }}
+          >
+            <Typography variant="subtitle2">Time estimate</Typography>
+            <IconButton
+              size="small"
+              onClick={() =>
+                setDomain((prev) => ({
+                  ...prev,
+                  requiredSkills: [
+                    ...(prev.requiredSkills ?? []),
+                    { skill: '', hours: '0' },
+                  ],
+                }))
+              }
+            >
+              <Add fontSize="small" />
+            </IconButton>
+          </Box>
+          {domain.requiredSkills?.map((skill, ix) => (
+            <Box
+              key={ix}
+              sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}
+            >
+              <Autocomplete
+                fullWidth
+                size="small"
+                value={skill.skill ?? ''}
+                onChange={(_e, newValue) => {
+                  const arr = (domain.requiredSkills ?? []).slice();
+                  arr[ix] = { ...arr[ix], skill: newValue ?? '' };
+                  setDomain((prev) => ({ ...prev, requiredSkills: arr }));
+                }}
+                options={skills?.map((s) => s.skill) ?? []}
+                renderInput={(params) => (
+                  <TextField {...params} placeholder="Task or activity" />
+                )}
+              />
+              <TextField
+                size="small"
+                type="number"
+                label="Hours"
+                sx={{ width: 100 }}
+                value={skill.hours ?? ''}
+                onChange={(e) => {
+                  const arr = (domain.requiredSkills ?? []).slice();
+                  arr[ix] = { ...arr[ix], hours: e.target.value };
+                  setDomain((prev) => ({ ...prev, requiredSkills: arr }));
+                }}
+              />
+              <IconButton
+                size="small"
+                onClick={() => {
+                  const arr = (domain.requiredSkills ?? []).slice();
+                  arr.splice(ix, 1);
+                  setDomain((prev) => ({
+                    ...prev,
+                    requiredSkills: arr.length > 0 ? arr : undefined,
+                  }));
+                }}
+              >
+                <Close fontSize="small" />
+              </IconButton>
+            </Box>
+          ))}
+        </Box>
+      ) : null}
+
+      {/* Add optional — dropdown for sections that start empty */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          ref={addOptionalRef}
+          size="small"
+          variant="text"
+          startIcon={<MoreHoriz />}
+          onClick={() => setAddOptionalOpen(true)}
+          sx={{ color: 'text.secondary', fontSize: '0.75rem' }}
+        >
+          Add optional
+        </Button>
+        <Menu
+          anchorEl={addOptionalRef.current}
+          open={addOptionalOpen}
+          onClose={() => setAddOptionalOpen(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <MenuItem
+            dense
+            onClick={() => {
+              setDomain((prev) => ({
+                ...prev,
+                requiredSkills: [
+                  ...(prev.requiredSkills ?? []),
+                  { skill: '', hours: '0' },
+                ],
+              }));
+              setAddOptionalOpen(false);
+            }}
+          >
+            Time estimate
+          </MenuItem>
+          {!datesEnabled && (
+            <MenuItem
+              dense
+              onClick={() => {
+                setDatesEnabled(true);
+                setAddOptionalOpen(false);
+              }}
+            >
+              Dates
+            </MenuItem>
+          )}
+        </Menu>
+      </Box>
+    </Box>
+  );
+
+  const renderSubtasks =
+    selected?.id && (selected?.children || onAddSubtask)
+      ? () => (
+          <Box
+            sx={{
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1,
+              p: 1.5,
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+              }}
+              onClick={() => setSubtasksOpen(!subtasksOpen)}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography variant="subtitle2">Subtasks</Typography>
+                <Chip
+                  label={selected?.children?.length ?? 0}
+                  size="small"
+                  sx={{ height: 18, fontSize: '0.65rem' }}
+                />
+              </Box>
+              <IconButton size="small" sx={{ p: 0 }}>
+                {subtasksOpen ? (
+                  <ExpandLess fontSize="small" />
+                ) : (
+                  <ExpandMore fontSize="small" />
+                )}
+              </IconButton>
+            </Box>
+            {subtasksOpen && (
+              <>
+                {(selected?.children?.length ?? 0) > 0 ? (
+                  <Stack spacing={0.5} sx={{ mt: 1 }}>
+                    {selected.children.map((child: any) => (
+                      <Box
+                        key={child.id}
+                        onClick={() => onSelectTask?.(child.id)}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          cursor: 'pointer',
+                          px: 1,
+                          py: 0.5,
+                          borderRadius: 1,
+                          '&:hover': { bgcolor: 'action.hover' },
+                        }}
+                      >
+                        <Typography variant="body2">{child.title}</Typography>
+                        <Chip
+                          label={child.status || 'Backlog'}
+                          size="small"
+                          sx={{
+                            fontSize: '0.65rem',
+                            height: 20,
+                            bgcolor:
+                              child.status === 'Finished'
+                                ? '#4caf50'
+                                : child.status === 'In Progress'
+                                  ? '#2196f3'
+                                  : child.status === 'Reviewing'
+                                    ? '#ff9800'
+                                    : '#9e9e9e',
+                            color: 'white',
+                          }}
+                        />
+                      </Box>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 1 }}
+                  >
+                    No subtasks yet
+                  </Typography>
+                )}
+                {selected?.id && (
+                  <Box sx={{ mt: 1 }}>
+                    <SubtasksInput
+                      parentId={selected.id}
+                      onAdd={onAddSubtask}
+                    />
+                  </Box>
+                )}
+              </>
+            )}
+          </Box>
+        )
+      : undefined;
+
+  const hasDependencies =
+    (selected?.dependencyOn?.length ?? 0) > 0 ||
+    (selected?.dependencyOf?.length ?? 0) > 0;
+
+  const renderDependencies = hasDependencies
+    ? () => (
+        <Box
+          sx={{
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 1,
+            p: 1.5,
+          }}
+        >
+          <Typography variant="subtitle2" gutterBottom>
+            Dependencies
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            {selected?.dependencyOn?.length ? (
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="caption" color="text.secondary" gutterBottom>
+                  Needs
+                </Typography>
+                {selected.dependencyOn
+                  .filter((d: any) => d.status !== 'Finished')
+                  .map((dep: any, i: number) => (
+                    <Chip
+                      key={i}
+                      size="small"
+                      label={dep.title}
+                      color={
+                        new Date(dep.endDate).getTime() < Date.now()
+                          ? 'error'
+                          : 'default'
+                      }
+                      sx={{ mr: 0.5, mb: 0.5 }}
+                    />
+                  ))}
+              </Box>
+            ) : null}
+            {selected?.dependencyOf?.length ? (
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="caption" color="text.secondary" gutterBottom>
+                  Needed by
+                </Typography>
+                {selected.dependencyOf
+                  .filter((d: any) => d.status !== 'Finished')
+                  .map((dep: any, i: number) => (
+                    <Chip
+                      key={i}
+                      size="small"
+                      label={dep.title}
+                      color={
+                        new Date(dep.endDate).getTime() < Date.now()
+                          ? 'error'
+                          : 'default'
+                      }
+                      sx={{ mr: 0.5, mb: 0.5 }}
+                    />
+                  ))}
+              </Box>
+            ) : null}
+          </Box>
+        </Box>
+      )
+    : undefined;
+
+  const renderAfterStatus = selected?.createdBy
+    ? () => (
+        <Box>
+          <Typography variant="caption" color="text.secondary">
+            Created by
+          </Typography>
+          <Box
+            sx={{
+              mt: 0.25,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+            }}
+          >
+            <Chip
+              avatar={
+                <Avatar sx={{ width: 22, height: 22, fontSize: 11 }}>
+                  {selected.createdBy.name?.[0]}
+                </Avatar>
+              }
+              label={selected.createdBy.name}
+              size="small"
+              variant="outlined"
+            />
+          </Box>
+        </Box>
+      )
+    : undefined;
+
+  const renderDateField = ({
+    label,
+    value,
+    onChange,
+  }: {
+    label: string;
+    value?: string;
+    onChange: (iso: string) => void;
+    editable: boolean;
+  }) => (
+    <DatePicker
+      format="DD/MM/YYYY"
+      value={value ? moment(value) : null}
+      onChange={(date) => {
+        if (date) onChange(date.format('YYYY-MM-DD'));
+      }}
+      slotProps={{ textField: { size: 'small', label } }}
+    />
+  );
+
+  // ── Render ───────────────────────────────────────────────────────
+
+  return (
+    <TaskDialog
+      open={open}
+      task={toTaskData(selected)}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      onDelete={onDelete}
+      headerPrefix={headerPrefix}
+      renderHeaderActions={renderHeaderActions}
+      renderExtraFields={renderExtraFields}
+      renderSubtasks={renderSubtasks}
+      renderDependencies={renderDependencies}
+      renderDateField={renderDateField}
+      renderAfterStatus={renderAfterStatus}
+      hideDates={!datesEnabled}
+      onChecklistToggle={
+        onAutoSaveDescription
+          ? (ev) => onAutoSaveDescription(ev.html)
+          : undefined
+      }
+    />
+  );
+};

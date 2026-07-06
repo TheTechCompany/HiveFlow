@@ -1,9 +1,10 @@
-import { Box, ColumnConfig } from 'grommet';
+import { Box } from '@mui/material';
 import React, {
   useEffect, useState
 } from 'react';
-import { useMutation, useQuery } from '@hive-flow/api';
-import { DataTable } from '../../../components/DataTable'
+import { useMutation, useQuery } from '@apollo/client';
+import { GET_ESTIMATES, CREATE_ESTIMATE, UPDATE_ESTIMATE, DELETE_ESTIMATE } from '@hive-flow/api';
+import { DataTable } from '@hive-flow/ui'
 // import utils from '../../utils';
 import { QuoteHeader } from './header';
 import { useTypeConfiguration } from '../../../context';
@@ -42,65 +43,18 @@ export const EstimateList: React.FC<any> = (props) => {
     { property: 'price', header: 'Total Value',  render: (row) => formatter.format(row.price), sortable: true, size: 'small', align: 'left' }
   ]
 
-  const query = useQuery({
-    suspense: false,
-    staleWhileRevalidate: true
-  })
+  const { data } = useQuery(GET_ESTIMATES, { fetchPolicy: 'cache-and-network' })
 
-  const listData = query.estimates();
+  const listData = ((data as any)?.estimates || []) as any[]
+  const users = ((data as any)?.users || []) as any[]
 
   const statusList = Array.from(new Set((listData || []).map((x: any) => x.status || '')))?.filter((a) => a != '');
 
-  const [ createEstimate ] = useMutation((mutation, args: {displayId: string, name: string, status?: string}) => {
-    const item = mutation.createEstimate({
-      input: {
-          id: args.displayId,
-          name: args.name,
-          status: args.status,
-      }
-        
-    })
-    return {
-      item: {
-        ...item
-      }
-    }
-  }, {
-    awaitRefetchQueries: true,
-    refetchQueries: [query.estimates()]
-  })
+  const [ createEstimate ] = useMutation(CREATE_ESTIMATE, { refetchQueries: ['GetEstimates'] })
 
-  const [ updateEstimate ] = useMutation((mutation, args: {displayId: string, name: string, status?: string}) => {
-    if(!args.displayId) return;
-    const item = mutation.updateEstimate({
-      id: args.displayId,
-      input: {
-        name: args.name,
-        status: args.status
-      }
-    })
-    return {
-      item: { 
-        ...item
-      }
-    }
-  }, {
-    awaitRefetchQueries: true,
-    refetchQueries: [query.estimates]
-  })
+  const [ updateEstimate ] = useMutation(UPDATE_ESTIMATE, { refetchQueries: ['GetEstimates'] })
 
-  const [ deleteEstimate ] = useMutation((mutation, args: {id: string}) => {
-    if(!args.id) return;
-    const item = mutation.deleteEstimate({
-      id: args.id
-    })
-    return {
-      item: {...item}
-    }
-  }, {
-    awaitRefetchQueries: true,
-    refetchQueries: [query.estimates]
-  })
+  const [ deleteEstimate ] = useMutation(DELETE_ESTIMATE, { refetchQueries: ['GetEstimates'] })
 
   
   useEffect(() => {
@@ -178,14 +132,14 @@ export const EstimateList: React.FC<any> = (props) => {
 
   return (
     <Box
-      direction="column"
-      flex>
+      sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <EstimateModal 
         selected={selected}
         statusList={statusList}
         error={modalError}
+        users={users || []}
         onDelete={() => {
-          deleteEstimate({args: {id: selected?.displayId}}).then(()=> {
+          deleteEstimate({ variables: { id: selected?.displayId } }).then(()=> {
             openModal(false)
             setSelected(undefined);
             // refetch()
@@ -194,10 +148,13 @@ export const EstimateList: React.FC<any> = (props) => {
         onSubmit={(project) => {
           setModalError({})
           if(project.id){
-            updateEstimate({args: {
-              displayId: project.displayId,
-              name: project.name,
-              status: project.status
+            updateEstimate({ variables: {
+              id: project.displayId,
+              input: {
+                name: project.name,
+                status: project.status,
+                managers: project.managers
+              }
             }}).then(() => {
               openModal(false);
               setSelected(undefined)
@@ -205,10 +162,13 @@ export const EstimateList: React.FC<any> = (props) => {
             })
           }else{
             createEstimate({
-              args: {
-                displayId: project.displayId,
-                name: project.name,
-                status: project.status
+              variables: {
+                input: {
+                  id: project.displayId,
+                  name: project.name,
+                  status: project.status,
+                  managers: project.managers
+                }
               }
             }).then(() => {
               openModal(false);

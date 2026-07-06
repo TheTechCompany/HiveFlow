@@ -1,9 +1,8 @@
 import React from 'react';
-import { Box, TextInput, Button } from 'grommet'
+import { Box, IconButton, Paper, TextField } from '@mui/material';
 import { FormControl } from '@hexhive/ui';
-import { Maybe } from '@hive-flow/api';
+import { Maybe } from '../../../types/generated';
 import { Add } from '@mui/icons-material';
-import { Paper, TextField } from '@mui/material';
 
 export interface HeaderProps {
     jobs?: Maybe<{
@@ -27,21 +26,17 @@ export const Header : React.FC<HeaderProps> = (props) => {
             }}
         >
         <Box 
-            flex
-            margin={{right: 'xsmall'}}
-            background={'#ffffff42'}
-            round="xsmall">
+            sx={{ flex: 1, marginRight: '6px', background: '#ffffff42', borderRadius: '6px' }}>
         <TextField
             variant='filled'
             size="small"
+            fullWidth
             value={props.filter?.search}
             onChange={(e) => props.onFilterChange?.({search: e.target.value, status: props.filter?.status})}
             label="Search Projects..." />
         </Box>
         <Box 
-            width={{min: '200px'}}
-            background={"#ffffff42"}
-            round="xsmall">
+            sx={{ minWidth: '200px', background: '#ffffff42', borderRadius: '6px' }}>
         <FormControl  
             labelKey='label'
             valueKey='id'
@@ -53,7 +48,7 @@ export const Header : React.FC<HeaderProps> = (props) => {
             />
         </Box>
         {props.onCreate && (
-            <Button onClick={props.onCreate} plain style={{padding: 6, borderRadius: 3}} icon={<Add />} hoverIndicator />
+            <IconButton onClick={props.onCreate} size="small" sx={{ padding: '6px', borderRadius: '3px' }}><Add /></IconButton>
         )}
       </Paper>
     )

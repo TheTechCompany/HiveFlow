@@ -8,6 +8,10 @@ import schedule from './schedule';
 import equipment from './equipment';
 import reports from './reports';
 import assignment from './assignment';
+import planbatch from './planbatch';
+import compliance from './compliance';
+import improvement from './improvement';
+import holidays from './holidays';
 
 import { JSONDefinition, JSONResolver } from 'graphql-scalars';
 
@@ -19,14 +23,23 @@ export default (prisma: PrismaClient) => {
 	const { typeDefs: scheduleTypeDefs, resolvers: scheduleResolvers } = schedule(prisma);
 	const { typeDefs: equipmentTypeDefs, resolvers: equipmentResolvers } = equipment(prisma);
 	const { typeDefs: reportTypeDefs, resolvers: reportResolvers } = reports(prisma);
+	const { typeDefs: planBatchTypeDefs, resolvers: planBatchResolvers } = planbatch(prisma);
+	const { typeDefs: complianceTypeDefs, resolvers: complianceResolvers } = compliance(prisma);
+	const { typeDefs: improvementTypeDefs, resolvers: improvementResolvers } = improvement(prisma);
+	const { typeDefs: holidaysTypeDefs, resolvers: holidaysResolvers } = holidays();
 
 
 	const resolvers = {
 		HiveOrganisation: {
 			projects: async (root: any) => {
 				return await prisma.project.findMany({where: {organisation: root.id}});
-
-			}
+			},
+			estimates: async (root: any) => {
+				return await prisma.estimate.findMany({where: {organisation: root.id}});
+			},
+			equipment: async (root: any) => {
+				return await prisma.equipment.findMany({where: {organisation: root.id}});
+			},
 		},
 		Query: {
 			organisation: (root: any, args: {ids: string[]}, context: any) => {
@@ -94,7 +107,11 @@ export default (prisma: PrismaClient) => {
 			estimateTypeDefs,
 			equipmentTypeDefs,
 			reportTypeDefs,
-			scheduleTypeDefs
+			planBatchTypeDefs,
+			scheduleTypeDefs,
+			complianceTypeDefs,
+			improvementTypeDefs,
+			holidaysTypeDefs
 		]),
 		resolvers: mergeResolvers([
 			{JSON: JSONResolver},
@@ -104,7 +121,11 @@ export default (prisma: PrismaClient) => {
 			equipmentResolvers,
 			estimateResolvers,
 			reportResolvers,
-			scheduleResolvers
+			planBatchResolvers,
+			scheduleResolvers,
+			complianceResolvers,
+			improvementResolvers,
+			holidaysResolvers
 		])
 	}
 }

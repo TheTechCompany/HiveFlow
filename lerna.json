@@ -1,7 +1,8 @@
 {
   "packages": [
     "packages/app/*",
-    "packages/integrations/*"
+    "packages/integrations/*",
+    "packages/ui"
   ],
   "npmClient": "yarn",
   "version": "0.0.0"

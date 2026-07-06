@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import { Horizon } from "../../components/Schedule/types";
+import { Horizon } from "../../types/schedule";
 
 export const ScheduleRootContext = createContext<{
     events?: any[];
@@ -8,7 +8,6 @@ export const ScheduleRootContext = createContext<{
     people?: any[];
     leave?: any[];
     horizon?: Horizon;
-
     graphType?: string;
 }>({
 

@@ -18,3 +18,9 @@ packages/integrations/data-producer/task-test.json
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+*storybook-static/*
+
+.reasonix/*
+
+.kilo/*

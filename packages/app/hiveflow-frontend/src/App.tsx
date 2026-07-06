@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import logo from "./logo.svg";
-import { Box, Button, Grommet } from "grommet";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { Dashboard } from "./views/dashboard";
 import { HexHiveTheme } from "@hexhive/styles";

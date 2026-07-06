@@ -1,26 +1,28 @@
-import React, { Component, useState} from 'react';
-
-import { Link, Route , generatePath, matchPath, Routes, useNavigate, useResolvedPath} from 'react-router-dom';
+import React from 'react';
 
 import logo from '../../logo.svg';
 
 //views, logo
-import { Sidebar, SidebarView} from '@hexhive/ui';
+import { SidebarLayout } from '@hive-flow/ui';
 
 // import RoutedView from '../../components/primatives/routed-view';
 
 import {
   Calendar as Schedule,
   People,
-  Timeline as TimelineIcon,
   Estimates,
   Projects,
   Equipment,
   Hiveflow,
-  Assigned
+  Assigned,
+  Recurring as RecurringIcon,
+  Compliance as ComplianceIcon
 } from '../../assets'
 
 import { Box } from '@mui/material'
+import { Dashboard as ManagementIcon } from '@mui/icons-material'
+
+import { useTypeConfiguration } from '../../context';
 
 import { ProjectList } from '../projects/list';
 import { ProjectSingle } from '../projects/single';
@@ -30,10 +32,13 @@ import {PeopleSingle} from '../people/single';
 import { EquipmentList } from '../equipment/list';
 import {EstimateView} from '../estimates';
 
-import Timeline from '../timeline/Timeline'
 import { ProjectView } from '../projects';
 import { PeopleView } from '../people';
 import { Assignments } from '../assignments';
+import { BatchView } from '../batches';
+import { RecurringView } from '../recurring';
+import { ComplianceView } from '../compliance';
+import { ManagementView } from '../management';
 
 // const Schedule = React.lazy(() => import('../schedule'))
 // const Quotes = React.lazy(() => import('../quotes'))
@@ -45,17 +50,12 @@ import { Assignments } from '../assignments';
 
 export const Dashboard = (props: any) => { 
 
+  const managementPerm = useTypeConfiguration('Management');
+
   //  const [ view, setView ] = React.useState('schedule')
   // const [ alerts, setAlerts ] = useState<string[]>([])
 
   const alerts = []
-  const active = window.location.pathname.replace(process.env.PUBLIC_URL || '', '')
-
-  
-  const path = useResolvedPath(active);
-  console.log({active, path})
-
-  const navigate = useNavigate()
 
   const views = () => {
     let login_type =  'email' //props.user.login_type;
@@ -66,12 +66,6 @@ export const Dashboard = (props: any) => {
                   label: "Schedule",
                   path: "schedule",
                   component: <> </>,
-                },
-                {
-                  icon: <TimelineIcon filter="invert(1)" />,
-                  label: "Timeline",
-                  path: "timeline",
-                  component: <></>
                 },
                 {
                   icon: <Estimates filter="invert(1)" />,
@@ -167,12 +161,6 @@ export const Dashboard = (props: any) => {
       component: <ScheduleView />
     },
     {
-      path: 'timeline',
-      label: 'Timeline',
-      icon: <TimelineIcon filter="invert(1)" />,
-      component: <Timeline />
-    },
-    {
       path: 'estimates',
       label: 'Estimates',
       icon: <Estimates filter="invert(1)" />,
@@ -195,14 +183,32 @@ export const Dashboard = (props: any) => {
       label: 'Equipment',
       icon: <Equipment filter="invert(1)" />,
       component: <EquipmentList />
-    }
+    },
+    {
+      path: 'recurring',
+      label: 'Recurring',
+      icon: <RecurringIcon filter="invert(1)" />,
+      component: <RecurringView />
+    },
+    {
+      path: 'compliance',
+      label: 'Compliance',
+      icon: <ComplianceIcon filter="invert(1)" />,
+      component: <ComplianceView />
+    },
+    ...(managementPerm?.read !== false ? [{
+      path: 'management',
+      label: 'Management',
+      icon: <ManagementIcon sx={{ color: 'white' }} />,
+      component: <ManagementView />
+    }] : [])
   ]
       return (
 
          <Box 
           sx={{flex: 1, display: 'flex', color: 'white', bgcolor: 'primary.dark', height: '100%'}}
           className="dashboard">
-            <SidebarView
+            <SidebarLayout
               views={menu}
                 />
               {/* <Sidebar
@@ -240,7 +246,7 @@ export const Dashboard = (props: any) => {
                 <Route path={`people/:id`} element={<PeopleSingle/>} />
 
                 <Route path={`equipment`} element={<EquipmentList/>} />
-                <Route path={`timeline`} element={<Timeline/>} />
+
               </Routes>
             </React.Suspense>
             </Box> */}

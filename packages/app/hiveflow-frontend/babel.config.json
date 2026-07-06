@@ -25,6 +25,9 @@
           "targets": "current node"
         }]
       ]
+    },
+    "development": {
+      "plugins": ["react-refresh/babel"]
     }
   }
 }
