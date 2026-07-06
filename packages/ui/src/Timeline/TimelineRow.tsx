@@ -33,6 +33,9 @@ export interface TimelineRowProps {
   /** When false, the sidebar wrapper has no padding or border —
    *  the renderGroupHeader callback owns all styling. Default true. */
   sidebarPadding?: boolean;
+  /** Per-lane heights in px for this row — used to position lane dividers.
+   *  Each divider sits at the cumulative boundary between two lanes. */
+  laneHeights?: number[];
 }
 
 // ── Module-level style constants ──────────────────────────────────
@@ -80,6 +83,7 @@ const LANE_DIVIDER_STYLE: React.CSSProperties = {
   borderTop: '1px dashed #e0e0e0',
   pointerEvents: 'none',
   zIndex: 0,
+  transition: 'top 0.2s ease',
 };
 
 // ── Memo'd bar wrapper (isolates per-item callback creation) ──────
@@ -239,7 +243,9 @@ export const TimelineRow: React.FC<TimelineRowProps> = React.memo(
     isPlaceholder,
     onDoubleClickItem,
     sidebarPadding = true,
+    laneHeights,
   }) {
+    const defaultLaneH = itemHeight + 4;
     const {
       selection,
       selectItem,
@@ -279,7 +285,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = React.memo(
     return (
       <div
         data-timeline-row={groupId}
-        style={{ ...borderStyle, height: `${rowHeight}px` }}
+        style={{ ...borderStyle, height: `${rowHeight}px`, transition: 'height 0.2s ease' }}
       >
         {/* Sidebar gutter — memoized separately so panning skips MUI content */}
         {showSidebar && sidebarWidth > 0 && (
@@ -302,15 +308,20 @@ export const TimelineRow: React.FC<TimelineRowProps> = React.memo(
         >
           {/* Lane dividers */}
           {laneCount > 1 &&
-            Array.from({ length: laneCount - 1 }, (_, i) => (
+            Array.from({ length: laneCount - 1 }, (_, i) => {
+              // Divider at cumulative top of lanes 0..i, minus 2px for centering
+              const cumTop = (laneHeights ?? []).slice(0, i + 1).reduce((s, h) => s + h, 0);
+              const top = cumTop > 0 ? cumTop - 2 : (i + 1) * defaultLaneH - 2;
+              return (
               <div
                 key={`div-${i}`}
                 style={{
                   ...LANE_DIVIDER_STYLE,
-                  top: `${(i + 1) * (itemHeight + 4) - 2}px`,
+                  top: `${top}px`,
                 }}
               />
-            ))}
+              );
+            })}
 
           {items.map((item) => (
             <RowBar

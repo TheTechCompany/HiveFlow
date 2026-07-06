@@ -19,4 +19,4 @@ packages/integrations/data-producer/task-test.json
 !.yarn/sdks
 !.yarn/versions
 
-storybook-static/
+*storybook-static/*

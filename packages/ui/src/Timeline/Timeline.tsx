@@ -248,8 +248,11 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
     onKeyDown,
     updateDrag,
     endDrag,
+    clearDragState,
     setContainerRef,
     effectiveEnd,
+    groupLaneHs,
+    groupHeights,
   } = timeline;
 
   const hasGroups = !!(groups && groups.length > 0);
@@ -282,26 +285,26 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
     return [{ groupId: '__default__', group: undefined, items: flat, laneCount }];
   }, [hasGroups, groups, groupedItems]);
 
-  const laneH = itemHeight + 4;
+  const defaultLaneH = itemHeight + 4;
 
   const totalRowsHeight = useMemo(() => {
     let h = 0;
-    for (const e of rowEntries) h += Math.max(1, e.laneCount) * laneH;
+    for (const e of rowEntries) h += groupHeights.get(e.groupId) ?? (Math.max(1, e.laneCount) * defaultLaneH);
     if (fullHeight) return Math.max(h, 200);
     // Use the actual row height — the Body's overflow-y:auto handles
     // vertical scrolling when content exceeds the viewport.  The grid
     // lines use a separate gridHeight so they always extend to the
     // bottom even when rows are short.
     return h;
-  }, [rowEntries, laneH, fullHeight]);
+  }, [rowEntries, groupHeights, defaultLaneH, fullHeight]);
 
   // Grid lines and SVG links should extend to at least the full body
   // height even when there are few rows.
   const gridHeight = useMemo(() => {
     let h = 0;
-    for (const e of rowEntries) h += Math.max(1, e.laneCount) * laneH;
+    for (const e of rowEntries) h += groupHeights.get(e.groupId) ?? (Math.max(1, e.laneCount) * defaultLaneH);
     return Math.max(h, geometry.viewportHeight - headerHeight, 200);
-  }, [rowEntries, laneH, geometry.viewportHeight, headerHeight]);
+  }, [rowEntries, groupHeights, defaultLaneH, geometry.viewportHeight, headerHeight]);
 
   // ── Drag for existing items ──────────────────────────────────────
   const dragRef = timeline.dragStateRef;
@@ -332,6 +335,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
   const timelineRef = useRef({
     updateDrag,
     endDrag,
+    clearDragState,
     clearSelection: timeline.clearSelection,
     callbacks,
     start: activeStart,
@@ -339,12 +343,13 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
     geometry,
     sidebarW,
     rowEntries,
-    laneH,
+    groupHeights,
     shiftHorizon,
   });
   timelineRef.current = {
     updateDrag,
     endDrag,
+    clearDragState,
     clearSelection: timeline.clearSelection,
     callbacks,
     start: activeStart,
@@ -352,7 +357,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
     geometry,
     sidebarW,
     rowEntries,
-    laneH,
+    groupHeights,
     shiftHorizon,
   };
 
@@ -545,7 +550,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
       let top = 0;
 
       for (const entry of t.rowEntries) {
-        const h = Math.max(1, entry.laneCount) * t.laneH;
+        const h = t.groupHeights.get(entry.groupId) ?? (Math.max(1, entry.laneCount) * (itemHeight + 4));
         if (bodyY >= top && bodyY < top + h) {
           return {
             groupId: hasGroups ? entry.groupId : null,
@@ -571,6 +576,10 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
       if (target.closest('[data-timeline-links]')) {
         return;
       }
+      // Cancel any lingering item drag before starting a pan —
+      // otherwise a stale dragStateRef.mode causes document pointermove
+      // to fire updateDrag / onItemChanging for a dead drag.
+      timelineRef.current.clearDragState();
       const body = bodyRef.current;
       if (!body) return;
       const bodyRect = body.getBoundingClientRect();
@@ -694,6 +703,9 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
         ...BODY_STYLE,
         flex: fullHeight ? 'none' : BODY_STYLE.flex,
         ...(fullHeight ? { overflowY: 'visible' as const, overflowX: 'visible' as const } : {}),
+        ...(sidebarW > 0 ? {
+          background: `linear-gradient(to right, #f5f5f5 ${sidebarW - 1}px, #d0d0d0 ${sidebarW - 1}px, #d0d0d0 ${sidebarW}px, #fff ${sidebarW}px)`,
+        } : {}),
       }}>
         <div style={ROWS_WRAPPER_STYLE}>
           {/* Grid, links, and ghost are absolutely positioned inside
@@ -719,7 +731,10 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
             {ghostBar}
           </div>
 
-          {rowEntries.map((entry) => (
+          {rowEntries.map((entry) => {
+            const entryLaneHs = groupLaneHs.get(entry.groupId);
+            const entryRowH = groupHeights.get(entry.groupId) ?? (Math.max(1, entry.laneCount) * defaultLaneH);
+            return (
             <TimelineRow
               key={entry.groupId}
               groupId={entry.groupId} group={entry.group}
@@ -727,7 +742,8 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
               itemHeight={itemHeight}
               resizable={canInteract && resizable}
               movable={canInteract && movable}
-              rowHeight={Math.max(1, entry.laneCount) * laneH}
+              rowHeight={entryRowH}
+              laneHeights={entryLaneHs}
               isExpanded={true}
               renderItem={renderers?.renderItem}
               timeline={timeline}
@@ -737,16 +753,8 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
               onDoubleClickItem={handleItemDoubleClick}
               sidebarPadding={sidebarPadding}
             />
-          ))}
-          {/* Spacer fills remaining vertical space with sidebar gutter —
-              a real DOM element instead of a body background-image so it
-              sits in the correct stacking context above the grid. */}
-          {sidebarW > 0 && (
-            <div style={{
-              flex: 1,
-              background: `linear-gradient(to right, #f5f5f5 ${sidebarW - 1}px, #d0d0d0 ${sidebarW - 1}px, #d0d0d0 ${sidebarW}px, transparent ${sidebarW}px)`,
-            }} />
-          )}
+            );
+          })}
         </div>
       </div>
     </div>

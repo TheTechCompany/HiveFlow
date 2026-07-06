@@ -257,6 +257,22 @@ export function packLanes(items: TimelineItem[]): LanesResult {
   return { items: result, laneCount: lanes.length };
 }
 
+// ── Bar positioning ─────────────────────────────────────────────────
+
+/** Cumulative top offset for a bar in a given lane, summing preceding lane heights. */
+export function getBarTop(
+  laneHs: number[] | undefined,
+  laneIndex: number,
+  defaultLaneH: number,
+): number {
+  if (!laneHs || laneHs.length === 0) return laneIndex * defaultLaneH;
+  let top = 0;
+  for (let i = 0; i < laneIndex; i++) {
+    top += laneHs[i] ?? defaultLaneH;
+  }
+  return top;
+}
+
 // ── Clamping ────────────────────────────────────────────────────────
 
 /** Clamp a value between min and max. */

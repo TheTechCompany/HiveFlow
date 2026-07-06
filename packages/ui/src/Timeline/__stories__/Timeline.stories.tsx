@@ -382,3 +382,130 @@ export const BothAxisScroll: Story = {
     });
   },
 };
+
+// --- Tall custom events (responsive row heights) --------------------
+
+export const TallCustomEvents: Story = {
+  name: 'Tall custom events (responsive lanes)',
+  render: () => {
+    // Items with custom heights spread across lanes so per-lane
+    // sizing is visible.  Overlapping items land in different lanes;
+    // each lane sizes to its own tallest item.
+    const items: TimelineItem[] = [
+      // g1 — overlapping: tall in lane 0, normal in lane 1
+      makeItem({
+        id: 'ev-a1', label: 'Tall card (72px)',
+        start: d(2026, 6, 2), end: d(2026, 6, 8),
+        color: '#7b61ff', groupId: 'g1', height: 72,
+      }),
+      makeItem({
+        id: 'ev-a2', label: 'Short (30px)',
+        start: d(2026, 6, 5), end: d(2026, 6, 11),
+        color: '#4a90d9', groupId: 'g1',
+      }),
+
+      // g2 — three items: tall alone in lane 0, two normals stacked in lane 0 & 1
+      makeItem({
+        id: 'ev-b1', label: 'Extra tall (100px)',
+        start: d(2026, 6, 1), end: d(2026, 6, 6),
+        color: '#e06c75', groupId: 'g2', height: 100,
+      }),
+      makeItem({
+        id: 'ev-b2', label: 'Normal (30px)',
+        start: d(2026, 6, 4), end: d(2026, 6, 9),
+        color: '#56b6c2', groupId: 'g2',
+      }),
+      makeItem({
+        id: 'ev-b3', label: 'Normal (30px)',
+        start: d(2026, 6, 8), end: d(2026, 6, 14),
+        color: '#e5c07b', groupId: 'g2',
+      }),
+
+      // g3 — single medium card, snug row
+      makeItem({
+        id: 'ev-c1', label: 'Medium (56px)',
+        start: d(2026, 6, 3), end: d(2026, 6, 9),
+        color: '#98c379', groupId: 'g3', height: 56,
+      }),
+    ];
+
+    const groups: TimelineGroup[] = [
+      { id: 'g1', label: 'Frontend', items: items.filter(i => i.groupId === 'g1') },
+      { id: 'g2', label: 'Backend', items: items.filter(i => i.groupId === 'g2') },
+      { id: 'g3', label: 'Design', items: items.filter(i => i.groupId === 'g3') },
+    ];
+
+    // Custom renderer that produces tall content proportional to item height
+    const renderItem = (item: TimelineItem) => {
+      const h = item.height ?? 30;
+      const isTall = h > 40;
+      const bgColor = item.color ?? '#4a90d9';
+      return React.createElement('div', {
+        style: {
+          display: 'flex',
+          flexDirection: 'column' as const,
+          padding: '6px 10px',
+          width: '100%',
+          minHeight: '100%',
+          gap: 2,
+          background: `linear-gradient(135deg, ${bgColor} 0%, ${bgColor}dd 100%)`,
+          borderRadius: 4,
+          boxSizing: 'border-box' as const,
+        },
+      },
+        React.createElement('div', {
+          style: { fontWeight: 700, fontSize: isTall ? 14 : 12, lineHeight: 1.3, color: '#fff' },
+        }, item.label),
+        isTall && React.createElement('div', {
+          style: { fontSize: 11, opacity: 0.9, lineHeight: 1.3, color: '#fff' },
+        }, `Details about ${item.label?.toLowerCase()}. This event spans multiple days and has extra context shown here.`),
+        isTall && React.createElement('div', {
+          style: { fontSize: 10, opacity: 0.75, marginTop: 'auto', color: '#fff' },
+        }, `⏱ ${item.start.toLocaleDateString()} – ${item.end.toLocaleDateString()}`),
+      );
+    };
+
+    return React.createElement(Timeline, {
+        items,
+        groups,
+        start: d(2026, 6, 1),
+        end: d(2026, 6, 20),
+        step: 'day' as const,
+        renderers: { renderItem },
+      });
+  },
+};
+
+export const TallCustomEventsFillLane: Story = {
+  name: 'Tall custom events (fill-lane mode)',
+  render: () => {
+    // Same dataset as TallCustomEvents but with itemHeightMode="fillLane"
+    // so bars stretch to fill their lane height — uniform block look.
+    const items: TimelineItem[] = [
+      makeItem({ id: 'fl-a1', label: 'Tall card (72px)', start: d(2026, 6, 2), end: d(2026, 6, 8), color: '#7b61ff', groupId: 'g1', height: 72 }),
+      makeItem({ id: 'fl-a2', label: 'Short (30px)', start: d(2026, 6, 5), end: d(2026, 6, 11), color: '#4a90d9', groupId: 'g1' }),
+      makeItem({ id: 'fl-b1', label: 'Extra tall (100px)', start: d(2026, 6, 1), end: d(2026, 6, 6), color: '#e06c75', groupId: 'g2', height: 100 }),
+      makeItem({ id: 'fl-b2', label: 'Normal (30px)', start: d(2026, 6, 4), end: d(2026, 6, 9), color: '#56b6c2', groupId: 'g2' }),
+      makeItem({ id: 'fl-b3', label: 'Normal (30px)', start: d(2026, 6, 8), end: d(2026, 6, 14), color: '#e5c07b', groupId: 'g2' }),
+      makeItem({ id: 'fl-c1', label: 'Medium (56px)', start: d(2026, 6, 3), end: d(2026, 6, 9), color: '#98c379', groupId: 'g3', height: 56 }),
+    ];
+    const groups: TimelineGroup[] = [
+      { id: 'g1', label: 'Frontend', items: items.filter(i => i.groupId === 'g1') },
+      { id: 'g2', label: 'Backend', items: items.filter(i => i.groupId === 'g2') },
+      { id: 'g3', label: 'Design', items: items.filter(i => i.groupId === 'g3') },
+    ];
+    const renderItem = (item: TimelineItem) => {
+      const h = item.height ?? 30;
+      const isTall = h > 40;
+      const bgColor = item.color ?? '#4a90d9';
+      return React.createElement('div', {
+        style: { display: 'flex', flexDirection: 'column' as const, padding: '6px 10px', width: '100%', height: '100%', gap: 2, background: `linear-gradient(135deg, ${bgColor} 0%, ${bgColor}dd 100%)`, borderRadius: 4, boxSizing: 'border-box' as const, justifyContent: 'center' },
+      },
+        React.createElement('div', { style: { fontWeight: 700, fontSize: isTall ? 14 : 12, lineHeight: 1.3, color: '#fff' } }, item.label),
+        isTall && React.createElement('div', { style: { fontSize: 11, opacity: 0.9, lineHeight: 1.3, color: '#fff' } }, `Details about ${item.label?.toLowerCase()}.`),
+        isTall && React.createElement('div', { style: { fontSize: 10, opacity: 0.75, marginTop: 'auto', color: '#fff' } }, `⏱ ${item.start.toLocaleDateString()} – ${item.end.toLocaleDateString()}`),
+      );
+    };
+    return React.createElement(Timeline, { items, groups, start: d(2026, 6, 1), end: d(2026, 6, 20), step: 'day' as const, itemHeightMode: 'fillLane' as const, renderers: { renderItem } });
+  },
+};

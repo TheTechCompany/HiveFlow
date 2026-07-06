@@ -1,4 +1,5 @@
 import { gql, useMutation, useQuery } from "@apollo/client"
+import { useRef } from "react"
 
 export const useAPIFunctions = () => {
 
@@ -93,7 +94,7 @@ export const useAPIFunctions = () => {
 
 export const useAPIData = (horizon: any) => {
 
-    const { data: calendarData } = useQuery(gql`
+    const { data: calendarData, loading } = useQuery(gql`
         query CalendarItems($startDate: DateTime, $endDate: DateTime){
 
         allUsers: users{
@@ -140,7 +141,14 @@ export const useAPIData = (horizon: any) => {
         }
     })
 
+    // Preserve the last known data during refetches to prevent
+    // calendar items from vanishing when the horizon changes and
+    // Apollo returns undefined for the new variables' cache key.
+    const prevRef = useRef(calendarData);
+    if (calendarData) prevRef.current = calendarData;
+
     return {
-        calendarData
+        calendarData: calendarData ?? prevRef.current,
+        loading,
     }
 }

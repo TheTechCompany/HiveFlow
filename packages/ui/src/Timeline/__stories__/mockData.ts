@@ -33,6 +33,7 @@ export interface MakeItemOpts {
   movable?: boolean;
   selectable?: boolean;
   hoverInfo?: string;
+  height?: number;
 }
 
 export function makeItem(opts: MakeItemOpts = {}): TimelineItem {
@@ -52,6 +53,7 @@ export function makeItem(opts: MakeItemOpts = {}): TimelineItem {
     movable: opts.movable,
     selectable: opts.selectable,
     hoverInfo: opts.hoverInfo,
+    height: opts.height,
   };
 }
 

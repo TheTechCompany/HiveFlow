@@ -22,6 +22,7 @@ export { TimelineRow } from './TimelineRow';
 export { TimelineGrid } from './TimelineGrid';
 export { TimelineLinks } from './TimelineLink';
 export { useTimeline } from './useTimeline';
+export { getBarTop } from './utils';
 
 export type {
   TimelineProps,

@@ -25,6 +25,7 @@ import {
   dateToX,
   packLanes,
   filterVisibleItems,
+  getBarTop,
 } from './utils';
 import {
   DEFAULT_ITEM_HEIGHT,
@@ -100,6 +101,8 @@ export interface UseTimelineReturn {
   startDrag: (itemId: string, mode: DragMode, clientX: number) => void;
   updateDrag: (clientX: number, clientY?: number, groupId?: string) => void;
   endDrag: () => ItemChange | null;
+  /** Reset drag state without firing callbacks — use before starting a pan. */
+  clearDragState: () => void;
 
   onKeyDown: (e: React.KeyboardEvent) => void;
   visibleItems: TimelineItem[];
@@ -109,6 +112,11 @@ export interface UseTimelineReturn {
 
   /** Layouts for every visible bar — used by link arrows. */
   barLayouts: BarLayout[];
+
+  /** Per-group per-lane heights in px (each lane: max item height + 4px gap). */
+  groupLaneHs: Map<string, number[]>;
+  /** Per-group total row height in px (sum of lane heights). */
+  groupHeights: Map<string, number>;
 
   /** Effective end of the visible date window, consistent with geometry. */
   effectiveEnd: Date;
@@ -124,8 +132,9 @@ const BASE_BAR_STYLE: React.CSSProperties = {
   userSelect: 'none' as const,
   boxSizing: 'border-box' as const,
   display: 'flex',
-  alignItems: 'center',
+  alignItems: 'stretch',
   overflow: 'hidden',
+  transition: 'top 0.2s ease, height 0.2s ease',
 };
 
 // ── Hook ────────────────────────────────────────────────────────────
@@ -140,6 +149,7 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
     stepCount: stepCountProp,
     itemHeight = DEFAULT_ITEM_HEIGHT,
     minBarWidth = DEFAULT_MIN_BAR_WIDTH,
+    itemHeightMode = 'natural' as 'natural' | 'fillLane',
     multiSelect = true,
     callbacks,
   } = props;
@@ -253,9 +263,35 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
     return { groupedItems: map, flatItems: flat };
   }, [visibleWithDragged, groups]);
 
-  // ── Bar layouts (for link arrows) ───────────────────────────────
-  const laneH = itemHeight + 4;
+  // ── Per-lane heights (each lane sized to its tallest item + gap) ─
+  // When items specify a custom height, only the affected lane grows.
+  const groupLaneHs = useMemo(() => {
+    const map = new Map<string, number[]>();
+    for (const [gid, packed] of groupedItems) {
+      const maxLane = packed.length > 0
+        ? Math.max(...packed.map((i) => i.laneIndex)) + 1
+        : 1;
+      const laneHs = new Array(maxLane).fill(itemHeight + 4);
+      for (const item of packed) {
+        const h = (item.height ?? itemHeight) + 4;
+        if (h > laneHs[item.laneIndex]) {
+          laneHs[item.laneIndex] = h;
+        }
+      }
+      map.set(gid, laneHs);
+    }
+    return map;
+  }, [groupedItems, itemHeight]);
 
+  const groupHeights = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const [gid, laneHs] of groupLaneHs) {
+      map.set(gid, laneHs.reduce((sum, h) => sum + h, 0));
+    }
+    return map;
+  }, [groupLaneHs]);
+
+  // ── Bar layouts (for link arrows) ───────────────────────────────
   const barLayouts = useMemo((): BarLayout[] => {
     const layouts: BarLayout[] = [];
     const groupIds = groups?.map((g) => g.id) ?? ['__default__'];
@@ -263,27 +299,27 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
 
     for (const gid of groupIds) {
       const packed = groupedItems.get(gid) ?? [];
-      const laneCount = packed.length > 0
-        ? Math.max(...packed.map((i) => i.laneIndex)) + 1
-        : 1;
+      const gh = groupHeights.get(gid) ?? 0;
+      const laneHs = groupLaneHs.get(gid) ?? [itemHeight + 4];
 
       for (const item of packed) {
+        const top = getBarTop(laneHs, item.laneIndex, itemHeight + 4);
         const left = dateToX(item.start, start, geometry.pxPerMs);
         const right = dateToX(item.end, start, geometry.pxPerMs);
         layouts.push({
           itemId: item.id,
           left,
-          top: groupTop + item.laneIndex * laneH,
+          top: groupTop + top,
           width: Math.max(minBarWidth, right - left),
-          height: itemHeight,
+          height: item.height ?? itemHeight,
         });
       }
 
-      groupTop += laneCount * laneH;
+      groupTop += gh;
     }
 
     return layouts;
-  }, [groupedItems, groups, start, geometry.pxPerMs, itemHeight, minBarWidth, laneH]);
+  }, [groupedItems, groups, start, geometry.pxPerMs, itemHeight, minBarWidth, groupLaneHs, groupHeights]);
 
   // ── Selection ──────────────────────────────────────────────────
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>(
@@ -535,6 +571,15 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
     return change;
   }, [geometry.pxPerMs, minBarWidth, step]);
 
+  // ── Clear drag state ───────────────────────────────────────────
+  // Reset drag without firing onItemChange — used when a new pointer
+  // interaction starts (e.g. pan) and a previous drag was not cleanly
+  // ended (pointerup missed, tab lost focus, etc.).
+  const clearDragState = useCallback(() => {
+    dragStateRef.current = IDLE_DRAG;
+    setDragState(IDLE_DRAG);
+  }, []);
+
   // ── Keyboard ───────────────────────────────────────────────────
   // Use refs for all closure values so onKeyDown has [] deps and
   // never creates a new closure across renders.
@@ -637,12 +682,25 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
         }
       }
 
+      const itemH = item.height ?? itemHeight;
+      // Cumulative top from preceding lane heights for this item's group
+      const laneHs = (item.groupId ? groupLaneHs.get(item.groupId) : groupLaneHs.get('__default__')) ?? [itemHeight + 4];
+      const laneIdx = (item as any).laneIndex ?? 0;
+      const itemTop = getBarTop(laneHs, laneIdx, itemHeight + 4);
+
+      const fillLane = itemHeightMode === 'fillLane';
+      // In fillLane mode the bar fills its lane's content height
+      // (lane height minus the 4 px inter-lane gap).
+      const laneContentH = fillLane
+        ? (laneHs[laneIdx] ?? (itemHeight + 4)) - 4
+        : itemH;
+
       return {
         ...BASE_BAR_STYLE,
         left: `${left}px`,
         width: `${Math.max(minBarWidth, width + dragWidth)}px`,
-        height: `${itemHeight}px`,
-        top: `${((item as any).laneIndex ?? 0) * laneH}px`,
+        height: `${Math.max(itemH, laneContentH)}px`,
+        top: `${itemTop}px`,
         minWidth: `${minBarWidth}px`,
         backgroundColor: item.color ?? '#4a90d9',
         cursor: isDragging ? 'grabbing' : 'grab',
@@ -653,7 +711,7 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
         boxShadow: isDragging ? '0 4px 12px rgba(0,0,0,0.25)' : undefined,
       };
     },
-    [start, geometry.pxPerMs, itemHeight, minBarWidth, selectedItemIds, dragState, laneH],
+    [start, geometry.pxPerMs, itemHeight, itemHeightMode, minBarWidth, selectedItemIds, dragState, groupLaneHs],
   );
 
   // ── Return (memoised so sub-component React.memo actually works) ─
@@ -671,10 +729,13 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
     startDrag,
     updateDrag,
     endDrag,
+    clearDragState,
     onKeyDown,
     visibleItems: visibleWithDragged,
     computeBarStyle,
     barLayouts,
+    groupLaneHs,
+    groupHeights,
     effectiveEnd,
     setContainerRef,
   }), [
@@ -691,10 +752,13 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
     startDrag,
     updateDrag,
     endDrag,
+    clearDragState,
     onKeyDown,
     visibleWithDragged,
     computeBarStyle,
     barLayouts,
+    groupLaneHs,
+    groupHeights,
     effectiveEnd,
     setContainerRef,
   ]);

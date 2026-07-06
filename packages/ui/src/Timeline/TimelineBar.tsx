@@ -125,7 +125,7 @@ export const TimelineBar: React.FC<TimelineBarProps> = React.memo(function Timel
       boxShadow: 'none',
     } : {}),
     opacity: isDragging ? 0.6 : 1,
-    transition: isDragging ? 'none' : 'opacity 0.15s ease',
+    transition: isDragging ? 'none' : 'opacity 0.15s ease, top 0.2s ease, height 0.2s ease',
   }), [style, isDragging, renderItem, isSelected]);
 
   return (

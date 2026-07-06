@@ -65,10 +65,12 @@ Timeline (root, flex column, overflow:hidden, tabIndex=0)
 │   ├── Sidebar header  (fixed width, optional, sticky)
 │   └── Header spacer   (flex:1) → TimelineHeader (multi-tier date labels)
 └── Body (flex:1, overflow-y:auto)
+    │   └── Sidebar gutter via body background (linear-gradient) —
+    │       extends to the body bottom without a spacer element.
     ├── TimelineGrid   (absolute, pointer-events:none) — vertical grid lines
     ├── TimelineLinks  (absolute, SVG) — dependency arrows between bars
     ├── Ghost wrapper  (absolute, z-index:20) — Shift+drag creation preview
-    └── ROWS_WRAPPER (flex column, min-height:100%)
+    └── ROWS_WRAPPER (flex column, content-sized)
         └── TimelineRow × N (React.memo)
             ├── SidebarCell (React.memo) — group label gutter
             └── Bar area (position:relative, overflow:hidden, flex:1)
@@ -86,6 +88,8 @@ useTimeline() — the core hook
   ├── computeGeometry() → pxPerMs, timelineWidth, effectiveEndMs
   ├── filterVisibleItems() → items in [start, effectiveEnd]
   ├── packLanes() → non-overlapping lane assignment per group
+  ├── groupLaneHs → per-lane heights (each lane sized to its tallest item + 4 px)
+  ├── groupHeights → per-group row heights (sum of lane heights)
   ├── computeBarStyle() → absolute-positioned CSS for each bar (with drag offset)
   ├── Selection state + controlled-selection sync
   ├── Drag state machine (idle → move | resize-left | resize-right → idle)
@@ -149,6 +153,42 @@ const width = Math.max(minBarWidth, right - left);
 ```
 
 Bars are `position: absolute` inside a `position: relative` bar-area div. Lane placement (vertical stacking within a group row) is determined by `packLanes()` — a greedy algorithm that assigns each bar to the first lane with no overlap.
+
+### Item sizing & lane heights
+
+Each `TimelineItem` can specify an explicit `height` in pixels. When set, the item's bar renders at that height and the surrounding lane grows to accommodate it.
+
+**Per-lane sizing (default).** Lanes within a group are sized independently — each lane is only as tall as its tallest item plus a 4 px gap. A lane with only 30 px items stays at 34 px; a lane with a 100 px item grows to 104 px. This keeps rows snug around their content.
+
+```
+Group "Backend" (row height = 138 px)
+├── Lane 0 (104 px)  ← tallest item 100 px + 4
+│   ├── Bar: "Extra tall"         100 px
+│   └── Bar: "Normal"             30 px  (shares lane, empty space around it)
+└── Lane 1 (34 px)   ← tallest item 30 px + 4
+    └── Bar: "Normal"             30 px
+```
+
+**`itemHeightMode`.** Controls how bars behave within their lane:
+
+| Mode | Behaviour |
+|------|-----------|
+| `'natural'` (default) | Bar is exactly its item height. Short bars in tall lanes have empty space around them. |
+| `'fillLane'` | Bar fills its lane's content height (lane height minus the 4 px gap). All bars in a lane appear as uniform blocks. Content is centred vertically. |
+
+**Interaction with scrolling.** Lane heights are computed from the currently visible items (`filterVisibleItems`). When panning horizontally, items may enter or leave the visible date window, which can change the tallest item in a lane and thus the lane height. This is expected — the layout always reflects the visible data. If you need a fixed-height display, use `itemHeightMode="fillLane"` with consistent item heights, or set `itemHeight` to a value that accommodates your tallest content.
+
+### Container filling
+
+The Timeline uses flexbox throughout to fill its container:
+
+1. **Root** (`display: flex; flex-direction: column; flex: 1`) — stretches to fill the parent when `fitContainer` is true. Place the Timeline inside a flex column container (e.g. `<div style="display:flex;flex-direction:column;height:100vh">`) for it to occupy available space.
+
+2. **Body** (`flex: 1; overflow-y: auto`) — fills the remaining space below the header. Native vertical scroll when rows exceed the body height.
+
+3. **Sidebar gutter** — rendered as a `linear-gradient` on the body background instead of a DOM spacer element. This extends the sidebar column to the body bottom without affecting the row layout.
+
+4. **ROWS_WRAPPER** — content-sized (no `min-height`). Grows and shrinks with the rows. The grid lines (`TimelineGrid`) use `gridHeight` (at least body-height) so they always extend to the bottom regardless of row count.
 
 ---
 
@@ -276,6 +316,7 @@ interface TimelineProps {
   groupHeaderHeight?: number;          // Default: 40 (unused in current impl)
   headerHeight?: number;               // Default: 60
   minBarWidth?: number;                // Default: 4
+  itemHeightMode?: 'natural' | 'fillLane'; // Default: 'natural'
 
   // ── Behaviour ────────────────────────────────────────
   resizable?: boolean;                 // Default: true
@@ -323,6 +364,7 @@ interface TimelineItem {
   collapsibleContent?: React.ReactNode;
   hoverInfo?: string;            // Tooltip
   progress?: number;             // 0-100, renders fill overlay
+  height?: number;               // Explicit bar height in px (falls back to itemHeight)
   showLabel?: boolean;
 }
 ```
@@ -449,6 +491,33 @@ import { Timeline } from '@hive-flow/ui';
 />
 ```
 
+### Tall custom events
+
+```tsx
+<Timeline
+  items={[
+    { id: '1', start: d(2026,6,2), end: d(2026,6,8),  label: 'Design review', color: '#7b61ff', groupId: 'eng', height: 72 },
+    { id: '2', start: d(2026,6,5), end: d(2026,6,11), label: 'Quick fix',     color: '#4a90d9', groupId: 'eng' },
+    { id: '3', start: d(2026,6,1), end: d(2026,6,6),  label: 'Infra setup',   color: '#e06c75', groupId: 'ops', height: 100 },
+  ]}
+  groups={[{ id: 'eng', label: 'Engineering' }, { id: 'ops', label: 'Ops' }]}
+  start={d(2026,6,1)}
+  end={d(2026,6,20)}
+  step="day"
+  renderers={{
+    renderItem: (item) => (
+      <div style={{ padding: '6px 10px', height: '100%', display: 'flex', flexDirection: 'column', gap: 2,
+                    background: `linear-gradient(135deg, ${item.color} 0%, ${item.color}dd 100%)`, borderRadius: 4 }}>
+        <strong style={{ color: '#fff', fontSize: 14 }}>{item.label}</strong>
+        {item.height && item.height > 40 && (
+          <span style={{ color: '#fff', fontSize: 11, opacity: 0.9 }}>Extra detail visible because the bar is tall.</span>
+        )}
+      </div>
+    ),
+  }}
+/>
+```
+
 ### Controlled horizon (recommended for production)
 
 ```tsx
@@ -495,7 +564,7 @@ function ProjectTimeline() {
 | File | Tests | Coverage |
 |------|-------|----------|
 | `utils.test.ts` | Pure functions: date math, lane packing, geometry | Date helpers, `packLanes()`, `computeGeometry()`, `filterVisibleItems()`, `dateToX`/`xToDate` |
-| `useTimeline.test.tsx` | 20 tests | Geometry, grouping, selection (single/multi/toggle/clear), keyboard (Escape, Delete, Backspace, Ctrl+C/V/A), drag state lifecycle, `computeBarStyle`, visibility filter, header tiers, controlled selection de-duplication |
+| `useTimeline.test.tsx` | 20 tests | Geometry, grouping, per-lane heights, selection (single/multi/toggle/clear), keyboard (Escape, Delete, Backspace, Ctrl+C/V/A), drag state lifecycle, `computeBarStyle`, `getBarTop`, visibility filter, header tiers, controlled selection de-duplication |
 | `Timeline.test.tsx` | 30 tests | Rendering, groups, loading/empty, selection (click, visual indicator), resize handles, today marker, links (render/hide/select), custom renderers, keyboard navigation, readonly mode, ghost bar, wheel-to-pan, edge-scroll, rounded corners |
 | `TimelineBar.test.tsx` | 18 tests | Rendering, selection state, drag state, resize handles (left/right/render/hide), progress fill, custom renderer, pointer events, double-click |
 | `TimelineGrid.test.tsx` | 15 tests | Grid lines for all step types, today marker visibility, weekend shading, highlighted day strips, sidebar offset |
@@ -831,17 +900,17 @@ const sidebarWidth = useMediaQuery('(max-width: 768px)') ? 120 : 180;
 
 ```
 packages/ui/src/Timeline/
-├── Timeline.tsx            Main container (736 lines)
-├── useTimeline.ts          Core hook — geometry, selection, drag, keyboard (613 lines)
-├── TimelineBar.tsx         Individual bar with resize handles + progress (177 lines)
+├── Timeline.tsx            Main container (~760 lines)
+├── useTimeline.ts          Core hook — geometry, selection, drag, keyboard (~630 lines)
+├── TimelineBar.tsx         Individual bar with resize handles + progress (188 lines)
 ├── TimelineGrid.tsx        Vertical grid lines, today marker, weekends, highlights (216 lines)
 ├── TimelineHeader.tsx      Multi-tier date labels (204 lines)
 ├── TimelineLink.tsx        SVG dependency arrows (122 lines)
-├── TimelineRow.tsx         Group row — packs bars into lanes, renders sidebar (334 lines)
-├── types.ts                All TypeScript interfaces (247 lines)
-├── utils.ts                Pure functions — date math, geometry, lane packing (270 lines)
+├── TimelineRow.tsx         Group row — packs bars into lanes, renders sidebar (~340 lines)
+├── types.ts                All TypeScript interfaces (~255 lines)
+├── utils.ts                Pure functions — date math, geometry, lane packing, getBarTop (~285 lines)
 ├── constants.ts            Defaults, step durations, header tiers, PX_PER_STEP (76 lines)
-├── index.ts                Barrel export (26 lines)
+├── index.ts                Barrel export (27 lines)
 ├── README.md               This file
 ├── __tests__/
 │   ├── utils.test.ts

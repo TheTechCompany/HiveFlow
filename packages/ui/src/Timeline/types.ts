@@ -62,6 +62,10 @@ export interface TimelineItem {
   /** Progress 0-100 (draws a fill inside the bar). */
   progress?: number;
 
+  /** Explicit bar height in px. When not set, falls back to the itemHeight prop (default 30).
+   *  Use this when a custom renderItem produces content taller than the default. */
+  height?: number;
+
   /** Whether the label is always visible (vs on hover). */
   showLabel?: boolean;
 }
@@ -185,6 +189,11 @@ export interface TimelineProps {
   headerHeight?: number;
   /** Minimum bar width in px (avoids invisible bars). Default 4. */
   minBarWidth?: number;
+  /** How bar heights behave within their lane.
+   *  - `'natural'` (default): bars are their item.height (or itemHeight).
+   *  - `'fillLane'`: bars stretch to fill the lane height, giving a
+   *    uniform block look within each lane. */
+  itemHeightMode?: 'natural' | 'fillLane';
 
   // ── Behaviour ───────────────────────────────────────────────────
   /** Whether bars can be resized by dragging edges. Default true. */
