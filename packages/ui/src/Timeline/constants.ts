@@ -5,6 +5,9 @@ import type { TimelineStep, HeaderTier } from './types';
 /** Default item (bar) height in px. */
 export const DEFAULT_ITEM_HEIGHT = 30;
 
+/** Vertical gap between lanes in px — added to each lane's height. */
+export const LANE_GAP = 8;
+
 /** Default group header row height in px. */
 export const DEFAULT_GROUP_HEADER_HEIGHT = 40;
 

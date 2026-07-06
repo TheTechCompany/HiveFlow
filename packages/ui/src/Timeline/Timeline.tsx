@@ -88,6 +88,7 @@ import {
   DEFAULT_GROUP_HEADER_HEIGHT,
   DEFAULT_HEADER_HEIGHT,
   DEFAULT_SIDEBAR_WIDTH,
+  LANE_GAP,
 } from './constants';
 
 export type { TimelineProps } from './types';
@@ -285,7 +286,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
     return [{ groupId: '__default__', group: undefined, items: flat, laneCount }];
   }, [hasGroups, groups, groupedItems]);
 
-  const defaultLaneH = itemHeight + 4;
+  const defaultLaneH = itemHeight + LANE_GAP;
 
   const totalRowsHeight = useMemo(() => {
     let h = 0;

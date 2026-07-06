@@ -33,6 +33,7 @@ import {
   DEFAULT_SIDEBAR_WIDTH,
   HEADER_TIERS,
   STEP_DURATIONS,
+  LANE_GAP,
 } from './constants';
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -113,7 +114,7 @@ export interface UseTimelineReturn {
   /** Layouts for every visible bar — used by link arrows. */
   barLayouts: BarLayout[];
 
-  /** Per-group per-lane heights in px (each lane: max item height + 4px gap). */
+  /** Per-group per-lane heights in px (each lane: max item height + gap). */
   groupLaneHs: Map<string, number[]>;
   /** Per-group total row height in px (sum of lane heights). */
   groupHeights: Map<string, number>;
@@ -271,9 +272,9 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
       const maxLane = packed.length > 0
         ? Math.max(...packed.map((i) => i.laneIndex)) + 1
         : 1;
-      const laneHs = new Array(maxLane).fill(itemHeight + 4);
+      const laneHs = new Array(maxLane).fill(itemHeight + LANE_GAP);
       for (const item of packed) {
-        const h = (item.height ?? itemHeight) + 4;
+        const h = (item.height ?? itemHeight) + LANE_GAP;
         if (h > laneHs[item.laneIndex]) {
           laneHs[item.laneIndex] = h;
         }
@@ -300,10 +301,12 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
     for (const gid of groupIds) {
       const packed = groupedItems.get(gid) ?? [];
       const gh = groupHeights.get(gid) ?? 0;
-      const laneHs = groupLaneHs.get(gid) ?? [itemHeight + 4];
+      const laneHs = groupLaneHs.get(gid) ?? [itemHeight + LANE_GAP];
 
       for (const item of packed) {
-        const top = getBarTop(laneHs, item.laneIndex, itemHeight + 4);
+        const laneTop = getBarTop(laneHs, item.laneIndex, itemHeight + LANE_GAP);
+        const barH = item.height ?? itemHeight;
+        const top = laneTop + LANE_GAP / 2;
         const left = dateToX(item.start, start, geometry.pxPerMs);
         const right = dateToX(item.end, start, geometry.pxPerMs);
         layouts.push({
@@ -311,7 +314,7 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
           left,
           top: groupTop + top,
           width: Math.max(minBarWidth, right - left),
-          height: item.height ?? itemHeight,
+          height: barH,
         });
       }
 
@@ -684,23 +687,25 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
 
       const itemH = item.height ?? itemHeight;
       // Cumulative top from preceding lane heights for this item's group
-      const laneHs = (item.groupId ? groupLaneHs.get(item.groupId) : groupLaneHs.get('__default__')) ?? [itemHeight + 4];
+      const laneHs = (item.groupId ? groupLaneHs.get(item.groupId) : groupLaneHs.get('__default__')) ?? [itemHeight + LANE_GAP];
       const laneIdx = (item as any).laneIndex ?? 0;
-      const itemTop = getBarTop(laneHs, laneIdx, itemHeight + 4);
+      const laneTop = getBarTop(laneHs, laneIdx, itemHeight + LANE_GAP);
 
       const fillLane = itemHeightMode === 'fillLane';
-      // In fillLane mode the bar fills its lane's content height
-      // (lane height minus the 4 px inter-lane gap).
-      const laneContentH = fillLane
-        ? (laneHs[laneIdx] ?? (itemHeight + 4)) - 4
-        : itemH;
+      const laneH = laneHs[laneIdx] ?? (itemHeight + LANE_GAP);
+      const laneContentH = laneH - LANE_GAP;
+
+      // Half the lane gap above every bar, half below.
+      const padTop = LANE_GAP / 2;
+      const barH = fillLane ? laneContentH : itemH;
+      const barTop = fillLane ? laneTop : laneTop + padTop;
 
       return {
         ...BASE_BAR_STYLE,
         left: `${left}px`,
         width: `${Math.max(minBarWidth, width + dragWidth)}px`,
-        height: `${Math.max(itemH, laneContentH)}px`,
-        top: `${itemTop}px`,
+        height: `${Math.max(itemH, barH)}px`,
+        top: `${barTop}px`,
         minWidth: `${minBarWidth}px`,
         backgroundColor: item.color ?? '#4a90d9',
         cursor: isDragging ? 'grabbing' : 'grab',

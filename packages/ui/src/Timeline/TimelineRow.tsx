@@ -5,6 +5,7 @@ import React, { useCallback, useMemo } from 'react';
 import { TimelineBar } from './TimelineBar';
 import type { TimelineItem, TimelineGroup } from './types';
 import type { UseTimelineReturn } from './useTimeline';
+import { LANE_GAP } from './constants';
 
 export interface TimelineRowProps {
   groupId: string;
@@ -43,7 +44,6 @@ export interface TimelineRowProps {
 const ROW_BORDER_SOLID: React.CSSProperties = {
   display: 'flex',
   borderBottom: '1px solid #e8e8e8',
-  boxSizing: 'border-box',
 };
 
 const ROW_BORDER_DASHED: React.CSSProperties = {
@@ -245,7 +245,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = React.memo(
     sidebarPadding = true,
     laneHeights,
   }) {
-    const defaultLaneH = itemHeight + 4;
+    const defaultLaneH = itemHeight + LANE_GAP;
     const {
       selection,
       selectItem,

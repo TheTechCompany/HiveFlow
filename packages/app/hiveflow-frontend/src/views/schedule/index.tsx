@@ -13,7 +13,7 @@ import { useQuery as useApollo, useMutation as useApolloMutation, gql, useApollo
 import { ScheduleItem, ScheduleModal } from '../../modals/schedule';
 import { Timeline, type TimelineItem, type TimelineGroup, type TimelineStep, type ItemChange, type HighlightedDay } from '@hive-flow/ui';
 import { SchedulingModal } from './modal';
-import { mergeDateRanges } from './utils';
+import { mergeDateRanges, subtractIntervals } from './utils';
 import { Collapse, Typography, Button, Box, Paper, Popover, Menu as UIMenu, MenuItem, IconButton } from '@mui/material';
 import { groupBy, head } from 'lodash';
 import { ConfirmModal } from '../../modals/confirm';
@@ -357,7 +357,37 @@ export const Schedule: React.FC<any> = (props) => {
       };
     });
 
-    return [...drafts, ...items];
+    // Cut draft bars where scheduled items overlap in the same group,
+    // so both are visible side-by-side rather than one covering the other.
+    const scheduledByGroup = new Map<string, { start: Date; end: Date }[]>();
+    for (const item of items) {
+      const gid = item.groupId;
+      const list = scheduledByGroup.get(gid);
+      if (list) {
+        list.push({ start: item.start, end: item.end });
+      } else {
+        scheduledByGroup.set(gid, [{ start: item.start, end: item.end }]);
+      }
+    }
+
+    const cutDrafts: TimelineItem[] = drafts.flatMap((draft) => {
+      const cuts = scheduledByGroup.get(draft.groupId);
+      if (!cuts || cuts.length === 0) return [draft];
+
+      const remaining = subtractIntervals(
+        [{ start: draft.start, end: draft.end }],
+        cuts,
+      );
+
+      return remaining.map((segment, i) => ({
+        ...draft,
+        id: `${draft.id}-cut${i}`,
+        start: segment.start,
+        end: segment.end,
+      }));
+    });
+
+    return [...cutDrafts, ...items];
   }, [rowOptions, calendarData, horizon, groupBySource]);
 
   // ── Build timeline groups (after timelineItems so we can filter) ─
@@ -706,55 +736,47 @@ export const Schedule: React.FC<any> = (props) => {
                     borderRadius: '12px',
                     border: '1px solid rgba(0,0,0,0.12)',
                     overflow: 'hidden',
-                    background: isDraft ? 'rgba(186, 186, 186, 0.8)' : undefined,
+                    opacity: isDraft ? 0.45 : 1,
                   }}
                 >
-                  {isDraft ? (
-                    <div style={{
-                      height: '100%',
-                      width: '100%',
-                      background: 'rgba(186, 186, 186, 0.8)',
-                    }} />
-                  ) : (
-                    <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', height: '100%' }}>
-                      {project && (
-                        <Box sx={{
-                          background: projectColor || 'rgb(127, 127, 0, 1)',
-                          color: 'white',
-                        }}>
-                          <Typography fontSize={'small'} textAlign={'center'}>
-                            {project?.displayId}
-                          </Typography>
-                        </Box>
-                      )}
+                  <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', height: '100%' }}>
+                    {project && (
                       <Box sx={{
-                        display: 'flex',
-                        flex: 1,
-                        flexDirection: 'column',
-                        textAlign: 'center',
-                        justifyContent: 'center',
+                        background: projectColor || 'rgb(127, 127, 0, 1)',
+                        color: 'white',
                       }}>
-                        <Typography fontSize={'small'} fontWeight={"bold"}>
-                          {project?.name}
+                        <Typography fontSize={'small'} textAlign={'center'}>
+                          {project?.displayId}
                         </Typography>
-                        {eventPeople.map((person: any) => (
-                          <Typography fontSize={'small'} key={person?.id}>
-                            {person?.name}
-                          </Typography>
-                        ))}
                       </Box>
-                      {(eventData?.permissions?.length > 0 || eventData?.createdBy) && (
-                        <Box sx={{ padding: '4px' }}>
-                          <AvatarList
-                            size={16}
-                            users={(eventData.permissions?.map((x: any) => x.user)
-                              ?.concat(eventData.createdBy ? [eventData.createdBy] : []))
-                              .map((x: any) => ({ ...x, color: stringToColor(x.id) }))}
-                          />
-                        </Box>
-                      )}
+                    )}
+                    <Box sx={{
+                      display: 'flex',
+                      flex: 1,
+                      flexDirection: 'column',
+                      textAlign: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <Typography fontSize={'small'} fontWeight={"bold"}>
+                        {project?.name}
+                      </Typography>
+                      {!isDraft && eventPeople.map((person: any) => (
+                        <Typography fontSize={'small'} key={person?.id}>
+                          {person?.name}
+                        </Typography>
+                      ))}
                     </Box>
-                  )}
+                    {!isDraft && (eventData?.permissions?.length > 0 || eventData?.createdBy) && (
+                      <Box sx={{ padding: '4px' }}>
+                        <AvatarList
+                          size={16}
+                          users={(eventData.permissions?.map((x: any) => x.user)
+                            ?.concat(eventData.createdBy ? [eventData.createdBy] : []))
+                            .map((x: any) => ({ ...x, color: stringToColor(x.id) }))}
+                        />
+                      </Box>
+                    )}
+                  </Box>
                 </Paper>
               );
             },
