@@ -22,3 +22,5 @@ packages/integrations/data-producer/task-test.json
 *storybook-static/*
 
 .reasonix/*
+
+.kilo/*
