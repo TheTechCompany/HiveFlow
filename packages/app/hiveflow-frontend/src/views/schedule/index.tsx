@@ -7,20 +7,19 @@ import { schedule as scheduleActions } from '../../actions'
 import { useContext } from 'react';
 import { AuthContext, useAuth } from '@hexhive/auth-ui';
 import { useEffect } from 'react';
-import { Menu, ChevronLeft as Previous, ChevronRight as Next, X } from '@mui/icons-material';
+import { Menu, ChevronLeft as Previous, ChevronRight as Next, X, Add, Remove } from '@mui/icons-material';
 import { DraftPane } from './draft-pane';
 import { useQuery as useApollo, useMutation as useApolloMutation, gql, useApolloClient } from '@apollo/client';
 import { ScheduleItem, ScheduleModal } from '../../modals/schedule';
 import { Timeline, type TimelineItem, type TimelineGroup, type TimelineStep, type ItemChange, type HighlightedDay } from '@hive-flow/ui';
 import { SchedulingModal } from './modal';
 import { mergeDateRanges } from './utils';
-import { Collapse, Typography, Button, Box, Paper, Popover, Menu as UIMenu, MenuItem } from '@mui/material';
+import { Collapse, Typography, Button, Box, Paper, Popover, Menu as UIMenu, MenuItem, IconButton } from '@mui/material';
 import { groupBy, head } from 'lodash';
 import { ConfirmModal } from '../../modals/confirm';
 import { useAPIData, useAPIFunctions } from './api';
 import { AvatarList } from '@hexhive/ui';
 import { useNavigate, useNavigation } from 'react-router';
-import { Header } from './header';
 import { ScheduleRootProvider } from './context';
 import { LeaveModal } from './leave-modal';
 import { stringToColor } from '@hexhive/utils';
@@ -103,6 +102,29 @@ export const Schedule: React.FC<any> = (props) => {
   const { calendarData } = useAPIData(horizon);
 
   const [tasks, setTasks] = useState<any[]>([]);
+  const [groupBySource, setGroupBySource] = useState(false);
+
+  // ── Zoom / navigation helpers (used in sidebar header) ──────────
+  const zoomHorizon = (direction: 'in' | 'out') => {
+    const center = (horizon.start.getTime() + horizon.end.getTime()) / 2;
+    const span = horizon.end.getTime() - horizon.start.getTime();
+    const newSpan = direction === 'in' ? span / 2 : span * 2;
+    // Clamp to reasonable bounds
+    const clamped = Math.max(3_600_000, Math.min(365 * 24 * 3_600_000, newSpan));
+    setHorizon({
+      start: new Date(center - clamped / 2),
+      end: new Date(center + clamped / 2),
+    });
+  };
+
+  const shiftHorizon = (dir: -1 | 1) => {
+    const span = horizon.end.getTime() - horizon.start.getTime();
+    const shift = (span / 4) * dir;
+    setHorizon({
+      start: new Date(horizon.start.getTime() + shift),
+      end: new Date(horizon.end.getTime() + shift),
+    });
+  };
 
   const estimates = (slowData?.estimates || []).map((estimate) => {
     let tasks = (estimate.tasks || []).map((x) => ({ ...x, start: x.startDate, end: x.endDate }))
@@ -282,8 +304,43 @@ export const Schedule: React.FC<any> = (props) => {
       x.end.getTime() > horizon.start.getTime()
     );
 
-    // Real calendar items (foreground layer)
-    const items: TimelineItem[] = (calendarData?.calendarItems || []).map((x) => {
+    // Real calendar items — when groupBySource is on, merge overlapping
+    // assignments within each project so all people appear in one card.
+    const rawItems: any[] = calendarData?.calendarItems || [];
+
+    const items: TimelineItem[] = (groupBySource ? (() => {
+      // Group by project, then merge overlapping time ranges
+      const byProject = new Map<string, any[]>();
+      for (const item of rawItems) {
+        const gid = item.groupBy?.id || 'unknown';
+        const bucket = byProject.get(gid) ?? [];
+        bucket.push(item);
+        byProject.set(gid, bucket);
+      }
+
+      const merged: any[] = [];
+      for (const [, group] of byProject) {
+        group.sort((a: any, b: any) => new Date(a.start).getTime() - new Date(b.start).getTime());
+        let current: any = null;
+        for (const item of group) {
+          if (!current) {
+            current = { ...item, start: new Date(item.start), end: new Date(item.end) };
+            continue;
+          }
+          if (new Date(item.start) <= current.end) {
+            current.end = new Date(Math.max(current.end.getTime(), new Date(item.end).getTime()));
+            const existingIds = new Set((current.data?.people || []).map((p: any) => p?.id ?? p));
+            const newPeople = (item.data?.people || []).filter((p: any) => !existingIds.has(p?.id ?? p));
+            current.data = { ...current.data, people: [...(current.data?.people || []), ...newPeople] };
+          } else {
+            merged.push(current);
+            current = { ...item, start: new Date(item.start), end: new Date(item.end) };
+          }
+        }
+        if (current) merged.push(current);
+      }
+      return merged;
+    })() : rawItems).map((x) => {
       const project = rowOptions.find((a) => a.id === x.groupBy?.id);
       const groupId = x.groupBy?.id === 'on-leave' ? 'on-leave' : (x.groupBy?.id || 'unknown');
       return {
@@ -294,15 +351,14 @@ export const Schedule: React.FC<any> = (props) => {
         color: project?.colour || stringToColor(`${x.groupBy?.id}`),
         zIndex: 1,
         selectable: x.selectable !== false,
-        data: {
-          ...x,
-          zIndex: 1,
-        },
+        // Dynamic height: base for header+name, +20px per extra person
+        height: 80 + Math.max(0, ((x.data?.people || []).length - 1)) * 20,
+        data: { ...x, zIndex: 1 },
       };
     });
 
     return [...drafts, ...items];
-  }, [rowOptions, calendarData, horizon]);
+  }, [rowOptions, calendarData, horizon, groupBySource]);
 
   // ── Build timeline groups (after timelineItems so we can filter) ─
   const timelineGroups = useMemo((): TimelineGroup[] => {
@@ -431,8 +487,6 @@ export const Schedule: React.FC<any> = (props) => {
     setConfirmCallback({ message, cb });
   }
 
-  const [graphType, setGraphType] = useState<any>('Capacity');
-
   const [leaveOpen, openLeave] = useState(false);
 
   return (
@@ -450,7 +504,6 @@ export const Schedule: React.FC<any> = (props) => {
         people: people,
         leave,
         horizon,
-        graphType
       }}>
         {/* <DraftPane  
             open={draftsOpen}
@@ -539,14 +592,6 @@ export const Schedule: React.FC<any> = (props) => {
             setSelected(undefined)
           }}
         />
-
-        <Header
-          graphType={graphType}
-          setGraphType={setGraphType}
-          horizon={horizon}
-          onHorizonChanged={(horizon) => {
-            setHorizon(horizon)
-          }} />
 
         <Timeline
           items={timelineItems}
@@ -655,14 +700,11 @@ export const Schedule: React.FC<any> = (props) => {
 
               return (
                 <Paper
-                  elevation={isDraft ? 0 : 3}
+                  elevation={0}
                   style={{
                     flex: 1,
-                    height: '100%',
                     borderRadius: '12px',
-                    boxShadow: isDraft
-                      ? 'none'
-                      : `0px 0px 0px 2px ${projectColor || 'rgb(127, 127, 0, 1)'}`,
+                    border: '1px solid rgba(0,0,0,0.12)',
                     overflow: 'hidden',
                     background: isDraft ? 'rgba(186, 186, 186, 0.8)' : undefined,
                   }}
@@ -716,6 +758,38 @@ export const Schedule: React.FC<any> = (props) => {
                 </Paper>
               );
             },
+            renderSidebarHeader: () => (
+              <Box sx={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                width: '100%', height: '100%', px: 1, gap: 0.5,
+              }}>
+                <Typography fontSize={13} fontWeight={600} color="#666" sx={{ flexShrink: 0 }}>
+                  Groups
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <IconButton size="small" onClick={() => shiftHorizon(-1)} title="Previous">
+                    <Previous fontSize="inherit" />
+                  </IconButton>
+                  <IconButton size="small" onClick={() => zoomHorizon('out')} title="Zoom out">
+                    <Remove fontSize="inherit" />
+                  </IconButton>
+                  <IconButton size="small" onClick={() => zoomHorizon('in')} title="Zoom in">
+                    <Add fontSize="inherit" />
+                  </IconButton>
+                  <IconButton size="small" onClick={() => shiftHorizon(1)} title="Next">
+                    <Next fontSize="inherit" />
+                  </IconButton>
+                  <Button
+                    size="small"
+                    variant={groupBySource ? 'contained' : 'outlined'}
+                    onClick={() => setGroupBySource((v) => !v)}
+                    sx={{ minWidth: 0, px: 0.75, fontSize: 10, ml: 0.5 }}
+                  >
+                    Group
+                  </Button>
+                </Box>
+              </Box>
+            ),
             renderGroupHeader: (group: TimelineGroup, _expanded: boolean) => (
               <Typography
                 fontSize={'small'}

@@ -569,6 +569,9 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (!canInteract) return;
+      // Only primary button (left-click) starts a pan — right-click
+      // should pass through for context menus.
+      if (e.button !== 0) return;
       const target = e.target as HTMLElement;
       if (!e.shiftKey && (target.closest('[data-timeline-item]') || target.closest('[data-timeline-links]'))) {
         return;
@@ -607,6 +610,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
         endMs: timelineRef.current.end.getTime(),
       };
       panDragRef.current = pd;
+      panCurrentRef.current = { x: e.clientX, y: e.clientY };
       setPanDrag(pd);
     },
     [canInteract, getRowAtY],

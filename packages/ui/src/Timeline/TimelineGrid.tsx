@@ -63,7 +63,7 @@ const HIGHLIGHT_COLORS: Record<string, string> = {
 const HIGHLIGHT_STRIP_STYLE: React.CSSProperties = {
   position: 'absolute',
   top: 0,
-  pointerEvents: 'auto',
+  pointerEvents: 'none',
 };
 
 // ── Component ───────────────────────────────────────────────────────

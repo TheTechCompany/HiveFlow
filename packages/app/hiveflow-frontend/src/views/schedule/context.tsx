@@ -8,7 +8,6 @@ export const ScheduleRootContext = createContext<{
     people?: any[];
     leave?: any[];
     horizon?: Horizon;
-
     graphType?: string;
 }>({
 

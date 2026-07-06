@@ -120,9 +120,9 @@ export const TimelineBar: React.FC<TimelineBarProps> = React.memo(function Timel
     ...style,
     ...(renderItem ? {
       backgroundColor: 'transparent',
-      border: isSelected ? style.border : 'none',
-      borderRadius: 0,
-      boxShadow: 'none',
+      border: 'none',
+      borderRadius: isSelected ? '12px' : 0,
+      boxShadow: isSelected ? '0 0 0 2px #1a73e8' : 'none',
     } : {}),
     opacity: isDragging ? 0.6 : 1,
     transition: isDragging ? 'none' : 'opacity 0.15s ease, top 0.2s ease, height 0.2s ease',
