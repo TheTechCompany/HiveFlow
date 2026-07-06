@@ -698,7 +698,7 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
       // Half the lane gap above every bar, half below.
       const padTop = LANE_GAP / 2;
       const barH = fillLane ? laneContentH : itemH;
-      const barTop = fillLane ? laneTop : laneTop + padTop;
+      const barTop = laneTop + padTop;
 
       return {
         ...BASE_BAR_STYLE,

@@ -92,49 +92,51 @@ export const useAPIFunctions = () => {
     }
 }
 
-export const useAPIData = (horizon: any) => {
+export const CALENDAR_ITEMS_QUERY = gql`
+    query CalendarItems($startDate: DateTime, $endDate: DateTime){
 
-    const { data: calendarData, loading } = useQuery(gql`
-        query CalendarItems($startDate: DateTime, $endDate: DateTime){
-
-        allUsers: users{
+    allUsers: users{
+        id
+        name
+    }
+     users(active: true){
             id
             name
+
+            leave (where: {start_LTE: $endDate, end_GTE: $startDate}){
+                id
+
+                start
+                end
+            }
         }
-         users(active: true){
-                id
-                name
+      calendarItems (where: {start_LTE: $endDate, end_GTE: $startDate} ){
+        id
+        start
+        end
 
-                leave (where: {start_LTE: $endDate, end_GTE: $startDate}){
-                    id
+        data
+        groupBy
 
-                    start
-                    end
-                }
-            }
-          calendarItems (where: {start_LTE: $endDate, end_GTE: $startDate} ){
+        permissions {
+
+          user {
             id
-            start
-            end
-    
-            data
-            groupBy
-    
-            permissions {
-    
-              user {
-                id
-                name
-              }
-            }
-    
-            createdBy {
-                id
-              name
-            }
+            name
           }
-        }  
-      `, {
+        }
+
+        createdBy {
+            id
+          name
+        }
+      }
+    }  
+  `;
+
+export const useAPIData = (horizon: any) => {
+
+    const { data: calendarData, loading } = useQuery(CALENDAR_ITEMS_QUERY, {
         variables: {
             startDate: horizon?.start,
             endDate: horizon?.end

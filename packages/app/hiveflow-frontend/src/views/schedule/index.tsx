@@ -1,12 +1,11 @@
 import React, {
-  Component, useMemo, useState
+  useMemo, useState, useRef, useCallback
 } from 'react';
 // import { ScheduleView } from '@hexhive/ui';
 import moment from 'moment';
 import { schedule as scheduleActions } from '../../actions'
 import { useContext } from 'react';
 import { AuthContext, useAuth } from '@hexhive/auth-ui';
-import { useEffect } from 'react';
 import { Menu, X, Add, Remove } from '@mui/icons-material';
 import { DraftPane } from './draft-pane';
 import { useQuery as useApollo, useMutation as useApolloMutation, gql, useApolloClient } from '@apollo/client';
@@ -17,7 +16,7 @@ import { mergeDateRanges, subtractIntervals } from './utils';
 import { Collapse, Typography, Box, Paper, Popover, Menu as UIMenu, MenuItem, IconButton, Switch } from '@mui/material';
 import { groupBy, head } from 'lodash';
 import { ConfirmModal } from '../../modals/confirm';
-import { useAPIData, useAPIFunctions } from './api';
+import { useAPIData, useAPIFunctions, CALENDAR_ITEMS_QUERY } from './api';
 import { AvatarList } from '@hexhive/ui';
 import { useNavigate, useNavigation } from 'react-router';
 import { ScheduleRootProvider } from './context';
@@ -40,6 +39,13 @@ export const Schedule: React.FC<any> = (props) => {
     start: new Date(moment(new Date()).startOf('isoWeek').valueOf()),
     end: new Date(moment(new Date()).endOf('isoWeek').valueOf())
   })
+
+  // Display horizon updates instantly on every pan tick so the
+  // Timeline stays responsive.  Data fetching uses the debounced
+  // fetchHorizon below to avoid flooding the server.
+  const [fetchHorizon, setFetchHorizon] = useState(horizon);
+  const horizonRef = useRef(horizon);
+  horizonRef.current = horizon;
 
   const slowResult = useApollo(gql`
     query Slow{
@@ -99,10 +105,60 @@ export const Schedule: React.FC<any> = (props) => {
   }, [holidaysData]);
 
   const { createCalendarItem, updateCalendarItem, deleteCalendarItem } = useAPIFunctions();
-  const { calendarData } = useAPIData(horizon);
+  const { calendarData } = useAPIData(fetchHorizon);
 
   const [tasks, setTasks] = useState<any[]>([]);
   const [groupBySource, setGroupBySource] = useState(false);
+
+  // ── Debounced horizon sync + adjacent prefetch ───────────────────
+  // During panning, onHorizonChange fires on every tick.  We update
+  // the display horizon immediately (so the UI stays responsive) but
+  // debounce the actual network round-trips so we don't flood the
+  // server.  The debounce also prefetches the next/prev windows so
+  // that when the user eventually pans there the cache is warm.
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const syncHorizon = useCallback(
+    (immediate: boolean, override?: { start: Date; end: Date }) => {
+      const doSync = (h: { start: Date; end: Date }) => {
+        setFetchHorizon(h);
+        client.refetchQueries({ include: ['CalendarItems', 'Slow'] });
+
+        // Prefetch adjacent windows
+        const span = h.end.getTime() - h.start.getTime();
+        const prefetch = (start: Date, end: Date) => {
+          client.query({
+            query: CALENDAR_ITEMS_QUERY,
+            variables: { startDate: start, endDate: end },
+            fetchPolicy: 'network-only',
+          }).catch(() => {});
+        };
+        prefetch(
+          new Date(h.start.getTime() - span),
+          new Date(h.start.getTime()),
+        );
+        prefetch(
+          new Date(h.end.getTime()),
+          new Date(h.end.getTime() + span),
+        );
+      };
+
+      if (immediate) {
+        if (syncTimerRef.current) {
+          clearTimeout(syncTimerRef.current);
+          syncTimerRef.current = null;
+        }
+        doSync(override ?? horizonRef.current);
+      } else {
+        if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+        syncTimerRef.current = setTimeout(
+          () => doSync(horizonRef.current),
+          400,
+        );
+      }
+    },
+    [client],
+  );
 
   // ── Zoom / navigation helpers (used in sidebar header) ──────────
   const zoomHorizon = (direction: 'in' | 'out') => {
@@ -111,10 +167,12 @@ export const Schedule: React.FC<any> = (props) => {
     const newSpan = direction === 'in' ? span / 2 : span * 2;
     // Clamp to reasonable bounds
     const clamped = Math.max(3_600_000, Math.min(365 * 24 * 3_600_000, newSpan));
-    setHorizon({
+    const next = {
       start: new Date(center - clamped / 2),
       end: new Date(center + clamped / 2),
-    });
+    };
+    setHorizon(next);
+    syncHorizon(true, next);
   };
 
   const estimates = (slowData?.estimates || []).map((estimate) => {
@@ -676,7 +734,7 @@ export const Schedule: React.FC<any> = (props) => {
             },
             onHorizonChange: (start: Date, end: Date) => {
               setHorizon({ start, end });
-              client.refetchQueries({ include: ['CalendarItems', 'Slow'] });
+              syncHorizon(false);
             },
             onNavigate: (direction: 'prev' | 'next' | 'today') => {
               const span = moment(horizon.end).diff(moment(horizon.start), 'milliseconds');
@@ -693,8 +751,9 @@ export const Schedule: React.FC<any> = (props) => {
                   break;
               }
               const newEnd = moment(newStart).add(span, 'milliseconds').toDate();
-              setHorizon({ start: newStart, end: newEnd });
-              client.refetchQueries({ include: ['CalendarItems', 'Slow'] });
+              const next = { start: newStart, end: newEnd };
+              setHorizon(next);
+              syncHorizon(true, next);
             },
             onItemDoubleClick: (itemId: string) => {
               const item = timelineItems.find((i) => i.id === itemId);
