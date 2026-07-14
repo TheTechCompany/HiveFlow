@@ -4,7 +4,6 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { Dashboard } from "./views/dashboard";
 import { HexHiveTheme } from "@hexhive/styles";
 import { ApolloClient, ApolloProvider, InMemoryCache } from "@apollo/client";
-// import { ThemeProvider } from "styled-components";
 import { AuthProvider } from "@hexhive/auth-ui";
 import { getConfig } from "./actions/gateway";
 import { HiveFlowConfiguration, HiveFlowProvider } from "./context";
