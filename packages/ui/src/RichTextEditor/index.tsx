@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useLayoutEffect } from 'react';
 import {
   RichTextEditor as MuiRichTextEditor,
   type RichTextEditorRef,
@@ -69,7 +69,20 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   editable = true,
 }) => {
   const rteRef = useRef<RichTextEditorRef>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const prevChecklistRef = useRef<Map<number, boolean>>(new Map());
+
+  // Remove toolbar controls from the tab order so Tab jumps straight
+  // from the title field to the editor content area.
+  // useLayoutEffect runs synchronously after DOM mutations, before paint.
+  useLayoutEffect(() => {
+    if (!editable || !toolbarRef.current) return;
+    const container = toolbarRef.current;
+    const focusable = container.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    focusable.forEach((el) => el.setAttribute('tabindex', '-1'));
+  }, [editable]);
 
   // Sync external value changes (e.g. switching between tasks)
   useEffect(() => {
@@ -118,7 +131,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           // basic prose styling (exclude task-list elements)
           '& h2': { fontSize: '1.25rem', fontWeight: 600, mt: 2, mb: 1 },
           '& h3': { fontSize: '1.1rem', fontWeight: 600, mt: 1.5, mb: 0.5 },
-          '& p': { mb: 1, '&:last-child': { mb: 0 } },
+          '& p': { mt: 0, mb: 1, '&:last-child': { mb: 0 } },
           '& ul:not([data-type="taskList"]), & ol': { pl: 3, mb: 1 },
           '& li:not([data-type="taskItem"])': { mb: 0.25 },
           '& blockquote': {
@@ -203,9 +216,17 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       sx={{
         '& .ProseMirror': {
           minHeight: `${minHeight}px`,
+          '&& p': { mt: 0, mb: 0 },
         },
         '& .MuiTiptap-RichTextContent-root': {
           minHeight: `${minHeight}px`,
+        },
+        // Remove padding above/below the toolbar
+        '& .MuiTiptap-MenuControlsContainer-root': {
+          p: 0,
+        },
+        '& .MuiTiptap-RichTextField-menuBarContent': {
+          p: 0,
         },
       }}
     >
@@ -244,7 +265,15 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         }}
         editorDependencies={[]}
         renderControls={() => (
-          <MenuControlsContainer>
+          <div
+            ref={toolbarRef}
+            onFocusCapture={() => {
+              // Redirect focus to the editor content when anything in
+              // the toolbar receives focus (e.g. via Tab).
+              rteRef.current?.editor?.commands.focus();
+            }}
+          >
+            <MenuControlsContainer>
             <MenuButtonUndo />
             <MenuButtonRedo />
             <MenuDivider />
@@ -261,6 +290,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <MenuButtonBlockquote />
             <MenuButtonEditLink />
           </MenuControlsContainer>
+          </div>
         )}
         RichTextFieldProps={{
           placeholder,

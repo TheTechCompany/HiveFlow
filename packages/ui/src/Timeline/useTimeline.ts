@@ -521,7 +521,14 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
       const emitForPeers = (getChange: (origStart: Date, origEnd: Date) => Partial<ItemChange>) => {
         // Emit primary
         const primaryChange = getChange(prev.origStart, prev.origEnd);
-        if (primaryChange.start || primaryChange.end) {
+        const startChanged =
+          primaryChange.start &&
+          Math.abs(primaryChange.start.getTime() - prev.origStart.getTime()) >= 1000;
+        const endChanged =
+          primaryChange.end &&
+          prev.origEnd &&
+          Math.abs(primaryChange.end.getTime() - (prev.origEnd?.getTime() ?? 0)) >= 1000;
+        if (startChanged || endChanged) {
           callbacksRef.current?.onItemChange?.({ id: prev.itemId, ...primaryChange });
           if (!change) change = { id: prev.itemId, ...primaryChange };
         }
@@ -529,7 +536,14 @@ export function useTimeline(props: TimelineProps): UseTimelineReturn {
         if (prev.peerOrigins) {
           for (const peer of prev.peerOrigins) {
             const peerChange = getChange(peer.origStart, peer.origEnd);
-            if (peerChange.start || peerChange.end) {
+            const peerStartChanged =
+              peerChange.start &&
+              Math.abs(peerChange.start.getTime() - peer.origStart.getTime()) >= 1000;
+            const peerEndChanged =
+              peerChange.end &&
+              peer.origEnd &&
+              Math.abs(peerChange.end.getTime() - (peer.origEnd?.getTime() ?? 0)) >= 1000;
+            if (peerStartChanged || peerEndChanged) {
               callbacksRef.current?.onItemChange?.({ id: peer.id, ...peerChange });
             }
           }

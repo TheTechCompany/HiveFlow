@@ -70,8 +70,8 @@ export const EstimateSingle = (props) => {
                     ...prev,
                     children: refreshed.children,
                     ...refreshed,
-                    startDate: refreshed.start,
-                    endDate: refreshed.end,
+                    startDate: refreshed.startDate,
+                    endDate: refreshed.endDate,
                 }));
             }
         }

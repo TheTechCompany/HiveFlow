@@ -71,7 +71,11 @@ export const TimelinePane = () => {
         if (t.status === "Finished") return false;
         return true;
       })
-      .sort((a: any, b: any) => (a.data?.timelineRank ?? '').localeCompare(b.data?.timelineRank ?? ''))
+      .sort((a: any, b: any) => {
+        const ra = a.data?.timelineRank ?? '';
+        const rb = b.data?.timelineRank ?? '';
+        return ra < rb ? -1 : ra > rb ? 1 : 0;
+      })
     ,
     [timelineTasks, horizon]
   )

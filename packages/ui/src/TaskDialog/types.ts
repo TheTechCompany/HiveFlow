@@ -7,6 +7,7 @@ export type TaskStatus = 'Backlog' | 'In Progress' | 'Reviewing' | 'Finished';
 
 /** Core task data the dialog reads and writes. */
 export interface TaskData {
+  id?: string;
   title?: string;
   description?: string;
   status?: TaskStatus;

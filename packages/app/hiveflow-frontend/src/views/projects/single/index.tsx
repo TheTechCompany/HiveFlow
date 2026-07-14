@@ -88,7 +88,7 @@ console.log({pathname})
   //   staleWhileRevalidate: true
   // })
 
-  const { data } = useQuery(GET_PROJECT, {
+  const { data, refetch } = useQuery(GET_PROJECT, {
     variables: {
       id: job_id,
     },
@@ -98,11 +98,6 @@ console.log({pathname})
   
 
   const allSkills = data?.skills || [];
-
-  const refetch = () => {
-    client.refetchQueries({include: ['GetProject']})
-  }
-
 
   const users = data?.users || [];
 
@@ -117,8 +112,8 @@ console.log({pathname})
           ...prev,
           children: refreshed.children,
           ...refreshed,
-          startDate: refreshed.start,
-          endDate: refreshed.end,
+          startDate: refreshed.startDate,
+          endDate: refreshed.endDate,
         }));
       }
     }

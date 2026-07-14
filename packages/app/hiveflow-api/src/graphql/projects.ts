@@ -111,6 +111,9 @@ export const UPDATE_PROJECT_TASK = gql`
   mutation UpdateProjectTask($id: ID!, $input: ProjectTaskInput!) {
     updateProjectTask(id: $id, input: $input) {
       id
+      startDate
+      endDate
+      status
     }
   }
 `;
@@ -120,6 +123,9 @@ export const CREATE_PROJECT_TASK = gql`
     createProjectTask(input: $input) {
       id
       title
+      startDate
+      endDate
+      status
     }
   }
 `;
