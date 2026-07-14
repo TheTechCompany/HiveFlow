@@ -763,7 +763,27 @@ export const Timeline: React.FC<TimelineProps> = React.memo((props) => {
             );
           })}
         </div>
+
+        {/* ── Sidebar hint ──────────────────────────────────────── */}
+        {sidebarW > 0 && canInteract && callbacks?.onItemCreate && (
+          <div style={{
+            position: 'sticky',
+            bottom: 0,
+            width: sidebarW,
+            padding: '2px 8px',
+            borderTop: '1px solid #e0e0e0',
+            background: '#f5f5f5',
+            fontSize: 10,
+            color: '#aaa',
+            textAlign: 'center',
+            boxSizing: 'border-box',
+            zIndex: 5,
+          }}>
+            Shift + drag to create
+          </div>
+        )}
       </div>
+
     </div>
   );
 });

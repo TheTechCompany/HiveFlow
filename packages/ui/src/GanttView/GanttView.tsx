@@ -78,7 +78,28 @@ export const GanttView: React.FC<GanttViewProps> = ({
               borderRight: '1px solid #d0d0d0',
             }}
           >
-            {sidebar}
+            <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+              {sidebar}
+            </Box>
+            {!readonly && callbacks?.onItemCreate && (
+              <Box
+                sx={{
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '2px 8px',
+                  borderTop: '1px solid #e0e0e0',
+                  background: '#f5f5f5',
+                  fontSize: 10,
+                  color: '#aaa',
+                  userSelect: 'none',
+                  minHeight: 22,
+                }}
+              >
+                Shift + drag to create
+              </Box>
+            )}
           </Box>
 
           {/* Timeline column */}
