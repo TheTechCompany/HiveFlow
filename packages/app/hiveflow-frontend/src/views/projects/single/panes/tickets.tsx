@@ -196,9 +196,11 @@ export const TicketsPane: React.FC = () => {
       KANBAN_STATUSES.map((status) => {
         const rows: KanbanRow[] = (tasks ?? [])
           .filter((t) => t.status === status)
-          .sort((a, b) =>
-            (a.columnRank ?? '').localeCompare(b.columnRank ?? ''),
-          )
+          .sort((a, b) => {
+            const ra = a.columnRank ?? '';
+            const rb = b.columnRank ?? '';
+            return ra < rb ? -1 : ra > rb ? 1 : 0;
+          })
           .map((t) => ({
             id: t.id,
             title: t.title ?? t.name,
@@ -230,7 +232,13 @@ export const TicketsPane: React.FC = () => {
   // ── Gantt: tree-ordered groups, items & links ──────────────────
 
   const { ganttGroups, timelineItems, timelineLinks, ganttRows } = useMemo(() => {
-    const allActive = (tasks ?? []).filter((t) => t.status !== 'Finished');
+    const allActive = (tasks ?? [])
+      .filter((t) => t.status !== 'Finished')
+      .sort((a: any, b: any) => {
+        const ra = a.timelineRank ?? '';
+        const rb = b.timelineRank ?? '';
+        return ra < rb ? -1 : ra > rb ? 1 : 0;
+      });
 
     // Build parent → children map
     const childrenByParent = new Map<string, any[]>();
@@ -704,8 +712,6 @@ export const TicketsPane: React.FC = () => {
     (columnId: string) => {
       createTask?.({
         status: columnId,
-        start: new Date(),
-        end: new Date(),
       });
     },
     [createTask],
@@ -732,17 +738,9 @@ export const TicketsPane: React.FC = () => {
   const handleGanttSelect = useCallback(
     (sel: { itemIds: string[]; linkIds: string[] }) => {
       if (sel.linkIds.length > 0) return;
-      if (sel.itemIds.length === 0) return;
-      const task = tasks.find((t: any) => t.id === sel.itemIds[0]);
-      if (task) {
-        updateTask?.({
-          ...task,
-          start: task.startDate ? new Date(task.startDate) : undefined,
-          end: task.endDate ? new Date(task.endDate) : undefined,
-        });
-      }
+      // Visual selection only — double-click opens the modal via onItemDoubleClick
     },
-    [tasks, updateTask],
+    [],
   );
 
   const handleGanttItemCreate = useCallback(

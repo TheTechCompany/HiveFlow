@@ -18,7 +18,9 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  FormControl,
   IconButton,
+  InputLabel,
   MenuItem,
   Select,
   Tab,
@@ -54,18 +56,6 @@ const emptyTask = (): TaskData => ({
   endDate: '',
 });
 
-/** True when the task has meaningful data (not just an empty shell). */
-function hasData(t: TaskData | undefined): boolean {
-  if (t == null) return false;
-  return (
-    !!t.title ||
-    !!t.description ||
-    !!t.status ||
-    !!t.startDate ||
-    !!t.endDate
-  );
-}
-
 /** Format an ISO date (YYYY-MM-DD) for display as dd/mm/yyyy. */
 function formatDate(iso: string | undefined): string {
   if (!iso) return '—';
@@ -85,6 +75,7 @@ const DefaultDateField: React.FC<{
 }> = ({ label, value, onChange, autoFocus, onBlur }) => (
   <TextField
     size="small"
+    fullWidth
     type="date"
     label={label}
     autoFocus={autoFocus}
@@ -173,8 +164,8 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
   // Sidebar
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Is this a "create" flow? (no existing data)
-  const isCreate = !hasData(taskProp);
+  // Is this a "create" flow? (no existing id)
+  const isCreate = !taskProp?.id;
 
   // ── Sync with external task prop ───────────────────────────────
 
@@ -223,19 +214,24 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
     [],
   );
 
-  const editable = (name: string) => activeField === name;
+  const editable = (name: string) => isCreate || activeField === name;
   const openField = (name: string) => {
+    if (isCreate) return; // all fields already editable — natural click focus is enough
     setActiveField(name);
-    if (!isCreate) setDirty(true);
+    setDirty(true);
   };
 
   // ── Actions ────────────────────────────────────────────────────
 
   const handleCancel = useCallback(() => {
-    setTask(taskProp ?? emptyTask());
-    setActiveField(null);
-    setDirty(false);
-  }, [taskProp]);
+    if (isCreate) {
+      onClose();
+    } else {
+      setTask(taskProp ?? emptyTask());
+      setActiveField(null);
+      setDirty(false);
+    }
+  }, [taskProp, isCreate, onClose]);
 
   const handleSubmit = async () => {
     if (!onSubmit) return;
@@ -261,8 +257,8 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
 
   // ── Derived ────────────────────────────────────────────────────
 
-  const isEditing = activeField !== null || isCreate;
-  const showDelete = hasData(taskProp) && onDelete;
+  const isEditing = activeField !== null || isCreate || dirty;
+  const showDelete = !!taskProp?.id && onDelete;
   const headerTitle =
     titleOverride ?? (isCreate ? 'New Task' : 'Task Details');
   const sidebarBadge = sidebar?.reduce(
@@ -322,7 +318,6 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
           </Box>
         </Box>
       </DialogTitle>
-      <Divider />
 
       {/* ── Body: form + optional sidebar ──────────────────────── */}
       <Box sx={{ display: 'flex', flex: 1, minHeight: 0 }}>
@@ -333,8 +328,6 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
             display: 'flex',
             flexDirection: 'column',
             gap: 2,
-            pt: 2,
-            pb: 1,
             transition: 'flex 0.25s ease',
           }}
         >
@@ -357,9 +350,9 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
                   if (e.key === 'Enter') setActiveField(null);
                 }}
                 InputProps={{
-                  startAdornment: (
-                    <Label sx={{ mr: 1, color: 'text.secondary' }} />
-                  ),
+                  // startAdornment: (
+                  //   <Label sx={{ mr: 1, color: 'text.secondary' }} />
+                  // ),
                 }}
               />
             ) : (
@@ -425,31 +418,23 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
             />
           </Box>
 
-          {/* Status + Owner row */}
+          {/* Status row */}
           <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 1.5,
-            }}
+            onClick={() => openField('status')}
+            data-edit-field="status"
+            sx={{ cursor: 'pointer' }}
           >
-            {/* Status — click to edit */}
-            <Box
-              onClick={() => openField('status')}
-              data-edit-field="status"
-              sx={{ cursor: 'pointer' }}
-            >
-              {editable('status') ? (
+            {editable('status') ? (
+              <FormControl size="small" fullWidth>
+                <InputLabel>Status</InputLabel>
                 <Select
-                  size="small"
-                  autoFocus
                   value={task.status ?? 'Backlog'}
+                  label="Status"
                   onChange={(e: SelectChangeEvent) => {
                     handleField('status', e.target.value as TaskStatus);
                     setActiveField(null);
                   }}
                   onBlur={() => setActiveField(null)}
-                  fullWidth
                 >
                   {STATUSES.map((s) => (
                     <MenuItem key={s} value={s}>
@@ -457,48 +442,48 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
                     </MenuItem>
                   ))}
                 </Select>
-              ) : (
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Status
-                  </Typography>
-                  <Box
-                    sx={{
-                      mt: 0.25,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      '&:hover .edit-hint': { opacity: 1 },
-                    }}
-                  >
-                    <Chip
-                      label={task.status ?? '—'}
-                      size="small"
-                      sx={{
-                        bgcolor:
-                          STATUS_COLOUR[
-                            task.status as TaskStatus
-                          ] ?? '#9e9e9e',
-                        color: 'white',
-                      }}
-                    />
-                    <Edit
-                      className="edit-hint"
-                      sx={{
-                        fontSize: 14,
-                        color: 'text.disabled',
-                        opacity: 0,
-                        transition: 'opacity 0.15s',
-                      }}
-                    />
-                  </Box>
-                </Box>
-              )}
-            </Box>
-
-            {/* Owner / creator (injected) */}
-            {renderAfterStatus?.() ?? <Box />}
+              </FormControl>
+            ) : (
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  Status
+                </Typography>
+                <Box
+                  sx={{
+                    mt: 0.25,
+                    display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  '&:hover .edit-hint': { opacity: 1 },
+                }}
+              >
+                <Chip
+                  label={task.status ?? '—'}
+                  size="small"
+                  sx={{
+                    bgcolor:
+                      STATUS_COLOUR[
+                        task.status as TaskStatus
+                      ] ?? '#9e9e9e',
+                    color: 'white',
+                  }}
+                />
+                <Edit
+                  className="edit-hint"
+                  sx={{
+                    fontSize: 14,
+                    color: 'text.disabled',
+                    opacity: 0,
+                    transition: 'opacity 0.15s',
+                  }}
+                />
+              </Box>
+              </Box>
+            )}
           </Box>
+
+          {/* Owner / creator (injected) */}
+          {renderAfterStatus?.() ?? null}
 
           {/* Dates row */}
           {!hideDates && (
@@ -516,7 +501,7 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
 
               if (editable(key) && renderDateField) {
                 return (
-                  <Box key={key}>
+                  <Box key={key} sx={{ width: '100%' }}>
                     {renderDateField({
                       label,
                       value: task[key],
@@ -532,7 +517,7 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
                   key={key}
                   onClick={() => openField(key)}
                   data-edit-field={key}
-                  sx={{ cursor: 'pointer' }}
+                  sx={{ cursor: 'pointer', width: '100%' }}
                 >
                   <Typography variant="caption" color="text.secondary">
                     {label}
@@ -595,9 +580,10 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
       <Divider />
       <DialogActions
         sx={{
-          px: 3,
-          pb: 2,
+          // px: 3,
+          // pb: 2,
           display: 'flex',
+          alignItems: 'center',
           justifyContent:
             showDelete ? 'space-between' : 'flex-end',
         }}

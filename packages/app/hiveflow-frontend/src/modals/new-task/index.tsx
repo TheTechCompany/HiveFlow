@@ -6,7 +6,7 @@
 // projects, skills, subtasks, dependencies, dates) are injected through
 // render slots.
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   Add,
   Close,
@@ -63,6 +63,7 @@ interface DomainState {
 function toTaskData(selected: any): TaskData {
   if (!selected) return {};
   return {
+    id: selected.id ?? undefined,
     title: selected.title ?? '',
     description: selected.description ?? '',
     status: selected.status ?? 'Backlog',
@@ -162,6 +163,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     });
     setSubtasksOpen(false);
     // Auto-enable dates if the task already has them
+    // Auto-enable dates when the task has them (existing tasks or
+    // timeline/gantt creates where the user explicitly picked dates).
     setDatesEnabled(!!selected?.startDate || !!selected?.endDate);
   }, [selected]);
 
@@ -169,17 +172,23 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const handleSubmit = useCallback(
     async (taskData: TaskData) => {
       if (!onSubmit) return;
-      const merged = {
+      const merged: any = {
         ...selected,
         ...taskData,
         ...domain,
-        startDate: taskData.startDate
-          ? moment(taskData.startDate).toDate()
-          : undefined,
-        endDate: taskData.endDate
-          ? moment(taskData.endDate).toDate()
-          : undefined,
       };
+      // Only send dates when explicitly set — avoids accidentally
+      // clearing dates that are hidden or unchanged.
+      if (taskData.startDate) {
+        merged.startDate = moment(taskData.startDate).toDate();
+      } else {
+        delete merged.startDate;
+      }
+      if (taskData.endDate) {
+        merged.endDate = moment(taskData.endDate).toDate();
+      } else {
+        delete merged.endDate;
+      }
       await onSubmit(merged);
     },
     [onSubmit, selected, domain],
@@ -344,7 +353,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           onClick={() => setAddOptionalOpen(true)}
           sx={{ color: 'text.secondary', fontSize: '0.75rem' }}
         >
-          Add optional
+          Add / Remove
         </Button>
         <Menu
           anchorEl={addOptionalRef.current}
@@ -368,7 +377,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           >
             Time estimate
           </MenuItem>
-          {!datesEnabled && (
+          {!datesEnabled ? (
             <MenuItem
               dense
               onClick={() => {
@@ -376,7 +385,17 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 setAddOptionalOpen(false);
               }}
             >
-              Dates
+              Add dates
+            </MenuItem>
+          ) : (
+            <MenuItem
+              dense
+              onClick={() => {
+                setDatesEnabled(false);
+                setAddOptionalOpen(false);
+              }}
+            >
+              Remove dates
             </MenuItem>
           )}
         </Menu>
@@ -595,7 +614,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       onChange={(date) => {
         if (date) onChange(date.format('YYYY-MM-DD'));
       }}
-      slotProps={{ textField: { size: 'small', label } }}
+      slotProps={{ textField: { size: 'small', label, fullWidth: true } }}
     />
   );
 
@@ -604,7 +623,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   return (
     <TaskDialog
       open={open}
-      task={toTaskData(selected)}
+      task={useMemo(() => toTaskData(selected), [selected])}
       onClose={onClose}
       onSubmit={handleSubmit}
       onDelete={onDelete}

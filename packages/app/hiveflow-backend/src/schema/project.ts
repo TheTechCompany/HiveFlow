@@ -333,7 +333,7 @@ export default (prisma: PrismaClient) => {
 
                 let projectId;
                 if(args.input.projectId) {
-                    const p = await prisma.project.findFirst({ where: { displayId: args.input.projectId } })
+                    const p = await prisma.project.findFirst({ where: { displayId: args.input.projectId, organisation: context?.jwt?.organisation } })
                     projectId = p?.id
                 }
 
@@ -351,7 +351,8 @@ export default (prisma: PrismaClient) => {
                     let aboveRank = LexoRank.parse(aboveColumnRank || LexoRank.min().toString())
                     let belowRank = LexoRank.parse(belowColumnRank || LexoRank.max().toString())
                     nextRank = aboveRank.between(belowRank).toString();
-                }else if(args.input?.status){
+                }else if(args.input?.status && args.input.status !== rootTask.status){
+                    // Only recalculate rank when actually changing columns
                     const { columnRank } = await prisma.task.findFirst({
                         where: { projectId: rootTask?.projectId, status: args.input?.status },
                         orderBy: { columnRank: 'asc' }

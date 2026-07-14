@@ -1,5 +1,5 @@
 import { AvatarList } from '@hexhive/ui';
-import { Box, Checkbox, IconButton, Menu, MenuItem } from '@mui/material';
+import { Box, Checkbox, IconButton, Menu, MenuItem, TextField } from '@mui/material';
 import { Add } from '@mui/icons-material'
 import React, { useRef, useState } from 'react';
 
@@ -19,7 +19,13 @@ export interface MemberListProps {
 export const MemberList : React.FC<MemberListProps> = (props) => {
     const addRef = useRef<any>();
     const [ open, setOpen ] = useState(false)
+    const [ search, setSearch ] = useState('')
     const editable = props.editable !== false; // default true
+
+    const filtered = search
+        ? (props.data ?? []).filter((m) =>
+            (m.name ?? '').toLowerCase().includes(search.toLowerCase()))
+        : (props.data ?? []);
 
     return (
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -27,13 +33,16 @@ export const MemberList : React.FC<MemberListProps> = (props) => {
             {editable && (
               <>
                 <IconButton 
-                    onClick={() => setOpen(true)}
+                    onClick={() => { setOpen(true); setSearch(''); }}
                     ref={addRef}
                     sx={{ color: 'inherit' }} size="small">
                     <Add />
                 </IconButton>
                 <Menu
-                    sx={{ '& .MuiPaper-root': {maxHeight: '200px',  overflow: 'auto',}}}
+                    sx={{
+                      '& .MuiPaper-root': { maxHeight: '300px', overflow: 'auto' },
+                      '& .MuiList-root': { pt: 0 },
+                    }}
                     anchorEl={addRef.current}
                     anchorOrigin={{
                         vertical: 'bottom',
@@ -46,7 +55,20 @@ export const MemberList : React.FC<MemberListProps> = (props) => {
                     open={open}
                     onClose={() => setOpen(false)}
                     >
-                    {props.data?.map((item) => (
+                    <Box sx={{ px: 1.5, pt: 0.75, pb: 0.5, position: 'sticky', top: 0, bgcolor: '#fff', zIndex: 1 }}>
+                      <TextField
+                        variant="standard"
+                        size="small"
+                        placeholder="Search members…"
+                        autoFocus
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        fullWidth
+                      />
+                    </Box>
+                    {filtered.map((item) => (
                         <MenuItem 
                         dense    
                         sx={{padding: '6px'}}

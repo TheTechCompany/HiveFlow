@@ -24,9 +24,11 @@ export const KanbanPane: React.FC = () => {
       KANBAN_STATUSES.map((status) => {
         const rows: KanbanRow[] = (tasks ?? [])
           .filter((t) => t.status === status)
-          .sort((a, b) =>
-            (a.columnRank ?? '').localeCompare(b.columnRank ?? ''),
-          )
+          .sort((a, b) => {
+            const ra = a.columnRank ?? '';
+            const rb = b.columnRank ?? '';
+            return ra < rb ? -1 : ra > rb ? 1 : 0;
+          })
           .map((t) => ({
             id: t.id,
             title: t.title ?? t.name,
@@ -70,8 +72,6 @@ export const KanbanPane: React.FC = () => {
   const handleCreateCard = (columnId: string) => {
     createTask?.({
       status: columnId,
-      start: new Date(),
-      end: new Date(),
     });
   };
 
