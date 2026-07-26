@@ -88,6 +88,7 @@ export const EstimateModal: React.FC<EstimateModalProps> = (props) => {
                         label='Name' />
 
                     <Autocomplete
+                        fullWidth
                         sx={{ marginBottom: '6px' }}
                         options={estimateStatusList}
                         // freeSolo

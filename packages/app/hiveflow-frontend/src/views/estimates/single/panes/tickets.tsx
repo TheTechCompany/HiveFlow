@@ -137,8 +137,8 @@ export const TicketsPane: React.FC = () => {
         input: {
           title,
           status: 'Backlog',
-          startDate: newTaskStart ? new Date(newTaskStart) : new Date(),
-          endDate: newTaskEnd ? new Date(newTaskEnd) : new Date(),
+          ...(newTaskStart && { startDate: new Date(newTaskStart) }),
+          ...(newTaskEnd && { endDate: new Date(newTaskEnd) }),
           estimateId,
         },
       },
@@ -706,8 +706,6 @@ export const TicketsPane: React.FC = () => {
     (columnId: string) => {
       createTask?.({
         status: columnId,
-        start: new Date(),
-        end: new Date(),
       });
     },
     [createTask],

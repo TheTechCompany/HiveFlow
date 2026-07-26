@@ -156,7 +156,7 @@ export default (prisma: PrismaClient) => {
         },
         Estimate: {
             tasks: async (root: any) => {
-                return prisma.task.findMany({
+                const tasks = await prisma.task.findMany({
                     where: { estimateId: root.id },
                     include: {
                         dependencyOf: true,
@@ -165,6 +165,11 @@ export default (prisma: PrismaClient) => {
                         parent: true,
                     },
                 });
+                return tasks.map((task: any) => ({
+                    ...task,
+                    createdBy: task.createdBy ? { id: task.createdBy } : undefined,
+                    members: task.members?.map((member: string) => ({ id: member })),
+                }));
             },
         },
         EstimateLineItem: {
