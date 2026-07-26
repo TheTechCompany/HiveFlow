@@ -37,7 +37,8 @@ export const QuoteHeader : React.FC<QuoteHeaderProps> = (props) => {
         >
 
 
-        <FormControl  
+        <FormControl
+            fullWidth
             value={props.filter?.status}
             onChange={({option}) => props.onFilterChange?.({search: props.filter?.search, status: option })}
             labelKey="label"
